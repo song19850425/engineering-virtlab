@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>爆炸极限测定实验室</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='9' fill='%2311151d' stroke='%23ffb020'/%3E%3Cpath d='M8 16l4-6 3 4 2-3' stroke='%23ff5252' fill='none'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes dashFlow{to{stroke-dashoffset:-20}}
+.flowline{stroke-dasharray:7 5;animation:dashFlow 1.1s linear infinite}
+@keyframes spark{0%,100%{opacity:.1}50%{opacity:1}}
+.spark{animation:spark .18s linear infinite}
+@keyframes boom{0%{filter:brightness(1)}35%{filter:brightness(2.6)}100%{filter:brightness(1)}}
+.boom{animation:boom .5s ease}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px;cursor:crosshair}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric.warn .v{color:var(--danger)}
+.metric.good .v{color:var(--ok)}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.kv-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media (max-width:600px){.kv-grid{grid-template-columns:1fr}}
+.kv{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.kv .k{font-size:11px;color:var(--faint)}
+.kv .v{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--txt);margin-top:2px}
+.kv .v em{font-style:normal;color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.spec-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+.spec-table th{font-size:11px;color:var(--faint);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);letter-spacing:.1em}
+.spec-table td{padding:9px 10px;border-bottom:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:13px}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader,#rp{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在标定爆炸极限…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">SAFETY · VIRTUAL LAB 01</div>
+    <div class="kicker">安全工程 · 燃烧爆炸 · 可燃气体</div>
+    <h1 class="title">爆炸极限<span class="thin">实验室</span></h1>
+    <div class="sub">EXPLOSION LIMIT LAB · LEL / UEL</div>
+    <p class="oneliner"><b>浓度在 LEL 和 UEL 之间，一点火就爆——为什么高于 UEL 也危险？</b>配气、点火、判定，爆炸区间一眼看清。<br>常压 · 常温 · 混合气 Le Chatelier 定律。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 装置检查</span></h3>
+      <svg class="scene" id="rig" viewBox="0 0 420 190" role="img" aria-label="爆炸极限测定装置示意">
+        <defs>
+          <linearGradient id="ballG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1b2434"/><stop offset="1" stop-color="#0e1320"/></linearGradient>
+          <radialGradient id="flameG" cx=".5" cy=".7" r=".6"><stop offset="0" stop-color="#fff3c4"/><stop offset=".4" stop-color="#ffb020"/><stop offset="1" stop-color="#ff5252" stop-opacity="0"/></radialGradient>
+        </defs>
+        <circle cx="210" cy="92" r="58" fill="url(#ballG)" stroke="#59d6ff" stroke-width="2" id="ballBody"/>
+        <text x="210" y="96" text-anchor="middle" fill="#59d6ff" font-size="11" font-family="inherit">爆炸球</text>
+        <text x="210" y="112" text-anchor="middle" fill="#8b95a3" font-size="9" font-family="inherit" id="ballMix">甲烷 8.5 %</text>
+        <path d="M152 92 L128 92" stroke="#5b6572" stroke-width="3"/>
+        <rect x="112" y="84" width="16" height="16" rx="2" fill="#151b25" stroke="#3ddc84" stroke-width="1.5"/>
+        <text x="92" y="97" fill="#3ddc84" font-size="9" font-family="inherit">进气阀</text>
+        <line x1="268" y1="78" x2="300" y2="62" stroke="#5b6572" stroke-width="2.5"/>
+        <line x1="268" y1="106" x2="300" y2="122" stroke="#5b6572" stroke-width="2.5"/>
+        <circle cx="306" cy="58" r="4" fill="#ffb020" class="spark" style="animation-play-state:paused" id="sparkA"/>
+        <circle cx="306" cy="126" r="4" fill="#ffb020" class="spark" style="animation-play-state:paused" id="sparkB"/>
+        <text x="326" y="92" fill="#ffb020" font-size="10" font-family="inherit" id="ignLabel">点火电极</text>
+        <rect x="14" y="166" width="392" height="14" rx="7" fill="#151b25" stroke="#232b38"/>
+        <rect id="band" x="14" y="166" width="0" height="14" rx="7" fill="#ff5252" opacity=".55"/>
+        <polygon id="marker" points="0,-7 5,2 -5,2" fill="#ffb020" transform="translate(14,173)"/>
+        <text x="14" y="158" fill="#8b95a3" font-size="9" font-family="inherit" id="scaleMin">0</text>
+        <text x="406" y="158" text-anchor="end" fill="#8b95a3" font-size="9" font-family="inherit" id="scaleMax">30%</text>
+        <text x="210" y="192" text-anchor="middle" fill="#5b6572" font-size="9" font-family="inherit">浓度标尺（vol%，上限按气体 UEL 自适应）</text>
+      </svg>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">重新标定</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">气体浓度 C</div><div class="v" id="mC">–<small>vol%</small></div><div class="sub2">爆炸球内混合气</div></div>
+          <div class="metric" id="mLeL"><div class="k">爆炸下限 LEL</div><div class="v" id="mLel">–<small>vol%</small></div><div class="sub2">低于它：贫燃不爆</div></div>
+          <div class="metric" id="mUeL"><div class="k">爆炸上限 UEL</div><div class="v" id="mUel">–<small>vol%</small></div><div class="sub2">高于它：富燃不爆</div></div>
+          <div class="metric" id="mZone"><div class="k">爆炸区间判定</div><div class="v" id="mZoneV">–</div><div class="sub2" id="mZoneSub">–</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">可燃气体</span><span class="val" id="gasVal">甲烷</span></div>
+          <div class="seg" id="gasSeg">
+            <button data-v="甲烷" class="on">甲烷<small>LEL 5.0</small></button>
+            <button data-v="氢气">氢气<small>LEL 4.0</small></button>
+            <button data-v="丙烷">丙烷<small>LEL 2.1</small></button>
+            <button data-v="一氧化碳">一氧化碳<small>LEL 12.5</small></button>
+          </div>
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">混合浓度 C</span><span class="val" id="cVal">8.5%</span></div>
+          <input type="range" id="cRange" min="0" max="30" step="0.1" value="8.5">
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>判定结论 · 爆炸极限测定（常压 · 常温）</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">判定结果</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">换条件再试</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · UEL 以上不是安全区</div><div class="d">高于 UEL 只是"此刻"氧不足不爆；通风、置换、稀释过程中浓度必然跌回爆炸区间——动火前必须检测+惰化+置换（GB 30871），而不是凭 UEL 判断安全。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · 极限随条件漂移</div><div class="d">温度升高 LEL 下降、UEL 上升（区间变宽）；压力升高 UEL 上升；惰性气体（N₂、CO₂）收窄区间。本实验固定常温常压，工程上必须按工况修正。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · 混合气用 Le Chatelier</div><div class="d">多元混合气不能只看单一组分：LEL_mix = 1/Σ(yᵢ/LELᵢ)。两种"各自不爆"的气体混一起可能爆；检测报警器必须按混合气口径标定。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">爆炸极限定义：LEL / UEL（vol%），在 LEL ≤ C ≤ UEL 内遇点火源即爆
+常用气体（常压常温，教科书通用值）：
+  甲烷 CH₄：LEL 5.0 / UEL 15.0      氢气 H₂：LEL 4.0 / UEL 75.0
+  丙烷 C₃H₈：LEL 2.1 / UEL 9.5      一氧化碳 CO：LEL 12.5 / UEL 74.0
+混合气（Le Chatelier 定律）：
+  LEL_mix = 1 / Σ(yᵢ / LELᵢ)        UEL_mix = 1 / Σ(yᵢ / UELᵢ)
+判定：
+  C < LEL  → 贫燃区（不爆，但稀释必经爆炸区）
+  LEL ≤ C ≤ UEL → 爆炸区（点火即爆）
+  C > UEL  → 富燃区（不爆，稀释回跌仍危险）
+本页为确定性演示：浓度、气体种类全部可调，判定与教科书一致。</div>
+    <p>演示模型按可燃气体爆炸极限通用数据设定；动火作业安全距离、检测报警设定值须按 GB 30871、GB 50493 及现场工艺文件执行。教学演示用，不作为工程依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性） ============ */
+const GASES = {
+  "甲烷":      { lel: 5.0,  uel: 15.0, max: 30,  formula: "CH₄" },
+  "氢气":      { lel: 4.0,  uel: 75.0, max: 90,  formula: "H₂" },
+  "丙烷":      { lel: 2.1,  uel: 9.5,  max: 20,  formula: "C₃H₈" },
+  "一氧化碳":  { lel: 12.5, uel: 74.0, max: 90,  formula: "CO" }
+};
+let P = { gas: "甲烷", c: 8.5, ignited: false };
+const $ = id => document.getElementById(id);
+
+/* ============ 判定 ============ */
+function verdict(){
+  const g = GASES[P.gas];
+  if (P.c < g.lel) return { state: "贫燃区", txt: "低于 LEL，点火不爆——但通风稀释过程浓度必经爆炸区间，不是安全浓度", cls: "ok" };
+  if (P.c <= g.uel) return { state: "爆炸区", txt: "浓度在 LEL–UEL 之间，点火即爆——这就是动火作业必须检测+置换的原因", cls: "bad" };
+  return { state: "富燃区", txt: "高于 UEL，氧不足此刻不爆——稀释回跌时必然经过爆炸区，仍属危险浓度", cls: "warn" };
+}
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  { t: "装置检查", s: "气密性检查：抽真空至 -80 kPa，5 分钟压降 &lt;0.5 kPa，合格方可配气。", bench: "检查项：\n① 爆炸球气密（压降 &lt;0.5 kPa/5min）\n② 进气阀/排空阀开关正常\n③ 点火电极间距 3–4 mm\n全部合格，进入配气。" },
+  { t: "配气", s: "设定气体种类与浓度，本页用分压法近似配气（工程上按 Dalton 分压定律计量）。", bench: "" },
+  { t: "点火", s: "点火电极放电（火花能量 &gt;最小点火能），观察球内是否爆燃。", bench: "" },
+  { t: "判定", s: "按 C 与 LEL/UEL 关系给出判定。", bench: "" },
+  { t: "报告", s: "整理结论：爆炸区间、安全裕度、动火前检测要点。", bench: "" }
+];
+let step = 0;
+
+function renderSeg(){
+  const el = $("stepSeg");
+  el.innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" class="${i < step ? "done" : i === step ? "on" : ""}">${i + 1} · ${s.t}<small>${i < step ? "已通过" : i === step ? "进行中" : "待执行"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => jumpTo(+b.dataset.i));
+  $("sceneTitle").textContent = `${step + 1} · ${STEPS[step].t}`;
+  $("actBtn").textContent = step >= 4 ? "完成" : (step === 2 ? "点火！" : "下一步");
+  const b = $("bench"); b.innerHTML = "";
+  if (STEPS[step].bench){
+    const pre = document.createElement("pre");
+    pre.style.cssText = "white-space:pre-wrap;font-family:var(--mono);font-size:12.5px;color:var(--dim);line-height:1.9;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:12px 14px";
+    pre.textContent = STEPS[step].bench;
+    b.appendChild(pre);
+  } else if (step === 2){
+    b.innerHTML = `<div class="tipbox"><b>点火确认</b>：火花能量必须高于该气体最小点火能。甲烷最小点火能约 0.28 mJ——静电、扳手撞击火花都远超此值。<span class="warnline">点击「点火！」观察结果。</span></div>`;
+  }
+}
+
+function jumpTo(i){
+  if (i > step) return;                 // 只能回看已通过的步骤
+  step = i; renderSeg(); narrate();
+}
+
+/* ============ 渲染 ============ */
+function narrate(){
+  const g = GASES[P.gas], v = verdict();
+  const n = $("narrate");
+  if (step === 0) n.innerHTML = STEPS[0].s;
+  else if (step === 1) n.innerHTML = `已选择 <b>${P.gas}（${g.formula}）</b>，当前浓度 <b>${P.c.toFixed(1)} vol%</b>，LEL=${g.lel}%、UEL=${g.uel}%。拖动滑块换浓度，进入点火前先预判：<span class="${v.cls}">${v.state}</span>`;
+  else if (step === 2) n.innerHTML = `点火电极放电——浓度 ${P.c.toFixed(1)}% 处在${P.c < g.lel ? "贫燃区（低于 LEL）" : P.c <= g.uel ? "<span class='warn'>爆炸区</span>" : "富燃区（高于 UEL）"}。`;
+  else if (step === 3) n.innerHTML = `<span class="${v.cls}">${v.state}</span>：${v.txt}`;
+  else n.innerHTML = `实验结论：${P.gas} 的爆炸区间为 <b>${g.lel}% – ${g.uel}%</b>，当前浓度 ${P.c.toFixed(1)}% 处于${v.state}。${v.state === "爆炸区" ? "<span class='warn'>此浓度严禁动火，先置换再作业。</span>" : v.state === "富燃区" ? "<span class='warnline'>稀释回跌时仍危险。</span>" : "低于 LEL 属安全裕度方向，但通风路径要避开爆炸区。"}`;
+}
+
+function flash(id){
+  const m = $(id); if(!m) return;
+  m.classList.remove("flash"); void m.offsetWidth; m.classList.add("flash");
+}
+
+function refreshMetrics(){
+  const g = GASES[P.gas], v = verdict();
+  $("mC").textContent = P.c.toFixed(1); $("mC").classList.toggle("warn", P.c >= g.lel && P.c <= g.uel);
+  $("mLel").textContent = g.lel.toFixed(1);
+  $("mUel").textContent = g.uel.toFixed(1);
+  $("mZoneV").textContent = v.state;
+  $("mZoneV").style.color = v.cls === "bad" ? "#ff5252" : v.cls === "ok" ? "#3ddc84" : "#ffb020";
+  $("mZoneSub").textContent = v.txt.length > 18 ? v.txt.slice(0, 18) + "…" : v.txt;
+  $("ballMix").textContent = `${P.gas} ${P.c.toFixed(1)} %`;
+  // 浓度标尺
+  const g2 = GASES[P.gas], W = 392, x0 = 14;
+  const xOf = c => x0 + c / g2.max * W;
+  $("band").setAttribute("x", xOf(g2.lel));
+  $("band").setAttribute("width", Math.max(0, xOf(g2.uel) - xOf(g2.lel)));
+  $("marker").setAttribute("transform", `translate(${xOf(Math.min(P.c, g2.max))},173)`);
+  $("scaleMax").textContent = g2.max + "%";
+  flash("mC"); flash("mZone");
+}
+
+function igniteFx(){
+  const on = step >= 2 && !$("conclusionCard").style.display;
+  $("sparkA").style.animationPlayState = "running";
+  $("sparkB").style.animationPlayState = "running";
+  const v = verdict();
+  if (v.cls === "bad"){
+    $("ballBody").classList.remove("boom"); void $("ballBody").offsetWidth; $("ballBody").classList.add("boom");
+    $("ballBody").setAttribute("stroke", "#ff5252");
+  } else {
+    $("ballBody").setAttribute("stroke", v.cls === "ok" ? "#3ddc84" : "#ffb020");
+  }
+}
+
+/* ============ 动作 ============ */
+$("actBtn").onclick = () => {
+  if (step === 2){ P.ignited = true; igniteFx(); narrate(); }
+  if (step < 4) step++;
+  if (step === 3){ renderConclusion(); }
+  renderSeg(); narrate();
+};
+$("resetBtn").onclick = resetAll;
+function resetAll(){
+  P.c = 8.5; P.gas = "甲烷"; P.ignited = false; step = 0;
+  $("gasSeg").children[0].className = "on";
+  [...$("gasSeg").children].forEach((b, i) => b.className = i === 0 ? "on" : "");
+  $("cRange").value = 8.5;
+  $("ballBody").setAttribute("stroke", "#59d6ff");
+  $("sparkA").style.animationPlayState = "paused";
+  $("sparkB").style.animationPlayState = "paused";
+  $("conclusionCard").style.display = "none";
+  renderSeg(); refreshMetrics(); narrate();
+}
+function pickGas(i){
+  [...$("gasSeg").children].forEach((x, j) => x.className = j === i ? "on" : "");
+  const b = $("gasSeg").children[i];
+  P.gas = b.dataset.v;
+  $("gasVal").textContent = b.dataset.v;
+  const g = GASES[P.gas];
+  $("cRange").max = g.max;
+  $("cRange").value = Math.min(P.c, g.max); P.c = +$("cRange").value;
+  refreshMetrics(); narrate();
+}
+[...$("gasSeg").children].forEach((b, i) => b.onclick = () => pickGas(i));
+$("cRange").oninput = e => {
+  P.c = +e.target.value;
+  $("cVal").textContent = P.c.toFixed(1) + "%";
+  if (step === 1){ narrate(); }
+  refreshMetrics();
+};
+
+function renderConclusion(){
+  const g = GASES[P.gas], v = verdict();
+  $("conclusionCard").style.display = "";
+  $("resBig").textContent = v.state;
+  $("resUnit").textContent = `${P.gas} · C=${P.c.toFixed(1)}% · LEL=${g.lel}% UEL=${g.uel}%`;
+  $("resState").textContent = v.cls === "bad" ? "点火即爆 · 严禁动火" : v.cls === "ok" ? "贫燃不爆 · 仍需防稀释" : "富燃不爆 · 回跌危险";
+  $("concText").innerHTML = `<b>${P.gas}（${g.formula}）</b> 爆炸区间 <b>${g.lel}% – ${g.uel}%</b>。当前浓度 ${P.c.toFixed(1)}% → <span class="${v.cls === "bad" ? "bad" : "good"}">${v.state}</span>。<br>${v.txt}。${v.state === "爆炸区" ? "<br><span class='bad'>作业要求：按 GB 30871 办理动火许可，可燃气体浓度 &lt;LEL 的 20%（爆炸下限大于 4% 时）方可动火。</span>" : v.state === "富燃区" ? "<br><span class='bad'>通风稀释必经爆炸区，严禁直接排入有火源的区域。</span>" : "<br>该浓度可作为动火前合格参考，但仍需全程检测。"}`;
+}
+
+/* ============ 初始化 ============ */
+window.addEventListener("load", () => {
+  setTimeout(() => $("loader").classList.add("done"), 700);
+  renderSeg(); refreshMetrics(); narrate();
+});
+</script>
+</body>
+</html>

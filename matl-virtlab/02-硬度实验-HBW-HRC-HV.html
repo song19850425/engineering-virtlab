@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>硬度实验实验室</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 20V10h4v10M16 20V10h4v10M12 14v6' stroke='%2359d6ff' stroke-width='1.6'/%3E%3Cpath d='M12 3l2 3h-1v8h-2V6h-1z' fill='%23ffb020'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes press{0%,100%{transform:translateY(0)}50%{transform:translateY(16px)}}
+.indenter{animation:press 2.6s ease-in-out infinite}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px;cursor:crosshair}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.spec-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+.spec-table th{font-size:11px;color:var(--faint);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);letter-spacing:.1em}
+.spec-table td{padding:9px 10px;border-bottom:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:13px}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader,#rp{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在校平硬度计…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">MATL · VIRTUAL LAB 02</div>
+    <div class="kicker">材料科学与工程 · 力学性能 · 压痕硬度</div>
+    <h1 class="title">硬度实验<span class="thin">实验室</span></h1>
+    <div class="sub">HARDNESS TEST · HBW / HRC / HV</div>
+    <p class="oneliner"><b>压痕越浅，材料越硬——硬度就是把"抗压入能力"量化的数，而且它和强度有经验关系。</b>三种标尺、三种压头、换算着用。<br>布氏 HBW · 洛氏 HRC · 维氏 HV · σb≈3.45·HB · 压痕尺寸效应。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 选择标尺</span></h3>
+      <svg class="scene" id="rig" viewBox="0 0 420 190" role="img" aria-label="硬度计压入示意">
+        <rect x="30" y="16" width="360" height="26" rx="4" fill="#151b25" stroke="#8b95a3" stroke-width="1.5"/>
+        <g class="indenter">
+          <polygon id="indShape" points="210,42 200,66 220,66" fill="#ff8c2a"/>
+        </g>
+        <rect x="70" y="84" width="280" height="76" rx="4" fill="#1b2434" stroke="#59d6ff" stroke-width="2"/>
+        <text x="210" y="112" text-anchor="middle" fill="#59d6ff" font-size="9" font-family="inherit">试样</text>
+        <text x="210" y="130" text-anchor="middle" fill="#8b95a3" font-size="8" font-family="inherit" id="specTxt">低碳钢 · HRC 基准</text>
+        <path d="M70 160 L60 176 H80 Z" fill="#8b95a3"/><path d="M350 160 L340 176 H360 Z" fill="#8b95a3"/>
+        <text x="210" y="182" text-anchor="middle" fill="#5b6572" font-size="9" font-family="inherit">压头加载 → 压痕尺寸（深度/直径）→ 查表得硬度值</text>
+      </svg>
+      <canvas id="hdCanvas" width="820" height="420" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">重置</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">硬度值</div><div class="v" id="mH">–</div><div class="sub2" id="mHSub">–</div></div>
+          <div class="metric" id="mSc"><div class="k">估计抗拉强度</div><div class="v" id="mSb">–<small>MPa</small></div><div class="sub2">σb≈3.45·HB</div></div>
+          <div class="metric"><div class="k">压痕尺寸</div><div class="v" id="mD">–</div><div class="sub2" id="mDSub">–</div></div>
+          <div class="metric" id="mCc"><div class="k">适用性</div><div class="v" id="mC">–</div><div class="sub2" id="mCSub">–</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">硬度标尺</span><span class="val" id="modeVal">洛氏 HRC</span></div>
+          <div class="seg" id="modeSeg">
+            <button data-v="0">HBW<small>布氏钢球</small></button>
+            <button data-v="1" class="on">HRC<small>洛氏锥</small></button>
+            <button data-v="2">HV<small>维氏</small></button>
+          </div>
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">压痕尺寸</span><span class="val" id="imVal">0.050 mm</span></div>
+          <input type="range" id="imRange" min="0" max="100" step="1" value="50">
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>实验结论 · 硬度标尺与换算</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">（当前标尺硬度）</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">换标尺再测</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · 硬度不是万能指标</div><div class="d">HBW 压痕大、反映宏观性能，适合铸铁/有色；HRC 金刚石锥，太软(HRC<20)或太硬(>70)都不准；HV 小压痕适合薄层与硬化层。标尺选错，数值没有意义。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · 表面状态骗人</div><div class="d">脱碳层、氧化皮、粗糙度都让硬度偏低；薄板压穿或相邻压痕太近互相影响。测试面必须磨平、抛光亮，压痕间距≥3~4 倍压痕尺寸。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · 换算只是估计</div><div class="d">HRC↔HV↔HB 换算表基于大量统计（ASTM E140），不同材料体系偏差可达 5~10%；σb≈3.45·HB 对低碳钢适用、对铸铁/高合金偏差大。验收场合按原标尺验收，别换算后当真值。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">布氏（钢球 D=10 mm，F=3000 kgf）：
+  HBW = F / (π·D/2·(D − √(D²−d²)))，d=压痕直径 mm
+洛氏 C（金刚石圆锥，总载荷 150 kgf）：
+  HRC = 100 − h/0.002，h=压痕深度 mm（每 0.002 mm=1 HRC）
+维氏（136° 金刚石四棱锥）：
+  HV = 1.8544·F/d²，F=kgf，d=压痕对角线 mm
+经验换算（演示）：HV≈1.06·HB；HRC≈0.95·HV−50（HV≥240）；σb≈3.45·HB MPa
+典型值：低碳钢 HB≈130/HRC≈15/HV≈140；中碳钢 HB≈280/HRC≈28；
+  淬火钢 HRC≈55~60/HV≈600
+本页为确定性演示：标尺与压痕尺寸可调，硬度与换算可复算。</div>
+    <p>演示模型按 GB/T 231（布氏）、GB/T 230（洛氏）、GB/T 4340（维氏）原理设定；硬度换算为统计近似（ASTM E140 体系）。教学演示用，不作为材料验收依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性） ============ */
+// 压痕滑杆 0~100 → 各标尺映射
+let P = { mode: 1, im: 50 };
+const $ = id => document.getElementById(id);
+function imV(){
+  // 各标尺滑杆量程：HBW d=2~6mm；HRC h=0.06~0.17mm；HV d=0.08~0.35mm
+  const t = P.im / 100;
+  if (P.mode === 0) return 2 + t * 4;          // HBW d mm
+  if (P.mode === 1) return 0.06 + t * 0.11;    // HRC h mm
+  return 0.08 + t * 0.27;                      // HV d mm
+}
+function hardness(){
+  if (P.mode === 0){
+    const d = imV(), D = 10, F = 3000;
+    return F / (Math.PI * D / 2 * (D - Math.sqrt(D * D - d * d)));
+  }
+  if (P.mode === 1){
+    const h = imV();
+    return 100 - h / 0.002;
+  }
+  const d = imV(), F = 5;
+  return 1.8544 * F / (d * d);
+}
+function hbEq(){ // 换算到 HB 近似
+  const h = hardness();
+  if (P.mode === 0) return h;
+  if (P.mode === 1) return (h + 50) / 0.95;
+  return h / 1.06;
+}
+const sigBEst = () => 3.45 * hbEq();
+function suit(){
+  const h = hardness();
+  if (P.mode === 1 && (h < 20 || h > 70)) return "HRC 超出量程";
+  if (P.mode === 0 && (imV() > 6 || imV() < 2.5)) return "压痕超范围";
+  return "适用";
+}
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  { t: "选择标尺", s: "按材料选标尺：铸铁/有色→布氏 HBW；钢→洛氏 HRC；硬化层/薄板→维氏 HV。", bench: "准备：\n① 试样表面磨平抛光\n② 选标尺：HBW/HRC/HV\n③ 硬度计校准（标准块）\n④ 压痕间距 ≥3~4× 压痕" },
+  { t: "加载压入", s: "压头压入试样，保持规定时间后卸载，测量压痕尺寸。", bench: "" },
+  { t: "量压痕", s: "布氏量直径 d、洛氏量深度 h、维氏量对角线——本页用滑杆模拟。", bench: "" },
+  { t: "算硬度", s: "代入公式得 HBW/HRC/HV，查适用性。", bench: "" },
+  { t: "换算", s: "按经验换算 HV↔HRC↔HB，估计抗拉强度 σb≈3.45·HB。", bench: "" },
+  { t: "报告", s: "记录标尺、载荷、压痕与硬度值，注明测试条件。", bench: "" }
+];
+let step = 0;
+
+function renderSeg(){
+  const el = $("stepSeg");
+  el.innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" class="${i < step ? "done" : i === step ? "on" : ""}">${i + 1} · ${s.t}<small>${i < step ? "已通过" : i === step ? "进行中" : "待执行"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { if(+b.dataset.i <= step){ step = +b.dataset.i; renderSeg(); narrate(); } });
+  $("sceneTitle").textContent = `${step + 1} · ${STEPS[step].t}`;
+  $("actBtn").textContent = step >= 5 ? "完成" : "下一步";
+}
+function narrate(){
+  const n = $("narrate");
+  const h = hardness(), su = suit();
+  if (step <= 1) n.innerHTML = STEPS[step].s;
+  else if (step === 2) n.innerHTML = `压痕尺寸（${P.mode === 0 ? "直径" : P.mode === 1 ? "深度" : "对角线"}）=<b>${imV().toFixed(3)} mm</b>——压痕越小说明材料越抗压入，硬度越高。`;
+  else if (step === 3) n.innerHTML = `硬度=<b>${h.toFixed(0)} ${["HBW", "HRC", "HV"][P.mode]}</b>。${su === "适用" ? "<span class='ok'>在量程内。</span>" : "<span class='bad'>" + su + "——换标尺。</span>"}`;
+  else if (step === 4) n.innerHTML = `换算：HV≈${(h / 1.06).toFixed(0)}（HB 口径）→ σb≈<b>${sigBEst().toFixed(0)} MPa</b>。换算只做参考，验收按原标尺。`;
+  else if (step === 5) n.innerHTML = `参考：低碳钢 HB≈130/HRC≈15、中碳钢 HB≈280/HRC≈28、淬火钢 HRC≈55~60——对照当前 ${h.toFixed(0)} 判断材料状态。`;
+  else n.innerHTML = `报告：${["HBW", "HRC", "HV"][P.mode]}=${h.toFixed(0)}，压痕${P.mode === 0 ? "直径" : P.mode === 1 ? "深度" : "对角线"}${imV().toFixed(3)}mm，估计 σb≈${sigBEst().toFixed(0)} MPa。`;
+}
+function flash(id){
+  const el = $(id); if(!el) return;
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+function refreshMetrics(){
+  const h = hardness(), su = suit();
+  $("mH").textContent = h.toFixed(0);
+  $("mHSub").textContent = ["HBW", "HRC", "HV"][P.mode];
+  $("mSb").textContent = sigBEst().toFixed(0);
+  $("mD").textContent = imV().toFixed(3);
+  $("mDSub").textContent = P.mode === 0 ? "压痕直径 mm" : P.mode === 1 ? "压痕深度 mm" : "对角线 mm";
+  $("mC").textContent = su === "适用" ? "适用" : "注意";
+  $("mC").classList.toggle("good", su === "适用");
+  $("mC").classList.toggle("warn", su !== "适用");
+  $("mCSub").textContent = su === "适用" ? "量程内" : su;
+  $("specTxt").textContent = `试样 · ${["布氏", "洛氏", "维氏"][P.mode]}标尺`;
+  flash("mH"); flash("mSb"); flash("mD");
+}
+
+/* ============ Canvas 压痕 + 换算 ============ */
+const W_ = 820, H_ = 420;
+const cv = $("hdCanvas"), ctx = cv.getContext("2d");
+function drawCanvas(){
+  ctx.clearRect(0, 0, W_, H_);
+  const h = hardness();
+  // 左：压痕放大示意
+  const cx = 210, cy = 200;
+  ctx.fillStyle = "#8b95a3"; ctx.font = "13px -apple-system,Microsoft YaHei";
+  ctx.fillText("压痕俯视（放大）", 90, 36);
+  const scale = P.mode === 0 ? 28 : P.mode === 1 ? 900 : 320;
+  const sz = Math.max(6, Math.min(150, imV() * scale));
+  ctx.fillStyle = "#1b2434";
+  ctx.fillRect(cx - sz / 2 - 6, cy - sz / 2 - 6, sz + 12, sz + 12);
+  ctx.strokeStyle = "#232b38"; ctx.strokeRect(cx - sz / 2 - 6, cy - sz / 2 - 6, sz + 12, sz + 12);
+  if (P.mode === 0){
+    ctx.fillStyle = "#151b25"; ctx.beginPath(); ctx.arc(cx, cy, sz / 2, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#ff8c2a"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, sz / 2, 0, 7); ctx.stroke();
+    ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(cx - sz / 2 - 14, cy); ctx.lineTo(cx + sz / 2 + 14, cy); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = "#e8eef4"; ctx.font = "12px ui-monospace,monospace";
+    ctx.fillText(`d=${imV().toFixed(2)} mm`, cx - 20, cy + 34);
+  } else if (P.mode === 1){
+    ctx.fillStyle = "#151b25"; ctx.beginPath(); ctx.arc(cx, cy, sz / 2, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#ff8c2a"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, sz / 2, 0, 7); ctx.stroke();
+    ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(cx - sz / 2 - 14, cy); ctx.lineTo(cx + sz / 2 + 14, cy); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = "#e8eef4"; ctx.font = "12px ui-monospace,monospace";
+    ctx.fillText(`h=${imV().toFixed(3)} mm`, cx - 20, cy + 34);
+  } else {
+    ctx.strokeStyle = "#ff8c2a"; ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.moveTo(cx - sz / 2, cy - sz / 2); ctx.lineTo(cx + sz / 2, cy - sz / 2); ctx.lineTo(cx + sz / 2, cy + sz / 2); ctx.lineTo(cx - sz / 2, cy + sz / 2); ctx.closePath(); ctx.stroke();
+    ctx.fillStyle = "#151b25"; ctx.fillRect(cx - sz / 2 + 2, cy - sz / 2 + 2, sz - 4, sz - 4);
+    ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(cx - sz / 2 - 14, cy); ctx.lineTo(cx + sz / 2 + 14, cy); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = "#e8eef4"; ctx.font = "12px ui-monospace,monospace";
+    ctx.fillText(`d=${imV().toFixed(3)} mm`, cx - 20, cy + 34);
+  }
+  // 大字硬度
+  ctx.fillStyle = "#ffb020"; ctx.font = "48px ui-monospace,monospace";
+  ctx.fillText(h.toFixed(0), cx - 60, cy + 120);
+  ctx.fillStyle = "#8b95a3"; ctx.font = "14px -apple-system,Microsoft YaHei";
+  ctx.fillText(["HBW", "HRC", "HV"][P.mode], cx + 30, cy + 120);
+  ctx.fillStyle = "#5b6572"; ctx.font = "12px -apple-system,Microsoft YaHei";
+  ctx.fillText(`σb≈${sigBEst().toFixed(0)} MPa（3.45×HB 估计）`, cx - 110, cy + 146);
+  // 右：换算表
+  const rx = 460;
+  ctx.fillStyle = "#8b95a3"; ctx.font = "13px -apple-system,Microsoft YaHei";
+  ctx.fillText("硬度换算与典型值", rx, 40);
+  const rows = [
+    ["标尺", "当前", "低碳钢", "中碳钢", "淬火钢"],
+    ["HBW", hbEq().toFixed(0), "130", "280", "≈600"],
+    ["HRC", (P.mode === 1 ? h : Math.max(0, 0.95 * hbEq() - 50)).toFixed(0), "15", "28", "58"],
+    ["HV", (P.mode === 2 ? h : hbEq() * 1.06).toFixed(0), "140", "300", "640"],
+    ["σb(MPa)", sigBEst().toFixed(0), "450", "970", "2070"]
+  ];
+  ctx.font = "11.5px ui-monospace,monospace";
+  rows.forEach((r, ri) => {
+    const y = 60 + ri * 30;
+    ctx.fillStyle = ri === 0 ? "#5b6572" : ri === 1 ? "#ffb020" : "#e8eef4";
+    ctx.font = ri === 0 ? "11px -apple-system,Microsoft YaHei" : "12px ui-monospace,monospace";
+    r.forEach((v, ci) => ctx.fillText(v, rx + ci * 88, y));
+  });
+  // 适用性
+  const su = suit();
+  ctx.fillStyle = su === "适用" ? "#3ddc84" : "#ff5252"; ctx.font = "13px -apple-system,Microsoft YaHei";
+  ctx.fillText(su === "适用" ? "✓ 当前标尺适用" : "✕ " + su, rx, 60 + 5 * 30 + 10);
+  ctx.fillStyle = "#5b6572"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("压痕间距≥3~4×压痕 · 表面磨平抛光 · 换算仅参考", rx, 60 + 6 * 30 + 8);
+}
+
+/* ============ 动作 ============ */
+$("actBtn").onclick = () => {
+  if (step < 5) step++;
+  if (step === 4){ renderConclusion(); }
+  renderSeg(); narrate();
+};
+$("resetBtn").onclick = resetAll;
+function resetAll(){
+  P = { mode: 1, im: 50 };
+  step = 0;
+  [...$("modeSeg").children].forEach((x, i) => x.className = i === 1 ? "on" : "");
+  $("imRange").value = 50;
+  $("conclusionCard").style.display = "none";
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+}
+[...$("modeSeg").children].forEach((b, i) => b.onclick = () => {
+  [...$("modeSeg").children].forEach((x, j) => x.className = j === i ? "on" : "");
+  P.mode = i;
+  $("modeVal").textContent = ["布氏 HBW", "洛氏 HRC", "维氏 HV"][i];
+  refreshMetrics(); narrate(); drawCanvas();
+});
+$("imRange").oninput = e => {
+  P.im = +e.target.value;
+  const iv = imV();
+  $("imVal").textContent = iv.toFixed(3) + " mm";
+  refreshMetrics(); narrate(); drawCanvas();
+};
+function renderConclusion(){
+  const h = hardness(), su = suit();
+  $("conclusionCard").style.display = "";
+  $("resBig").textContent = h.toFixed(0);
+  $("resUnit").textContent = `（${["HBW", "HRC", "HV"][P.mode]}）· ${su === "适用" ? "适用" : su}`;
+  $("resState").textContent = `压痕${P.mode === 0 ? "直径" : P.mode === 1 ? "深度" : "对角线"}${imV().toFixed(3)} mm · σb≈${sigBEst().toFixed(0)} MPa`;
+  $("concText").innerHTML = `${["HBW", "HRC", "HV"][P.mode]}=<b>${h.toFixed(0)}</b>，换算 HV≈${(hbEq() * 1.06).toFixed(0)}、HRC≈${(0.95 * hbEq() - 50).toFixed(0)}，估计 σb≈<b>${sigBEst().toFixed(0)} MPa</b>。<br><span class='good'>硬度是"抗压入"指标，和强度强相关但本质不同</span>——验收按原标尺，换算只参考。<br>标尺选择：<b>铸铁/有色用 HBW、钢用 HRC、薄层/硬化层用 HV</b>；脱碳/氧化/粗糙面硬度偏低，压痕间距要够。<br>参考：低碳钢 HRC≈15、中碳钢≈28、淬火钢≈55~60——对比判断热处理状态。`;
+}
+
+/* ============ 初始化 ============ */
+window.addEventListener("load", () => {
+  setTimeout(() => $("loader").classList.add("done"), 700);
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+});
+</script>
+</body>
+</html>

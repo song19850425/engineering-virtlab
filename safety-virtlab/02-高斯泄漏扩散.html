@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>高斯泄漏扩散实验室</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 18c3-4 6-4 9-8s6-4 9-8' stroke='%2359d6ff' fill='none' stroke-width='1.6'/%3E%3Ccircle cx='12' cy='12' r='6' fill='%23ff5252'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes dashFlow{to{stroke-dashoffset:-20}}
+.flowline{stroke-dasharray:7 5;animation:dashFlow 1.1s linear infinite}
+@keyframes leakPuff{0%{transform:translate(0,0);opacity:.75}100%{transform:translate(46px,0);opacity:0}}
+.puff{animation:leakPuff .9s linear infinite}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px;cursor:crosshair}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric.warn .v{color:var(--danger)}
+.metric.good .v{color:var(--ok)}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.spec-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+.spec-table th{font-size:11px;color:var(--faint);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);letter-spacing:.1em}
+.spec-table td{padding:9px 10px;border-bottom:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:13px}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader,#rp{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在标定大气稳定度…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">SAFETY · VIRTUAL LAB 02</div>
+    <div class="kicker">安全工程 · 泄漏扩散 · 职业卫生</div>
+    <h1 class="title">高斯泄漏<span class="thin">扩散实验室</span></h1>
+    <div class="sub">GAUSSIAN PLUME LAB · PASQUILL-GIFFORD</div>
+    <p class="oneliner"><b>同一泄漏，白天和夜晚后果差几十倍——</b>稳定度一变，烟羽扩散能力天差地别。算源强、看浓度剖面、划警戒区。<br>连续泄漏 · 地面源 · 高斯烟羽模型。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 装置检查</span></h3>
+      <svg class="scene" id="rig" viewBox="0 0 420 190" role="img" aria-label="储罐泄漏扩散示意">
+        <defs>
+          <linearGradient id="tankG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b2434"/><stop offset="1" stop-color="#0e1320"/></linearGradient>
+          <linearGradient id="plumeG" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff5252" stop-opacity=".55"/><stop offset="1" stop-color="#ff5252" stop-opacity=".02"/></linearGradient>
+        </defs>
+        <rect x="10" y="60" width="70" height="100" rx="8" fill="url(#tankG)" stroke="#59d6ff" stroke-width="2"/>
+        <text x="45" y="112" text-anchor="middle" fill="#59d6ff" font-size="10" font-family="inherit" id="tankLabel">NH₃ 储罐</text>
+        <text x="45" y="126" text-anchor="middle" fill="#8b95a3" font-size="8" font-family="inherit" id="tankP">P=1.0 MPa</text>
+        <circle cx="84" cy="118" r="5" fill="#ff5252"/>
+        <text x="88" y="136" fill="#ff5252" font-size="9" font-family="inherit" id="leakLabel">泄漏口 d=20mm</text>
+        <path id="plume" d="M89 118 L400 118 L400 84 Q260 96 89 118 Z" fill="url(#plumeG)" stroke="#ff5252" stroke-width="1" opacity=".8"/>
+        <path d="M89 118 L400 118" stroke="#ff5252" stroke-width="1.5" stroke-dasharray="6 4" class="flowline" opacity=".8"/>
+        <circle cx="120" cy="112" r="3" fill="#fff" opacity=".8" class="puff"/>
+        <circle cx="140" cy="106" r="3" fill="#fff" opacity=".6" class="puff" style="animation-delay:.3s"/>
+        <circle cx="160" cy="110" r="3" fill="#fff" opacity=".5" class="puff" style="animation-delay:.6s"/>
+        <line id="lineTWA" x1="89" y1="112" x2="200" y2="112" stroke="#ffb020" stroke-width="1.5" stroke-dasharray="5 4" opacity=".7"/>
+        <text id="lineTWAL" x="204" y="116" fill="#ffb020" font-size="9" font-family="inherit">TWA</text>
+        <line id="lineIDLH" x1="89" y1="118" x2="120" y2="118" stroke="#ff5252" stroke-width="1.5" stroke-dasharray="5 4" opacity=".7"/>
+        <text id="lineIDLHL" x="124" y="104" fill="#ff5252" font-size="9" font-family="inherit">IDLH</text>
+        <text x="210" y="184" text-anchor="middle" fill="#5b6572" font-size="9" font-family="inherit">烟羽形态为示意，地面轴线浓度以下方曲线为准（下风向距离 0–2000 m）</text>
+      </svg>
+      <canvas id="concCanvas" width="820" height="420" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">重置工况</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">泄漏源强 Q</div><div class="v" id="mQ">–<small>kg/s</small></div><div class="sub2">小孔泄漏 · 音速流近似</div></div>
+          <div class="metric" id="mC100"><div class="k">下风向 100m 浓度</div><div class="v" id="mC100V">–<small>mg/m³</small></div><div class="sub2" id="mC100Sub">–</div></div>
+          <div class="metric" id="mTWA"><div class="k">TWA 超标距离</div><div class="v" id="mTWAx">–<small>m</small></div><div class="sub2" id="mTWASub">–</div></div>
+          <div class="metric" id="mIDLH"><div class="k">IDLH 危险区半径</div><div class="v" id="mIDLHx">–<small>m</small></div><div class="sub2" id="mIDLHSub">–</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">泄漏介质</span><span class="val" id="medVal">氨 NH₃</span></div>
+          <div class="seg" id="medSeg">
+            <button data-v="NH3" class="on">氨<small>NH₃</small></button>
+            <button data-v="Cl2">氯气<small>Cl₂</small></button>
+            <button data-v="H2S">硫化氢<small>H₂S</small></button>
+          </div>
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">泄漏孔径 d</span><span class="val" id="dVal">20 mm</span></div>
+          <input type="range" id="dRange" min="5" max="50" step="1" value="20">
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">罐压 P</span><span class="val" id="pVal">1.0 MPa</span></div>
+          <input type="range" id="pRange" min="0.1" max="2.0" step="0.1" value="1.0">
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">风速 u</span><span class="val" id="uVal">2.0 m/s</span></div>
+          <input type="range" id="uRange" min="0.5" max="8" step="0.1" value="2.0">
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">大气稳定度</span><span class="val" id="stVal">D · 中性</span></div>
+          <div class="seg" id="stSeg">
+            <button data-v="A">A<small>强不稳定</small></button>
+            <button data-v="B">B<small>不稳定</small></button>
+            <button data-v="C">C<small>弱不稳定</small></button>
+            <button data-v="D" class="on">D<small>中性</small></button>
+            <button data-v="E">E<small>弱稳定</small></button>
+            <button data-v="F">F<small>强稳定</small></button>
+          </div>
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>应急结论 · 高斯烟羽扩散（地面连续源）</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">m（IDLH 危险区半径）</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">换工况再试</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · 稳定度决定生死</div><div class="d">F 级（夜间强逆温）烟羽几乎不扩散，地面浓度比 D 级高一个量级——同一泄漏，白天撤 200 米、夜间可能撤 2000 米。应急预案必须按最不利稳定度做。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · 重气高斯失真</div><div class="d">氯气、LPG 蒸气密度大于空气，泄漏后贴地沉降、横向铺展，高斯烟羽模型低估地面浓度。重气泄漏要用 SLAB / DEGADIS 类模型，本页仅演示中性气。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · IDLH 区内先撤人</div><div class="d">IDLH = 立即威胁生命浓度，进入该区必须佩戴 SCBA 正压空气呼吸器；应急处置顺序永远是：撤人 → 隔离 → 切断泄漏源，而不是先抢救物料。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">小孔泄漏源强（音速流近似，教学简化）：
+  Q = Cd · A · P · sqrt(γ·M / (R·T))        [kg/s]
+  Cd=0.62（孔口系数），A=πd²/4，γ 绝热指数，M 摩尔质量(kg/kmol)，R=8314，T=298K
+高斯烟羽地面轴线浓度（连续点源，H=0，y=0）：
+  C(x) = Q / (π · u · σy · σz) · 1e6        [mg/m³]
+扩散系数（Briggs 城市幂律，x 单位 km，教学演示用）：
+  稳定度 A: σy=0.32x^0.78  σz=0.24x^0.61   B: 同 A
+  C: σy=0.22x^0.78  σz=0.20x^0.61
+  D: σy=0.16x^0.78  σz=0.14x^0.61
+  E: σy=0.11x^0.78  σz=0.08x^0.61
+  F: σy=0.11x^0.78  σz=0.06x^0.61
+职业卫生限值（参考 GBZ 2.1-2019 与 NIOSH IDLH，执行按现行标准）：
+  氨 NH₃：PC-TWA 20 mg/m³，IDLH 209 mg/m³（300 ppm）
+  氯 Cl₂：PC-TWA 1 mg/m³，IDLH 29 mg/m³（10 ppm）
+  H₂S：PC-TWA 10 mg/m³，IDLH 139 mg/m³（100 ppm）
+警戒距离：C(x) 单调递减，二分求解 C(x)=TWA 与 C(x)=IDLH 的下风向距离。</div>
+    <p>演示模型为中性气高斯烟羽，稳定度系数取 Briggs 城市推荐值的教学简化；重气、复杂地形、围堰与建筑物尾流均未计入。教学演示用，不作为工程与应急依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性） ============ */
+const MEDIA = {
+  NH3: { name: "氨 NH₃", M: 17, g: 1.31, twa: 20,  idlh: 209 },
+  Cl2: { name: "氯气 Cl₂", M: 71, g: 1.36, twa: 1,   idlh: 29 },
+  H2S: { name: "硫化氢 H₂S", M: 34, g: 1.32, twa: 10, idlh: 139 }
+};
+const STAB = {
+  A: { sy: [0.32, 0.78], sz: [0.24, 0.61], plume: 22 },
+  B: { sy: [0.32, 0.78], sz: [0.24, 0.61], plume: 18 },
+  C: { sy: [0.22, 0.78], sz: [0.20, 0.61], plume: 14 },
+  D: { sy: [0.16, 0.78], sz: [0.14, 0.61], plume: 11 },
+  E: { sy: [0.11, 0.78], sz: [0.08, 0.61], plume: 8 },
+  F: { sy: [0.11, 0.78], sz: [0.06, 0.61], plume: 6 }
+};
+const STAB_NM = { A: "A · 强不稳定", B: "B · 不稳定", C: "C · 弱不稳定", D: "D · 中性", E: "E · 弱稳定", F: "F · 强稳定" };
+let P = { med: "NH3", d: 20, p: 1.0, u: 2.0, st: "D" };
+const $ = id => document.getElementById(id);
+const R = 8314, T = 298, CD = 0.62;
+
+function sourceQ(){
+  const m = MEDIA[P.med];
+  const A = Math.PI * (P.d / 1000) ** 2 / 4;
+  return CD * A * P.p * 1e6 * Math.sqrt(m.g * m.M / (R * T));
+}
+function sigma(xm, k){ return k[0] * Math.pow(xm / 1000, k[1]) * 1000; }   // x 单位 m，σ 输出 m
+function cX(xm){
+  const s = STAB[P.st];
+  const sy = sigma(xm, s.sy), sz = sigma(xm, s.sz);
+  return sourceQ() / (Math.PI * P.u * sy * sz) * 1e6;               // mg/m³
+}
+function findDist(target, lo, hi){
+  // 二分求 C(x)=target 的距离
+  for(let i = 0; i < 60; i++){
+    const mid = (lo + hi) / 2;
+    if (cX(mid) > target) lo = mid; else hi = mid;
+  }
+  return Math.round((lo + hi) / 2);
+}
+function dists(){
+  const m = MEDIA[P.med];
+  let xT, xI;
+  try { xT = findDist(m.twa, 0.1, 5000); } catch(e){ xT = -1; }
+  try { xI = findDist(m.idlh, 0.1, 5000); } catch(e){ xI = -1; }
+  // 源处浓度（x=0.1m）可能已低于阈值 → 距离 0
+  if (cX(0.1) <= m.idlh) xI = 0;
+  if (cX(0.1) <= m.twa) xT = 0;
+  return { xT, xI };
+}
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  { t: "装置检查", s: "确认储罐安全附件（安全阀、紧急切断阀）完好，泄漏口工况设定前提：气相泄漏、连续稳定释放。", bench: "检查项：\n① 罐体与接管焊缝无宏观裂纹\n② 紧急切断阀（ESD）联动正常\n③ 下风向布置检测点（本页为教学演示，真实作业按风向标定）" },
+  { t: "设定工况", s: "选介质、孔径、罐压、风速、稳定度。源强只由孔径与罐压决定。", bench: "" },
+  { t: "源强计算", s: "小孔泄漏音速流：Q = Cd·A·P·√(γM/RT)。孔径越大、压力越高，源强涨得越快。", bench: "" },
+  { t: "扩散模拟", s: "高斯烟羽逐点计算下风向地面浓度，画出 C(x) 剖面。", bench: "" },
+  { t: "警戒区", s: "按 TWA 与 IDLH 划出下风向超标范围。", bench: "" },
+  { t: "应急决策", s: "结合稳定度给出撤人距离与行动建议。", bench: "" },
+  { t: "报告", s: "汇总源强、警戒距离、应急要点。", bench: "" }
+];
+let step = 0;
+
+function renderSeg(){
+  const el = $("stepSeg");
+  el.innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" class="${i < step ? "done" : i === step ? "on" : ""}">${i + 1} · ${s.t}<small>${i < step ? "已通过" : i === step ? "进行中" : "待执行"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { if(+b.dataset.i <= step){ step = +b.dataset.i; renderSeg(); narrate(); drawCanvas(); } });
+  $("sceneTitle").textContent = `${step + 1} · ${STEPS[step].t}`;
+  $("actBtn").textContent = step >= 6 ? "完成" : "下一步";
+}
+function narrate(){
+  const m = MEDIA[P.med], d = dists(), Q = sourceQ();
+  const n = $("narrate");
+  if (step <= 1) n.innerHTML = STEPS[step].s;
+  else if (step === 2) n.innerHTML = `源强 <b>Q=${Q.toFixed(2)} kg/s</b>（${m.name}，d=${P.d}mm，P=${P.p.toFixed(1)}MPa）。孔径翻倍 → 面积 ×4 → 源强 ×4；压力翻倍 → 源强翻倍。`;
+  else if (step === 3) n.innerHTML = `稳定度 <b>${STAB_NM[P.st]}</b>，风速 ${P.u.toFixed(1)} m/s。C(100m)=<b>${cX(100) < 0.1 ? "&lt;0.1" : cX(100).toFixed(1)}</b> mg/m³。曲线见下方剖面图。`;
+  else if (step === 4) n.innerHTML = `TWA（${m.twa} mg/m³）超标至 <b>${d.xT} m</b>；IDLH（${m.idlh} mg/m³）危险区半径 <b>${d.xI} m</b>。${d.xI > 0 ? "<span class='warn'>该半径内进入必须 SCBA。</span>" : "距源 0.1m 内已低于 IDLH，泄漏量较小。"}`;
+  else if (step === 5) n.innerHTML = `稳定度 ${P.st} 级下，${d.xI > 300 ? "<span class='warn'>IDLH 半径 " + d.xI + "m——夜间强稳定时后果放大，立即启动厂区疏散预案。</span>" : d.xI > 100 ? "IDLH 半径 " + d.xI + "m——影响厂区，划警戒线并通知下风向单位。" : "IDLH 半径 " + d.xI + "m——控制在装置区内，局部警戒即可。"}`;
+  else n.innerHTML = `报告：${m.name} 泄漏源强 ${Q.toFixed(2)} kg/s，稳定度 ${STAB_NM[P.st]}，TWA 超标 ${d.xT} m / IDLH ${d.xI} m。应急=撤人 → 隔离 → 断源，警戒按 IDLH 半径 + 风向扩展系数执行。`;
+}
+function flash(id){
+  const mm = $(id); if(!mm) return;
+  mm.classList.remove("flash"); void mm.offsetWidth; mm.classList.add("flash");
+}
+function refreshMetrics(){
+  const m = MEDIA[P.med], d = dists(), Q = sourceQ(), c100 = cX(100);
+  $("mQ").textContent = Q.toFixed(2);
+  $("mC100V").textContent = c100 < 0.1 ? "&lt;0.1" : c100.toFixed(1);
+  $("mC100V").classList.toggle("warn", c100 > m.twa);
+  $("mC100Sub").textContent = c100 > m.idlh ? "超过 IDLH！" : c100 > m.twa ? "超过 TWA" : "低于 TWA";
+  $("mTWAx").textContent = d.xT;
+  $("mTWASub").textContent = `TWA=${m.twa} mg/m³`;
+  $("mIDLHx").textContent = d.xI;
+  $("mIDLHSub").textContent = `IDLH=${m.idlh} mg/m³`;
+  $("tankLabel").textContent = m.name;
+  $("tankP").textContent = `P=${P.p.toFixed(1)} MPa`;
+  $("leakLabel").textContent = `泄漏口 d=${P.d}mm`;
+  const st = STAB[P.st];
+  const px = 89, ex = 400, w = ex - px;
+  // 烟羽半宽示意
+  const half = st.plume;
+  $("plume").setAttribute("d", `M89 118 L400 118 L400 ${118 - half} Q260 ${118 - half * 1.7} 89 118 Z`);
+  // 警戒线：x_twa / x_idlh 映射到 SVG（0-2000m → 89-400px）
+  const mx = x => Math.min(ex, px + x / 2000 * w);
+  $("lineTWA").setAttribute("x2", mx(d.xT));
+  $("lineTWAL").setAttribute("x", mx(d.xT) + 4);
+  $("lineIDLH").setAttribute("x2", mx(d.xI));
+  $("lineIDLHL").setAttribute("x", mx(d.xI) + 4);
+  flash("mQ"); flash("mTWA"); flash("mIDLH");
+}
+
+/* ============ Canvas 浓度剖面（对数-对数） ============ */
+const W_ = 820, H_ = 420, pad = { l: 56, r: 16, t: 16, b: 40 };
+const cv = $("concCanvas"), ctx = cv.getContext("2d");
+function drawCanvas(){
+  const m = MEDIA[P.med], d = dists();
+  ctx.clearRect(0, 0, W_, H_);
+  const xMin = 1, xMax = 2000, cMin = 0.01, cMax = 1e5;
+  const X = v => pad.l + Math.log10(v / xMin) / Math.log10(xMax / xMin) * (W_ - pad.l - pad.r);
+  const Y = v => H_ - pad.b - Math.log10(v / cMin) / Math.log10(cMax / cMin) * (H_ - pad.t - pad.b);
+  ctx.font = "10px ui-monospace,monospace"; ctx.fillStyle = "#5b6572"; ctx.strokeStyle = "#232b38";
+  // 网格 + 轴标签
+  const xs = [1, 10, 100, 1000, 2000];
+  xs.forEach(x => { ctx.beginPath(); ctx.moveTo(X(x), pad.t); ctx.lineTo(X(x), H_ - pad.b); ctx.stroke(); ctx.fillText(x, X(x) - 8, H_ - pad.b + 16); });
+  const cs = [0.01, 0.1, 1, 10, 100, 1000, 10000, 100000];
+  cs.forEach(c => { const y = Y(c); if (y > pad.t && y < H_ - pad.b){ ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W_ - pad.r, y); ctx.stroke(); ctx.fillText(c >= 1000 ? (c/1000)+"k" : c, 8, y + 3); } });
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("下风向距离 x (m, 对数)", W_ / 2 - 70, H_ - 8);
+  ctx.save(); ctx.translate(16, H_ / 2 + 4); ctx.rotate(-Math.PI / 2); ctx.fillText("地面轴线浓度 (mg/m³, 对数)", -30, 0); ctx.restore();
+  // 浓度曲线
+  ctx.strokeStyle = "#59d6ff"; ctx.lineWidth = 2.2; ctx.beginPath();
+  for (let x = 1; x <= 2000; x += 4){
+    const c = cX(x);
+    const px = X(x), py = Y(Math.max(c, cMin));
+    x === 1 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+  // 阈值线
+  const lines = [
+    { v: m.twa, col: "#ffb020", label: "TWA " + m.twa },
+    { v: m.idlh, col: "#ff5252", label: "IDLH " + m.idlh }
+  ];
+  lines.forEach(L => {
+    const y = Y(L.v);
+    if (y < pad.t) return;
+    ctx.strokeStyle = L.col; ctx.lineWidth = 1.4; ctx.setLineDash([6, 4]);
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W_ - pad.r, y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = L.col; ctx.font = "11px -apple-system,Microsoft YaHei";
+    ctx.fillText(L.label, W_ - pad.r - 74, y - 4);
+    // 交点垂线
+    const xx = L.v === m.twa ? d.xT : d.xI;
+    if (xx > 1){
+      ctx.strokeStyle = L.col; ctx.globalAlpha = .5; ctx.setLineDash([2, 3]);
+      ctx.beginPath(); ctx.moveTo(X(xx), y); ctx.lineTo(X(xx), H_ - pad.b); ctx.stroke();
+      ctx.setLineDash([]); ctx.globalAlpha = 1;
+      ctx.fillText(xx + "m", X(xx) - 20, H_ - pad.b + 16);
+    }
+  });
+  // 当前默认 100m 点
+  const c100 = cX(100);
+  ctx.fillStyle = "#b48cff";
+  ctx.beginPath(); ctx.arc(X(100), Y(Math.max(c100, cMin)), 4, 0, 7); ctx.fill();
+  ctx.fillText("100m", X(100) + 6, Y(Math.max(c100, cMin)) - 6);
+}
+
+/* ============ 动作 ============ */
+$("actBtn").onclick = () => {
+  if (step < 6) step++;
+  if (step === 5){ renderConclusion(); }
+  renderSeg(); narrate(); drawCanvas();
+};
+$("resetBtn").onclick = resetAll;
+function resetAll(){
+  P = { med: "NH3", d: 20, p: 1.0, u: 2.0, st: "D" };
+  step = 0;
+  $("medSeg").children[0].className = "on"; [...$("medSeg").children].forEach((b, i) => b.className = i === 0 ? "on" : "");
+  $("stSeg").children[3].className = "on"; [...$("stSeg").children].forEach((b, i) => b.className = i === 3 ? "on" : "");
+  $("dRange").value = 20; $("pRange").value = 1.0; $("uRange").value = 2.0;
+  $("conclusionCard").style.display = "none";
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+}
+function pickMed(i){
+  [...$("medSeg").children].forEach((x, j) => x.className = j === i ? "on" : "");
+  P.med = $("medSeg").children[i].dataset.v; $("medVal").textContent = MEDIA[P.med].name;
+  refreshMetrics(); narrate(); drawCanvas();
+}
+function pickSt(i){
+  [...$("stSeg").children].forEach((x, j) => x.className = j === i ? "on" : "");
+  P.st = $("stSeg").children[i].dataset.v; $("stVal").textContent = STAB_NM[P.st];
+  refreshMetrics(); narrate(); drawCanvas();
+}
+[...$("medSeg").children].forEach((b, i) => b.onclick = () => pickMed(i));
+[...$("stSeg").children].forEach((b, i) => b.onclick = () => pickSt(i));
+$("dRange").oninput = e => { P.d = +e.target.value; $("dVal").textContent = P.d + " mm"; refreshMetrics(); narrate(); drawCanvas(); };
+$("pRange").oninput = e => { P.p = +e.target.value; $("pVal").textContent = P.p.toFixed(1) + " MPa"; refreshMetrics(); narrate(); drawCanvas(); };
+$("uRange").oninput = e => { P.u = +e.target.value; $("uVal").textContent = P.u.toFixed(1) + " m/s"; refreshMetrics(); narrate(); drawCanvas(); };
+
+function renderConclusion(){
+  const m = MEDIA[P.med], d = dists(), Q = sourceQ();
+  $("conclusionCard").style.display = "";
+  $("resBig").textContent = d.xI;
+  $("resUnit").textContent = `m · ${m.name} · 稳定度 ${STAB_NM[P.st]}`;
+  $("resState").textContent = d.xI > 300 ? "危险区超厂界 · 立即全厂疏散" : d.xI > 100 ? "影响厂区 · 划警戒线" : "局部警戒";
+  $("concText").innerHTML = `${m.name} 连续泄漏：源强 <b>${Q.toFixed(2)} kg/s</b>，风速 ${P.u.toFixed(1)} m/s，稳定度 <b>${STAB_NM[P.st]}</b>。<br>地面轴线浓度从源沿下风向衰减：TWA（${m.twa} mg/m³）超标至 <b>${d.xT} m</b>，IDLH（${m.idlh} mg/m³）危险区半径 <b>${d.xI} m</b>。<br><span class="${d.xI > 300 ? "bad" : "good"}">应急行动：撤人 → 隔离 → 断源；IDLH 区内进入必须 SCBA；下风向按 IDLH 半径 × 1.5–2 布置警戒与监测。</span>`;
+}
+
+/* ============ 初始化 ============ */
+window.addEventListener("load", () => {
+  setTimeout(() => $("loader").classList.add("done"), 700);
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+});
+</script>
+</body>
+</html>

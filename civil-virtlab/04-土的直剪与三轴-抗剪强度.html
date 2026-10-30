@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>土的直剪与三轴实验室</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 8h16v12H4z' fill='none' stroke='%2359d6ff' stroke-width='1.6'/%3E%3Cpath d='M4 14L20 6' stroke='%23ffb020' stroke-width='1.6'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes shear{0%,100%{transform:translateX(0)}50%{transform:translateX(26px)}}
+.shear{animation:shear 2.2s ease-in-out infinite}
+@keyframes grain{0%{transform:translateY(0);opacity:.7}100%{transform:translateY(40px);opacity:0}}
+.grain{animation:grain 2.6s linear infinite}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px;cursor:crosshair}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader,#rp{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在制样固结…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">CIVIL · VIRTUAL LAB 04</div>
+    <div class="kicker">土木工程 · 土力学与地基基础 · 抗剪强度</div>
+    <h1 class="title">土的直剪与三轴<span class="thin">实验室</span></h1>
+    <div class="sub">SHEAR STRENGTH · COULOMB LAW · DIRECT SHEAR · TRIAXIAL</div>
+    <p class="oneliner"><b>τ=c+σ·tanφ——砂土 c≈0 纯靠摩擦，黏土 c 撑着不散；快剪、固结快剪、慢剪三个排水条件三个 φ，包线一画全明白。</b><br>τf=c+σ·tanφ · 直剪/三轴 · 达西渗流 q=k·i·A。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 制样固结</span></h3>
+      <svg class="scene" id="rig" viewBox="0 0 420 190" role="img" aria-label="直剪仪示意">
+        <g class="shear">
+          <rect x="100" y="70" width="220" height="34" rx="3" fill="#14202e" stroke="#59d6ff" stroke-width="1.6"/>
+          <rect x="100" y="104" width="220" height="34" rx="3" fill="#1c2533" stroke="#232b38" stroke-width="1.6"/>
+        </g>
+        <path d="M330 87 L352 87" stroke="#8b95a3" stroke-width="4"/>
+        <g class="grain">
+          <circle cx="150" cy="56" r="2.2" fill="#ffb020"/>
+          <circle cx="200" cy="48" r="1.8" fill="#ffb020"/>
+          <circle cx="260" cy="56" r="2" fill="#ffb020"/>
+        </g>
+        <text x="210" y="166" text-anchor="middle" fill="#8b95a3" font-size="9" font-family="inherit">直剪仪：上盒固定、下盒水平推移，剪裂面人为固定为水平面</text>
+        <text x="210" y="182" text-anchor="middle" fill="#5b6572" font-size="9" font-family="inherit">三轴试验：围压 σ3 施加后轴向加 σ1，莫尔圆破坏包线求 c、φ</text>
+      </svg>
+      <canvas id="soilCanvas" width="820" height="420" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">重置</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">抗剪强度 τf</div><div class="v" id="mT">–<small>kPa</small></div><div class="sub2" id="mTSub">c+σtanφ</div></div>
+          <div class="metric" id="mSc"><div class="k">黏聚力 c</div><div class="v" id="mC">–<small>kPa</small></div><div class="sub2">试验方法相关</div></div>
+          <div class="metric"><div class="k">内摩擦角 φ</div><div class="v" id="mP">–<small>°</small></div><div class="sub2">试验方法相关</div></div>
+          <div class="metric" id="mPc"><div class="k">达西渗流 q</div><div class="v" id="mQ">–<small>m³/s</small></div><div class="sub2" id="mQSub">k·i·A</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">土类</span><span class="val" id="soilVal">砂土</span></div>
+          <div class="seg" id="soilSeg"></div>
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">试验方法（排水条件）</span><span class="val" id="mVal">慢剪</span></div>
+          <div class="seg" id="methSeg"></div>
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">正应力 σ</span><span class="val" id="sVal">200 kPa</span></div>
+          <input type="range" id="sRange" min="50" max="400" step="10" value="200">
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>实验结论 · 抗剪强度与强度参数</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">kPa（抗剪强度 τf）</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">换条件再测</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · 抗剪强度参数是"方法函数"</div><div class="d">c、φ 不是土的唯一常数：快剪来不及排水、慢剪排干净，同样的土两套 c、φ。工程上必须按实际工况选试验：施工期用快剪（不排水）、长期稳定用慢剪/固结排水。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · 砂土靠摩擦，黏土靠黏聚</div><div class="d">砂土 c≈0、φ 30°上下；黏土 c 大、φ 小。判断地基稳定先分清土类——把黏土的 c 当砂土用会高估、把砂土的 φ 当黏土用会误判。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · 水是土的隐形敌人</div><div class="d">有效应力原理：总应力−孔隙水压力=有效应力，τ 用的是有效应力。达西渗流 q=k·i·A——k 砂土比黏土大 5 个数量级，水位涨、渗透路径变，有效应力掉、强度跟着掉。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">库仑抗剪强度定律：τf = c + σ·tanφ   [kPa]
+直剪试验：上盒固定下盒推移，剪裂面人为水平面；
+  快剪（不排水）/ 固结快剪 / 慢剪（排水充分）
+三轴试验：围压 σ3 → 轴向加 σ1 至破坏，莫尔圆公切线 = 破坏包线
+强度参数（教学代表值）：
+  砂土：c=0，快剪 φ=28°、固结快剪 29°、慢剪 30°
+  粉质黏土：c=15，φ=20°/21°/22°
+  黏土：c=25，φ=12°/15°/18°
+达西渗流：q = k·i·A（k：砂 ≈1e-3 m/s、粉质黏土 ≈1e-6、黏土 ≈1e-8）
+本页为确定性演示，c/φ 取教学代表值，实际以土工试验为准。</div>
+    <p>演示模型按土力学库仑强度定律与直剪/三轴试验原理简化设定；实际工程按《土工试验方法标准》GB/T 50123 试验，强度参数取值需结合工程经验与统计。教学演示用，不作为地基设计依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性） ============ */
+const SOILS = {
+  "砂土":     { c: [0, 0, 0],    phi: [28, 29, 30], k: 1e-3,  d: "无黏性土·靠摩擦" },
+  "粉质黏土": { c: [15, 15, 15], phi: [20, 21, 22], k: 1e-6,  d: "黏粒中等" },
+  "黏土":     { c: [25, 25, 25], phi: [12, 15, 18], k: 1e-8,  d: "黏粒为主·c 大" }
+};
+const METHODS = ["快剪", "固结快剪", "慢剪"];
+let P = { soil: "砂土", meth: 2, sigma: 200 };
+const $ = id => document.getElementById(id);
+const tau = () => {
+  const s = SOILS[P.soil], m = P.meth;
+  return s.c[m] + P.sigma * Math.tan(s.phi[m] * Math.PI / 180);
+};
+const seep = () => {
+  const A = 1.0, i = 0.5;
+  return SOILS[P.soil].k * i * A;
+};
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  { t: "制样固结", s: "环刀取样（保持天然含水率），按排水条件预固结。", bench: "准备：\n① 选土类（砂土/粉质黏土/黏土）\n② 环刀制样，测密度含水率\n③ 按试验方法固结\n④ 直剪仪/三轴仪装样" },
+  { t: "施加正应力", s: "直剪：法向 σ；三轴：围压 σ3。", bench: "" },
+  { t: "剪切", s: "水平剪切（直剪）/轴向加压（三轴）至破坏，读峰值 τf。", bench: "" },
+  { t: "多级试验", s: "σ=100/200/400 三组，画 τ-σ 破坏包线。", bench: "" },
+  { t: "求 c、φ", s: "包线截距=c、斜率=tanφ。", bench: "" },
+  { t: "报告", s: "报 c、φ（注明试验方法）、渗流与工程建议。", bench: "" }
+];
+let step = 0;
+
+function renderSeg(){
+  const el = $("stepSeg");
+  el.innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" class="${i < step ? "done" : i === step ? "on" : ""}">${i + 1} · ${s.t}<small>${i < step ? "已通过" : i === step ? "进行中" : "待执行"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { if(+b.dataset.i <= step){ step = +b.dataset.i; renderSeg(); narrate(); } });
+  $("sceneTitle").textContent = `${step + 1} · ${STEPS[step].t}`;
+  $("actBtn").textContent = step >= 5 ? "完成" : "下一步";
+}
+function renderSoilSeg(){
+  const el = $("soilSeg");
+  el.innerHTML = Object.keys(SOILS).map(s =>
+    `<button data-s="${s}" class="${s === P.soil ? "on" : ""}">${s}<small>${SOILS[s].d}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { P.soil = b.dataset.s; renderSoilSeg(); $("soilVal").textContent = P.soil; refreshMetrics(); narrate(); drawCanvas(); });
+}
+function renderMethSeg(){
+  const el = $("methSeg");
+  el.innerHTML = METHODS.map((m, i) =>
+    `<button data-i="${i}" class="${i === P.meth ? "on" : ""}">${m}<small>${i === 0 ? "不排水" : i === 1 ? "先固结后剪" : "排水充分"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { P.meth = +b.dataset.i; renderMethSeg(); $("mVal").textContent = METHODS[P.meth]; refreshMetrics(); narrate(); drawCanvas(); });
+}
+function narrate(){
+  const n = $("narrate");
+  const s = SOILS[P.soil], m = P.meth, t = tau();
+  if (step <= 1) n.innerHTML = STEPS[step].s;
+  else if (step === 2) n.innerHTML = `${P.soil} · ${METHODS[m]}：施加 σ=${P.sigma} kPa${m === 1 ? "（先固结再剪）" : ""}。`;
+  else if (step === 3) n.innerHTML = `剪切至峰值：τf=c+σ·tanφ=<b>${t.toFixed(1)} kPa</b>（c=${s.c[m]}、φ=${s.phi[m]}°）。`;
+  else if (step === 4) n.innerHTML = `三组正应力（100/200/400）分别得 τf=${(s.c[m] + 100 * Math.tan(s.phi[m] * Math.PI / 180)).toFixed(0)}/${(s.c[m] + 200 * Math.tan(s.phi[m] * Math.PI / 180)).toFixed(0)}/${(s.c[m] + 400 * Math.tan(s.phi[m] * Math.PI / 180)).toFixed(0)} kPa——连线成包线。`;
+  else if (step === 5) n.innerHTML = `包线：截距 c=<b>${s.c[m]} kPa</b>、斜率 tanφ=<b>${Math.tan(s.phi[m] * Math.PI / 180).toFixed(3)}</b>（φ=${s.phi[m]}°）。`;
+  else n.innerHTML = `报告：${P.soil} ${METHODS[m]} → c=${s.c[m]} kPa、φ=${s.phi[m]}°、τf(σ=${P.sigma})=${t.toFixed(1)} kPa。`;
+}
+function flash(id){
+  const el = $(id); if(!el) return;
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+function refreshMetrics(){
+  const s = SOILS[P.soil], m = P.meth, t = tau(), q = seep();
+  $("mT").textContent = t.toFixed(1);
+  $("mTSub").textContent = `σ=${P.sigma} · ${METHODS[m]}`;
+  $("mC").textContent = s.c[m];
+  $("mP").textContent = s.phi[m];
+  $("mQ").textContent = q.toExponential(0);
+  $("mQSub").textContent = `k=${s.k.toExponential(0)} m/s · i·A=0.5`;
+  flash("mT"); flash("mC"); flash("mP"); flash("mQ");
+}
+
+/* ============ Canvas τ-σ 包线 ============ */
+const W_ = 820, H_ = 420;
+const cv = $("soilCanvas"), ctx = cv.getContext("2d");
+function drawCanvas(){
+  ctx.clearRect(0, 0, W_, H_);
+  const s = SOILS[P.soil], m = P.meth;
+  const c = s.c[m], phi = s.phi[m];
+  // 左：τ-σ 破坏包线
+  const l = { l: 56, r: 430, t: 24, b: 42 };
+  const smax = 500, tmax = Math.max(200, 500 * Math.tan(phi * Math.PI / 180) + c) * 1.05;
+  const X = sv => l.l + sv / smax * (l.r - l.l);
+  const Y = tv => H_ - l.b - tv / tmax * (H_ - l.t - l.b);
+  ctx.font = "10px ui-monospace,monospace"; ctx.fillStyle = "#5b6572"; ctx.strokeStyle = "#232b38";
+  for (let sv = 0; sv <= 500; sv += 100){ const x = X(sv); ctx.beginPath(); ctx.moveTo(x, l.t); ctx.lineTo(x, H_ - l.b); ctx.stroke(); ctx.fillText(sv, x - 12, H_ - l.b + 16); }
+  for (let i = 0; i <= 5; i++){ const tv = i * tmax / 5, y = Y(tv); ctx.beginPath(); ctx.moveTo(l.l, y); ctx.lineTo(l.r, y); ctx.stroke(); ctx.fillText(tv.toFixed(0), 6, y + 4); }
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("正应力 σ (kPa)", l.l + 110, H_ - 8);
+  ctx.save(); ctx.translate(14, H_ / 2 + 4); ctx.rotate(-Math.PI / 2); ctx.fillText("τf (kPa)", -30, 0); ctx.restore();
+  ctx.fillText("破坏包线 τf=c+σtanφ", l.l + 8, l.t - 6);
+  // 包线
+  ctx.strokeStyle = "#ffb020"; ctx.lineWidth = 2.6;
+  ctx.beginPath(); ctx.moveTo(X(0), Y(c)); ctx.lineTo(X(smax), Y(c + smax * Math.tan(phi * Math.PI / 180))); ctx.stroke();
+  // 截距标记
+  ctx.fillStyle = "#3ddc84";
+  ctx.beginPath(); ctx.arc(X(0), Y(c), 5, 0, 7); ctx.fill();
+  ctx.fillStyle = "#3ddc84"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText(`c=${c} kPa`, X(0) + 8, Y(c) - 8);
+  // 当前点
+  const t = tau();
+  ctx.fillStyle = "#ff5252";
+  ctx.beginPath(); ctx.arc(X(P.sigma), Y(t), 6, 0, 7); ctx.fill();
+  ctx.fillStyle = "#ff5252"; ctx.font = "11px ui-monospace,monospace";
+  ctx.fillText(`σ=${P.sigma} τf=${t.toFixed(1)}`, X(P.sigma) + 8, Y(t) + 16);
+
+  // 右：参数与方法
+  const rx = 470;
+  ctx.fillStyle = "#8b95a3"; ctx.font = "13px -apple-system,Microsoft YaHei";
+  ctx.fillText(`${P.soil} · ${METHODS[m]} 强度参数`, rx, 36);
+  const rows = [
+    ["c = " + c + " kPa", "包线截距（黏聚力）"],
+    ["φ = " + phi + "°", "包线倾角（内摩擦角）"],
+    ["tanφ = " + Math.tan(phi * Math.PI / 180).toFixed(3), "包线斜率"],
+    ["k = " + s.k.toExponential(0) + " m/s", "渗透系数（达西 q=k·i·A）"]
+  ];
+  rows.forEach((r2, i) => {
+    ctx.fillStyle = "#e8eef4"; ctx.font = "13px ui-monospace,monospace";
+    ctx.fillText(r2[0], rx, 66 + i * 32);
+    ctx.fillStyle = "#5b6572"; ctx.font = "11px -apple-system,Microsoft YaHei";
+    ctx.fillText(r2[1], rx + 160, 66 + i * 32);
+  });
+  // 方法对比表
+  ctx.fillStyle = "#8b95a3"; ctx.font = "12px -apple-system,Microsoft YaHei";
+  ctx.fillText("三方法对比（同土）", rx, 210);
+  const comp = [["快剪", s.c[0], s.phi[0]], ["固结快剪", s.c[1], s.phi[1]], ["慢剪", s.c[2], s.phi[2]]];
+  ctx.fillStyle = "#5b6572"; ctx.font = "10px ui-monospace,monospace";
+  ctx.fillText("方法      c(kPa)   φ(°)", rx, 230);
+  comp.forEach((cc, i) => {
+    ctx.fillStyle = i === m ? "#ffb020" : "#e8eef4";
+    ctx.font = "12px ui-monospace,monospace";
+    ctx.fillText(cc[0] + "      " + cc[1] + "      " + cc[2], rx, 254 + i * 26);
+  });
+  ctx.fillStyle = "#5b6572"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("排水条件决定强度参数——按工况选方法", rx, H_ - 40);
+}
+
+/* ============ 动作 ============ */
+$("actBtn").onclick = () => {
+  if (step < 5) step++;
+  if (step === 4){ renderConclusion(); }
+  renderSeg(); narrate();
+};
+$("resetBtn").onclick = resetAll;
+function resetAll(){
+  P = { soil: "砂土", meth: 2, sigma: 200 };
+  step = 0;
+  $("sRange").value = 200;
+  $("conclusionCard").style.display = "none";
+  renderSeg(); renderSoilSeg(); renderMethSeg(); refreshMetrics(); narrate(); drawCanvas();
+}
+$("sRange").oninput = e => {
+  P.sigma = +e.target.value;
+  $("sVal").textContent = P.sigma + " kPa";
+  refreshMetrics(); narrate(); drawCanvas();
+};
+function renderConclusion(){
+  const s = SOILS[P.soil], m = P.meth, t = tau();
+  $("conclusionCard").style.display = "";
+  $("resBig").textContent = t.toFixed(1);
+  $("resState").textContent = `${P.soil} · ${METHODS[m]} · σ=${P.sigma}kPa · c=${s.c[m]} · φ=${s.phi[m]}°`;
+  $("concText").innerHTML = `抗剪强度 <b>τf=c+σ·tanφ=${t.toFixed(1)} kPa</b>（c=${s.c[m]} kPa、φ=${s.phi[m]}°、σ=${P.sigma} kPa）。<br><span class='good'>${P.soil}破坏包线：截距 ${s.c[m]}、斜率 ${Math.tan(s.phi[m] * Math.PI / 180).toFixed(3)}；${METHODS[m]}的排水条件决定参数取值。</span><br>工程要点：砂土 c≈0 靠摩擦、黏土 c 大 φ 小；有效应力=总应力−孔隙水压力；达西渗流 q=k·i·A（k=${s.k.toExponential(0)} m/s）——水是有效应力的隐形敌人。`;
+}
+
+/* ============ 初始化 ============ */
+window.addEventListener("load", () => {
+  setTimeout(() => $("loader").classList.add("done"), 700);
+  renderSeg(); renderSoilSeg(); renderMethSeg(); refreshMetrics(); narrate(); drawCanvas();
+});
+</script>
+</body>
+</html>

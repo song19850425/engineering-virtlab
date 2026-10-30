@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>传热实验室 · 套管换热器</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='7' width='18' height='10' rx='2' fill='%2311151d' stroke='%23b48cff'/%3E%3Crect x='7' y='9' width='10' height='6' rx='1' fill='%23ff5252' opacity='.6'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes dashFlow{to{stroke-dashoffset:-20}}
+.flowline{stroke-dasharray:7 5;animation:dashFlow 1.1s linear infinite}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric.warn .v{color:var(--danger)}
+.metric.good .v{color:var(--ok)}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+kbd.kbd{font-family:var(--mono);font-size:10px;color:var(--faint);border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:1px 5px;margin-left:6px;background:#0d1117;white-space:nowrap}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.kv-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media (max-width:600px){.kv-grid{grid-template-columns:1fr}}
+.kv{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.kv .k{font-size:11px;color:var(--faint)}
+.kv .v{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--txt);margin-top:2px}
+.kv .v em{font-style:normal;color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在预热蒸汽…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">CHEME · VIRTUAL LAB 03</div>
+    <div class="kicker">化工原理 · 热量传递 · 传热系数测定</div>
+    <h1 class="title">传热<span class="thin">实验室</span></h1>
+    <div class="sub">HEAT EXCHANGER LAB · LMTD</div>
+    <p class="oneliner"><b>蒸汽 120℃，冷水流量翻倍——出口温度掉多少？K 又涨多少？</b><br>套管换热器 · 蒸汽冷凝加热冷水 · 对数平均温差。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 通水</span></h3>
+      <svg class="scene" id="hxSvg" viewBox="0 0 420 190" role="img" aria-label="套管换热器示意">
+        <defs>
+          <linearGradient id="steamFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff5252" stop-opacity=".55"/><stop offset="1" stop-color="#ff5252" stop-opacity=".15"/></linearGradient>
+          <linearGradient id="coldFill" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#59d6ff" stop-opacity=".75"/><stop offset="1" stop-color="#59d6ff" stop-opacity=".3"/></linearGradient>
+        </defs>
+        <rect x="40" y="40" width="340" height="90" rx="10" fill="url(#steamFill)" stroke="#ff5252" stroke-width="2"/>
+        <text x="210" y="62" text-anchor="middle" fill="#ff5252" font-size="12" font-weight="700" font-family="inherit">饱和蒸汽 T（壳程）</text>
+        <text id="svgT" x="210" y="84" text-anchor="middle" fill="#e8eef4" font-size="18" font-family="ui-monospace,monospace">120℃</text>
+        <rect x="70" y="65" width="280" height="40" rx="6" fill="url(#coldFill)" stroke="#59d6ff" stroke-width="2"/>
+        <text x="210" y="91" text-anchor="middle" fill="#e8eef4" font-size="11" font-family="inherit">冷水（管程）→</text>
+        <text x="52" y="155" fill="#59d6ff" font-size="11" font-family="inherit">t₁=20℃</text>
+        <text x="330" y="155" fill="#3ddc84" font-size="11" font-family="inherit" id="svgT2">t₂=…</text>
+        <text x="210" y="175" text-anchor="middle" fill="#8b95a3" font-size="10" font-family="inherit">内管 d=25mm · L=2m · 传热面积 A≈0.157 m² · 逆流</text>
+        <path d="M40 40 V20 H380 V40" fill="none" stroke="#ff5252" stroke-width="2" stroke-dasharray="4 3"/>
+        <path d="M40 40 H380" stroke="#ff8a8a" stroke-width="1.5" fill="none" class="flowline" opacity=".55"/>
+        <text x="388" y="26" fill="#ff5252" font-size="10" font-family="inherit">蒸汽入口</text>
+        <path d="M340 130 L340 146" stroke="#5b6572" stroke-width="2"/>
+        <text x="340" y="160" text-anchor="middle" fill="#8b95a3" font-size="9" font-family="inherit">凝水排出</text>
+        <path d="M70 65 H350" stroke="#9fe2ff" stroke-width="1.5" fill="none" class="flowline" opacity=".6"/>
+        <circle cx="200" cy="136" r="2" fill="#59d6ff"><animate attributeName="cy" values="132;146" dur="1.2s" begin=".2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;.9;0" dur="1.2s" begin=".2s" repeatCount="indefinite"/></circle>
+      </svg>
+      <canvas id="nrCanvas" width="820" height="300" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">重做</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">蒸汽温度 T</div><div class="v" id="mT">–<small>℃</small></div><div class="sub2">饱和蒸汽</div></div>
+          <div class="metric" id="mT2M"><div class="k">冷水出口 t₂</div><div class="v" id="mT2">–<small>℃</small></div><div class="sub2">LMTD 迭代求解</div></div>
+          <div class="metric"><div class="k">热负荷 Q</div><div class="v" id="mQ">–<small>kW</small></div><div class="sub2">W·cp·(t₂−t₁)</div></div>
+          <div class="metric" id="mKm"><div class="k">总传热系数 K</div><div class="v" id="mK">–<small>W/m²·K</small></div><div class="sub2">Q/(A·Δtm)</div></div>
+        </div>
+        <div class="kv-grid" style="margin-bottom:14px">
+          <div class="kv"><div class="k">对数平均温差 Δtm</div><div class="v" id="mLm">–<small> ℃</small></div></div>
+          <div class="kv"><div class="k">Nu（实测）/ Re</div><div class="v" id="mNu">–</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">冷水流量 W</span><span class="val" id="wVal">400 kg/h</span></div>
+          <input type="range" id="wRange" min="200" max="1000" step="20" value="400">
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">蒸汽温度 T</span><span class="val" id="tVal">120℃</span></div>
+          <div class="seg" id="tSeg">
+            <button data-v="100">100℃<small>低压蒸汽</small></button>
+            <button data-v="120" class="on">120℃<small>常用</small></button>
+            <button data-v="150">150℃<small>中压蒸汽</small></button>
+          </div>
+        </div>
+        <div class="actionrow">
+          <button class="btn-ghost" id="recBtn" style="flex:1">记录数据点（<span id="recCount">0</span>/12）</button>
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>传热结论 · 套管换热器（蒸汽-水）</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">W/m²·K（当前 K）</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">换条件再试</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · 先通水后开汽</div><div class="d">忘开冷水就送蒸汽 = 干烧，管子过热变形、密封垫烧毁。停车顺序反过来：先断汽，再停水。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · 凝水先排</div><div class="d">蒸汽管线启动先排凝水、暖管。凝水不排，蒸汽顶着冷凝水走 = 水击，管道都能震脱。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · 冷热端别接反</div><div class="d">套管换热器传热面积小、热流密度高，蒸汽侧压力高于水侧。接错端头、憋压，接口先裂的是蒸汽侧。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">热平衡：Q = W·cp·(t₂ − t₁)        cp=4180 J/(kg·K)，t₁=20℃
+传热速率：Q = K·A·Δtm
+对数平均温差（逆流，蒸汽侧恒温）：Δtm = (Δt₁−Δt₂)/ln(Δt₁/Δt₂)，Δt₁=T−t₁，Δt₂=T−t₂
+管程水侧（Dittus-Boelter）：Nu = 0.023·Re^0.8·Pr^0.4，  h = Nu·k/d，  K ≈ h（蒸汽冷凝侧热阻小，忽略）
+物性（25℃ 水）：ρ=997 kg/m³，μ=8.94×10⁻⁴ Pa·s，k=0.62 W/(m·K)，Pr=6.0
+求解：t₂ 由 Q(热平衡)=Q(传热) 二分迭代得到（本页确定性求解，无随机数）
+Nu 实测 = (Q/(A·Δtm))·d/k</div>
+    <p>演示模型按套管换热器蒸汽-水传热实验设定（内管 d=25mm、L=2m，逆流）。教学演示用，不作为工程依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性） ============ */
+const RHO = 997, MU = 8.94e-4, KW = 0.62, CP = 4180, PR = 6.0, T1 = 20;
+const D = 0.025, L = 2, A = Math.PI * D * L;
+let P = { W: 400, T: 120 };
+const u = () => P.W / 3600 / RHO / (Math.PI * D * D / 4);
+const Re = () => RHO * u() * D / MU;
+const hTheo = () => {
+  const nu = 0.023 * Math.pow(Re(), 0.8) * Math.pow(PR, 0.4);
+  return nu * KW / D;
+};
+const dTmLm = t2 => {
+  const a = P.T - T1, b = P.T - t2;
+  if(Math.abs(a-b) < 1e-6) return (a+b)/2;
+  return (a - b) / Math.log(a / b);
+};
+function solveT2(){
+  // f(t2) = W cp (t2-T1) - K A Δtm(t2) = 0，单调增
+  let lo = T1 + 0.05, hi = P.T - 0.05;
+  const K = hTheo();
+  for(let i=0;i<80;i++){
+    const mid = (lo + hi) / 2;
+    const f = P.W/3600 * CP * (mid - T1) - K * A * dTmLm(mid);
+    if(f > 0) hi = mid; else lo = mid;
+  }
+  return (lo + hi) / 2;
+}
+function model(){
+  const t2 = solveT2();
+  const K = hTheo();
+  const Q = P.W/3600 * CP * (t2 - T1);
+  const dtm = dTmLm(t2);
+  const nu = (Q / (A * dtm)) * D / KW;
+  return { t2, K, Q, dtm, nu, re: Re() };
+}
+let points = [];   // {re, nu}
+
+/* ============ 绘图（Nu-Re 双对数） ============ */
+const W_ = 820, H_ = 300, pad = { l: 52, r: 16, t: 16, b: 36 };
+const cv = document.getElementById("nrCanvas"), ctx = cv.getContext("2d");
+const XMIN = 2.5, XMAX = 5, YMIN = 0.7, YMAX = 2.4;   // Re 300–1e5，Nu 5–250
+function lx(re){ return pad.l + (Math.log10(re) - XMIN) / (XMAX - XMIN) * (W_ - pad.l - pad.r); }
+function ly(nu){ return H_ - pad.b - (Math.log10(nu) - YMIN) / (YMAX - YMIN) * (H_ - pad.t - pad.b); }
+function drawNR(){
+  ctx.clearRect(0,0,W_,H_);
+  ctx.font = "10px ui-monospace,monospace";
+  ctx.strokeStyle = "#232b38"; ctx.fillStyle = "#5b6572";
+  for(let e=XMIN;e<=XMAX;e++){
+    for(let m=1;m<10;m++){
+      ctx.beginPath();
+      ctx.moveTo(lx(Math.pow(10,e)*m), pad.t);
+      ctx.lineTo(lx(Math.pow(10,e)*m), H_-pad.b);
+      ctx.strokeStyle = m===1 ? "#232b38" : "#1a212c"; ctx.stroke();
+    }
+    ctx.fillText("10^"+e, lx(Math.pow(10,e))-14, H_-pad.b+14);
+  }
+  for(let e=YMIN;e<=YMAX;e++){
+    ctx.beginPath(); ctx.moveTo(pad.l, ly(Math.pow(10,e))); ctx.lineTo(W_-pad.r, ly(Math.pow(10,e))); ctx.stroke();
+    ctx.fillText("10^"+e, 4, ly(Math.pow(10,e))+4);
+  }
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("Re（对数）", W_/2-30, H_-6);
+  ctx.save(); ctx.translate(14, H_/2+6); ctx.rotate(-Math.PI/2);
+  ctx.fillText("Nu（对数）", -34, 0); ctx.restore();
+  // Dittus-Boelter 理论线
+  ctx.strokeStyle = "#59d6ff"; ctx.lineWidth = 2;
+  ctx.beginPath();
+  for(let re=300;re<=100000;re+=400) ctx.lineTo(lx(re), ly(0.023*Math.pow(re,0.8)*Math.pow(PR,0.4)));
+  ctx.stroke();
+  ctx.fillStyle = "#59d6ff"; ctx.fillText("Nu=0.023·Re^0.8·Pr^0.4", lx(1500), ly(0.023*Math.pow(1500,0.8)*Math.pow(PR,0.4))-8);
+  // 数据点
+  points.forEach((p,i)=>{
+    ctx.fillStyle = "#ffb020";
+    ctx.beginPath(); ctx.arc(lx(p.re), ly(p.nu), 4.5, 0, 6.3); ctx.fill();
+    ctx.fillStyle = "#e8eef4"; ctx.font = "10px ui-monospace";
+    ctx.fillText(String(i+1), lx(p.re)+7, ly(p.nu)-6);
+  });
+  // 当前点
+  const m = model();
+  ctx.strokeStyle = "#ffb020"; ctx.lineWidth = 1.5; ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(lx(m.re), pad.t); ctx.lineTo(lx(m.re), H_-pad.b); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = "#ffb020";
+  ctx.beginPath(); ctx.arc(lx(m.re), ly(m.nu), 5, 0, 6.3); ctx.stroke();
+  ctx.fillStyle = "#8b95a3"; ctx.font = "10px -apple-system,Microsoft YaHei";
+  ctx.fillText("当前", lx(m.re)+8, ly(m.nu)-8);
+}
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  {n:"① 通水"},{n:"② 排凝水"},{n:"③ 开蒸汽"},{n:"④ 调流量"},{n:"⑤ 读出口温"},{n:"⑥ 整理数据"},{n:"⑦ 报告"}
+];
+const ACTLBL = ["通冷水 → 排凝水","凝水排尽 → 开蒸汽","蒸汽稳定 → 调流量","调定流量 → 读出口温","记录该点 → 再调流量","整理完成 → 查看报告",""];
+const BENCH = [
+  `<div class="kv-grid">
+     <div class="kv"><div class="k">管程</div><div class="v"><em>冷水</em> t₁=20℃</div></div>
+     <div class="kv"><div class="k">壳程</div><div class="v">饱和蒸汽</div></div>
+     <div class="kv"><div class="k">内管</div><div class="v">d=25mm · L=2m</div></div>
+     <div class="kv"><div class="k">传热面积</div><div class="v">A=0.157 m²</div></div>
+   </div>
+   <div class="tipbox"><b>通水：</b>先开冷水进出口阀，确认流量稳定。<span class="warnline">水没通就开蒸汽 = 干烧，管子直接变形。</span></div>`,
+  `<div class="tipbox"><b>排凝水：</b>打开蒸汽管线低点的疏水阀，把积存的冷凝水排掉、暖管。<span class="warnline">凝水不排就送大蒸汽 = 水击，管道都要震脱。</span></div>`,
+  `<div class="kv-grid">
+     <div class="kv"><div class="k">蒸汽温度</div><div class="v" id="bT3">–</div></div>
+     <div class="kv"><div class="k">蒸汽压力</div><div class="v" id="bP3">–</div></div>
+   </div>
+   <div class="tipbox"><b>开蒸汽：</b>缓慢开阀，压力表顶到设定值后稳定 5 分钟再读数。饱和蒸汽温度由压力决定（表压 0.1MPa≈120℃）。</div>`,
+  `<div class="kv-grid">
+     <div class="kv"><div class="k">流量</div><div class="v" id="bW4">–</div></div>
+     <div class="kv"><div class="k">流速 u</div><div class="v" id="bU4">–</div></div>
+     <div class="kv"><div class="k">Re</div><div class="v" id="bRe4">–</div></div>
+     <div class="kv"><div class="k">流态</div><div class="v" id="bReg4">–</div></div>
+   </div>
+   <div class="tipbox"><b>调流量：</b>W 越大湍流越强，K 越大。但 W 太大会让出口温差变小，Δtm 变大——两组效应叠加，自己看仪表怎么变。</div>`,
+  `<div class="kv-grid">
+     <div class="kv"><div class="k">出口温度 t₂</div><div class="v" id="bT25">–</div></div>
+     <div class="kv"><div class="k">热负荷 Q</div><div class="v" id="bQ5">–</div></div>
+     <div class="kv"><div class="k">Δtm</div><div class="v" id="bDtm5">–</div></div>
+     <div class="kv"><div class="k">K / Nu</div><div class="v" id="bK5">–</div></div>
+   </div>
+   <div class="tipbox"><b>读出口温：</b>两支温度计同位置稳定后读数。按 Q=W·cp·(t₂−t₁) 与 Q=K·A·Δtm 联立求 K。点"记录数据点"入库。</div>`,
+  `<div class="tipbox"><b>整理：</b>把 (Re, Nu) 画到双对数坐标，应落在 <b>Nu=0.023·Re^0.8·Pr^0.4</b> 直线上（斜率 0.8）。<b>K 随流量增大而增大，就是这个斜率在起作用。</b></div>`,
+  `<div class="tipbox">7 步走完：通水 → 排凝水 → 开蒸汽 → 调流量 → 读出口温 → 整理数据 → 报告。<b>K 不是常数，它是流动状态的函数。</b></div>`,
+];
+let S = { step:0, max:0 };
+const $ = id => document.getElementById(id);
+const steamP = T => (T===100?"0.013 MPa(表)":T===120?"≈0.1 MPa(表)":"≈0.38 MPa(表)");
+
+function syncVals(){
+  const setTxt = (id, v) => { const el = $(id); if(el) el.textContent = v; };
+  const setHtml = (id, v) => { const el = $(id); if(el) el.innerHTML = v; };
+  $("wVal").textContent = P.W + " kg/h";
+  $("tVal").textContent = P.T + "℃";
+  const m = model();
+  $("mT").innerHTML = P.T + "<small>℃</small>";
+  $("mT2").innerHTML = m.t2.toFixed(1) + "<small>℃</small>";
+  $("mT2M").className = "metric" + (m.t2 >= P.T-2 ? " warn" : " good");
+  $("mQ").innerHTML = (m.Q/1000).toFixed(2) + "<small>kW</small>";
+  $("mK").innerHTML = m.K.toFixed(0) + "<small>W/m²·K</small>";
+  $("mKm").className = "metric" + (m.re < 3000 ? " warn" : " good");
+  $("mLm").innerHTML = m.dtm.toFixed(1) + "<small> ℃</small>";
+  $("mNu").innerHTML = m.nu.toFixed(1) + " / " + (m.re>=10000?Math.round(m.re).toLocaleString():Math.round(m.re));
+  $("recCount").textContent = points.length;
+  $("svgT").textContent = P.T + "℃";
+  $("svgT2").textContent = "t₂=" + m.t2.toFixed(1) + "℃";
+  setTxt("bT3", P.T + "℃");
+  setTxt("bP3", steamP(P.T));
+  setTxt("bW4", P.W + " kg/h");
+  setTxt("bU4", u().toFixed(2) + " m/s");
+  setTxt("bRe4", Math.round(m.re).toString());
+  setTxt("bReg4", m.re < 2300 ? "层流" : "湍流");
+  setTxt("bT25", m.t2.toFixed(1) + " ℃");
+  setTxt("bQ5", (m.Q/1000).toFixed(2) + " kW");
+  setTxt("bDtm5", m.dtm.toFixed(1) + " ℃");
+  setTxt("bK5", m.K.toFixed(0) + " / Nu=" + m.nu.toFixed(1));
+}
+function narrate(){
+  const m = model();
+  const N = [
+    `冷水先通：t₁=<b>${T1}℃</b>，内管 d=25mm、L=2m，A=<b>${A.toFixed(3)} m²</b>。`,
+    `凝水排尽、管线暖好。<span class="ok">蒸汽可以安全进入。</span>`,
+    `饱和蒸汽 <b>${P.T}℃</b>（${steamP(P.T)}）进入壳程，冷凝放热。`,
+    `流量 <b>${P.W} kg/h</b>：u=<b>${u().toFixed(2)} m/s</b>，Re=<b>${Math.round(m.re)}</b>（${m.re<2300?'<span class="warn">层流，K 会很小</span>':'湍流'}）。`,
+    `出口温度 t₂=<b>${m.t2.toFixed(1)}℃</b>，Q=<b>${(m.Q/1000).toFixed(2)} kW</b>，Δtm=<b>${m.dtm.toFixed(1)}℃</b>，K=<b>${m.K.toFixed(0)} W/m²·K</b>。`,
+    `Nu-Re 双对数：数据点应落在斜率 <b>0.8</b> 的理论线上——K 随流量增大而增大，不是固定值。`,
+    `结论：当前 K=<b>${m.K.toFixed(0)} W/m²·K</b>（${points.length} 个数据点）。${points.length? (Math.abs(avgDev())<8?'<span class="ok">实测 Nu 与 Dittus-Boelter 偏差 '+avgDev().toFixed(1)+'%。</span>':'<span class="warn">平均偏差 '+avgDev().toFixed(1)+'%。</span>') : ''}`,
+  ];
+  $("narrate").innerHTML = N[S.step];
+}
+function avgDev(){
+  if(!points.length) return 999;
+  const d = points.map(p=>{
+    const theo = 0.023 * Math.pow(p.re, 0.8) * Math.pow(PR, 0.4);
+    return Math.abs(p.nu - theo) / theo * 100;
+  });
+  return d.reduce((a,b)=>a+b,0)/d.length;
+}
+function flash(id){
+  const m = $(id); if(!m) return;
+  m.classList.remove("flash"); void m.offsetWidth; m.classList.add("flash");
+}
+function refreshMetrics(){ syncVals(); drawNR(); flash("mT2M"); flash("mKm"); }
+function buildSeg(){
+  const seg = document.getElementById("stepSeg");
+  STEPS.forEach((s,i)=>{
+    const b = document.createElement("button");
+    b.textContent = s.n; b.onclick = ()=>goStep(i);
+    seg.appendChild(b);
+  });
+}
+function paintSeg(){
+  [...document.getElementById("stepSeg").children].forEach((b,i)=>{
+    b.classList.toggle("on", i===S.step);
+    b.classList.toggle("done", i<S.max || i<S.step);
+  });
+}
+function goStep(n){
+  if(n > S.max+1 || n < 0 || n > 6) return;
+  S.step = n; if(n > S.max) S.max = n;
+  render();
+}
+function render(){
+  $("sceneTitle").textContent = STEPS[S.step].n;
+  $("bench").innerHTML = BENCH[S.step];
+  syncVals();
+  narrate(); refreshMetrics();
+  const ab = $("actBtn");
+  if(S.step === 6){
+    ab.style.display = "none";
+    $("conclusionCard").style.display = "";
+    showConclusion();
+  } else {
+    ab.style.display = "";
+    ab.textContent = ACTLBL[S.step];
+    $("conclusionCard").style.display = "none";
+  }
+  paintSeg();
+}
+function showConclusion(){
+  const m = model();
+  $("resBig").textContent = m.K.toFixed(0);
+  $("resState").textContent = "T=" + P.T + "℃ · W=" + P.W + " kg/h" + (points.length ? " · " + points.length + " 个数据点" : "");
+  $("concText").innerHTML = `蒸汽 <b>${P.T}℃</b> 加热冷水：出口 <b>t₂=${m.t2.toFixed(1)}℃</b>，热负荷 <b>Q=${(m.Q/1000).toFixed(2)} kW</b>，对数平均温差 <b>Δtm=${m.dtm.toFixed(1)}℃</b>。总传热系数 <b>K=${m.K.toFixed(0)} W/m²·K</b>（Nu=${m.nu.toFixed(1)}，Re=${Math.round(m.re)}）。`
+    + (points.length
+      ? `<br>${points.length<4 ? '<span class="bad">数据点偏少</span>，建议 ≥4 个点覆盖不同流量。' : (avgDev()<8 ? '<span class="good">实测 Nu-Re 与 Dittus-Boelter 理论线偏差 '+avgDev().toFixed(1)+'%，符合良好——K 随 Re^0.8 增长成立。</span>' : '<span class="bad">平均偏差 '+avgDev().toFixed(1)+'%，偏大——查温度读数与稳定时间。</span>')}`
+      : `<br><span class="bad">还没记录数据点。</span> 回"读出口温"步骤采集。`);
+}
+function resetAll(){
+  points = [];
+  S.step = 0; S.max = 0;
+  render();
+}
+
+/* ============ 事件 ============ */
+$("wRange").addEventListener("input", e => { P.W = parseInt(e.target.value); syncVals(); refreshMetrics(); narrate(); });
+document.getElementById("tSeg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  P.T = parseInt(b.dataset.v);
+  [...document.getElementById("tSeg").children].forEach(x=>x.classList.toggle("on", x===b));
+  syncVals(); refreshMetrics(); narrate();
+});
+$("recBtn").addEventListener("click", ()=>{
+  if(points.length >= 12) return;
+  const m = model();
+  points.push({ re: m.re, nu: m.nu });
+  syncVals(); drawNR(); narrate();
+});
+$("resetBtn").addEventListener("click", ()=>{ points=[]; drawNR(); syncVals(); });
+$("actBtn").addEventListener("click", ()=>goStep(S.step+1));
+document.addEventListener("keydown", e=>{
+  if(e.key==="ArrowRight") goStep(S.step+1);
+  if(e.key==="ArrowLeft") goStep(S.step-1);
+  if(e.key===" "){ e.preventDefault(); $("actBtn").click(); }
+});
+
+/* init */
+buildSeg();
+render();
+document.getElementById("loader").classList.add("done");
+</script>
+</body>
+</html>

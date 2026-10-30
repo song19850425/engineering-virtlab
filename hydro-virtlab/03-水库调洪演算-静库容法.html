@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>水库调洪演算实验室</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 15l5-5 4 4 5-6 4 4' fill='none' stroke='%2359d6ff' stroke-width='1.6'/%3E%3Cpath d='M8 18h8' stroke='%23ffb020' stroke-width='1.6'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#0a0d12;--panel:#11151d;--panel2:#151b25;--line:#232b38;--txt:#e8eef4;--dim:#8b95a3;--faint:#5b6572;--amber:#ffb020;--amber-dim:#8a5c10;--cyan:#59d6ff;--danger:#ff5252;--ok:#3ddc84;--violet:#b48cff;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes surf{0%{transform:translateY(0)}50%{transform:translateY(-5px)}100%{transform:translateY(0)}}
+.surf{animation:surf 2s ease-in-out infinite}
+@keyframes gate{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+.gate{animation:gate 1.6s ease-in-out infinite}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px;cursor:crosshair}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader,#rp{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在生成入库洪水…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">HYDRO · VIRTUAL LAB 03</div>
+    <div class="kicker">水利水电工程 · 工程水文学 · 洪水演算</div>
+    <h1 class="title">水库调洪演算<span class="thin">实验室</span></h1>
+    <div class="sub">RESERVOIR ROUTING · PEAK TRUNCATION · STATIC STORAGE</div>
+    <p class="oneliner"><b>水库为什么能削峰？因为把洪水先"存"起来，再慢慢放。</b><br>水量平衡 (Q入−q)Δt=ΔV＋蓄泄关系 q=1.7·b·H^1.5，逐时段试算——调洪演算就是水库防洪调度的算术。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 洪水过程</span></h3>
+      <svg class="scene" id="rig" viewBox="0 0 420 190" role="img" aria-label="水库调洪示意">
+        <rect x="40" y="80" width="240" height="80" rx="6" fill="#14202e" stroke="#59d6ff" stroke-width="1.6"/>
+        <g class="surf">
+          <path d="M60 100 q10 -6 20 0 t20 0 t20 0 t20 0 t20 0 t20 0" stroke="#59d6ff" stroke-width="2.4" fill="none"/>
+        </g>
+        <rect x="280" y="60" width="100" height="100" fill="#1c2533" stroke="#232b38"/>
+        <g class="gate">
+          <rect x="310" y="66" width="8" height="34" fill="#ffb020"/>
+        </g>
+        <path d="M318 108 q14 14 6 34" stroke="#3ddc84" stroke-width="3" fill="none"/>
+        <text x="210" y="176" text-anchor="middle" fill="#8b95a3" font-size="9" font-family="inherit">入库 Q(t) → 水库蓄 V → 溢洪道泄 q=1.7·b·H^1.5</text>
+        <text x="210" y="188" text-anchor="middle" fill="#5b6572" font-size="9" font-family="inherit">削峰：q 峰值 < Q 峰值，峰现时间后移</text>
+      </svg>
+      <canvas id="routCanvas" width="820" height="420" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">重置</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">入库洪峰 Qm</div><div class="v" id="mQm">–<small>m³/s</small></div><div class="sub2">三角洪水过程</div></div>
+          <div class="metric" id="mSc"><div class="k">最大下泄 qm</div><div class="v" id="mqm">–<small>m³/s</small></div><div class="sub2" id="mqmSub">数值演算</div></div>
+          <div class="metric"><div class="k">最高库水位 Hm</div><div class="v" id="mHm">–<small>m</small></div><div class="sub2">堰顶以上</div></div>
+          <div class="metric" id="mPc"><div class="k">削峰率</div><div class="v" id="mCut">–<small>%</small></div><div class="sub2" id="mCutSub">(Qm−qm)/Qm</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">入库洪峰 Qm</span><span class="val" id="qVal">600 m³/s</span></div>
+          <input type="range" id="qRange" min="200" max="1000" step="50" value="600">
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">溢洪道净宽 b</span><span class="val" id="bVal">20 m</span></div>
+          <input type="range" id="bRange" min="5" max="40" step="1" value="20">
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">峰现时间 tp</span><span class="val" id="tpVal">6 h</span></div>
+          <input type="range" id="tpRange" min="2" max="12" step="1" value="6">
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>实验结论 · 调洪效果</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">m³/s（最大下泄 qm）</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">改洪水再算</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · 蓄泄关系是演算的"心脏"</div><div class="d">q=1.7·b·H^1.5 是简化无闸溢洪道；有闸门则是调度规则（先蓄后泄/错峰）。蓄泄关系错了，整个调洪表全错，下游防洪判断跟着错。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · 削峰率是双刃剑</div><div class="d">溢洪道越窄削峰越多，但最高水位越高——坝高、淹没损失、泄洪风险同步上升。调洪演算的本质是在"削峰"与"抬水位"之间找平衡。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · 入库洪水要按设计标准来</div><div class="d">调洪算的是"标准内洪水"（如 100 年一遇）。超标准洪水靠非常溢洪道/预案，不在正常演算内——把稀遇洪水当常态调，水库必垮。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">水量平衡（静库容法，Δt=0.5h）：
+  (Q1+Q2)/2·Δt − (q1+q2)/2·Δt = V2 − V1
+蓄泄关系（无闸溢洪道，演示简化）：
+  q = 1.7·b·H^1.5   [m³/s]（b：净宽 m，H：堰顶以上水头 m）
+库容-水位关系（演示简化）：
+  V = 200·H^1.5   [万 m³] → H = (V/2e6)^(2/3)
+入库洪水（三角过程，总历时 24h）：
+  Q(t)=Qm·(t/tp)  t≤tp；Q(t)=Qm·(24−t)/(24−tp)  t&gt;tp
+数值演算：Δt=0.5h 逐时段推进 V_{n+1}=V_n+(Q−q)Δt，
+  由 V 反查 H、由 H 求 q（始态 V=0，即堰顶起调）
+教学锚点：Qm=600、b=20 → 平衡态 H*=(Qm/1.7b)^(2/3)=6.78m
+  （恒定入流才达到）；24h 三角洪水边蓄边泄，实际
+  Hm≈3.7m、qm≈250、削峰率≈59%（溢洪道越窄削峰越多、水位越高）</div>
+    <p>演示模型按静库容调洪演算原理简化设定（无闸溢洪道、三角形入流、简化蓄泄关系）；实际工程需用实测库容曲线、溢流堰流量系数与调度规则，按《防洪标准》GB 50201 演算。教学演示用，不作为防洪设计依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性数值演算） ============ */
+let P = { Qm: 600, b: 20, tp: 6 };
+const $ = id => document.getElementById(id);
+const DT = 0.5, T = 24;
+function route(){
+  // 返回数组：每步 {t, Qin, q, V, H}
+  let V = 0, q = 0, H = 0;
+  const rows = [];
+  const n = T / DT;
+  for (let i = 0; i <= n; i++){
+    const t = i * DT;
+    const Qin = t <= P.tp ? P.Qm * t / P.tp : P.Qm * (T - t) / (T - P.tp);
+    // 推进：Qin 与 q 取时段平均值
+    if (i > 0){
+      const QinAvg = (rows[i - 1].Qin + Qin) / 2;
+      const qAvg = (rows[i - 1].q + q) / 2;
+      V += (QinAvg - qAvg) * DT * 3600; // m³
+    }
+    H = V <= 0 ? 0 : Math.pow(V / 2e6, 2 / 3);
+    q = 1.7 * P.b * Math.pow(Math.max(H, 0), 1.5);
+    rows.push({ t, Qin, q, V: V / 1e4, H });
+  }
+  let qm = 0, Hm = 0, tq = 0;
+  rows.forEach(r => { if (r.q > qm){ qm = r.q; Hm = r.H; tq = r.t; } });
+  const cut = (P.Qm - qm) / P.Qm * 100;
+  return { rows, qm, Hm, tq, cut };
+}
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  { t: "洪水过程", s: "给定入库洪水过程（三角峰形：Qm、峰现时间 tp、历时 24h）。", bench: "准备：\n① 确定设计洪水（Qm、tp、历时）\n② 定溢洪道净宽 b、堰顶高程\n③ 建立蓄泄关系 q~V、库容曲线 V~H\n④ 起调水位（演示：堰顶）" },
+  { t: "蓄泄关系", s: "q=1.7·b·H^1.5（无闸溢洪道），V=1000·H^1.5。", bench: "" },
+  { t: "水量平衡", s: "(Q入−q)Δt=ΔV，逐时段试算。", bench: "" },
+  { t: "过程曲线", s: "画出库过程 q(t) 与入库 Q(t)，找 qm 与峰现时间。", bench: "" },
+  { t: "削峰分析", s: "削峰率=(Qm−qm)/Qm，最高水位 Hm。", bench: "" },
+  { t: "报告", s: "调洪效果、坝高压力、调度建议。", bench: "" }
+];
+let step = 0;
+
+function renderSeg(){
+  const el = $("stepSeg");
+  el.innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" class="${i < step ? "done" : i === step ? "on" : ""}">${i + 1} · ${s.t}<small>${i < step ? "已通过" : i === step ? "进行中" : "待执行"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { if(+b.dataset.i <= step){ step = +b.dataset.i; renderSeg(); narrate(); } });
+  $("sceneTitle").textContent = `${step + 1} · ${STEPS[step].t}`;
+  $("actBtn").textContent = step >= 5 ? "完成" : "下一步";
+}
+function narrate(){
+  const n = $("narrate");
+  const r = route();
+  if (step <= 1) n.innerHTML = STEPS[step].s;
+  else if (step === 2) n.innerHTML = `q=1.7·b·H^1.5=<b>${(1.7 * P.b).toFixed(1)}·H^1.5</b> m³/s（b=${P.b}m）；V=1000·H^1.5 万m³。`;
+  else if (step === 3) n.innerHTML = `水量平衡逐时段推进：蓄 V 起于 0，入库>出库时水位抬、q 增，直到出入平衡。`;
+  else if (step === 4) n.innerHTML = `出库峰值 <b>qm=${r.qm.toFixed(0)} m³/s</b>（t≈${r.tq}h），入库峰 ${P.Qm} m³/s——峰被削掉、还错峰。`;
+  else if (step === 5) n.innerHTML = `削峰率=<b>${r.cut.toFixed(1)}%</b>，最高水位 <b>Hm=${r.Hm.toFixed(2)} m</b>（堰顶以上）。`;
+  else n.innerHTML = `报告：Qm=${P.Qm} → qm=${r.qm.toFixed(0)} m³/s（削峰 ${r.cut.toFixed(1)}%），Hm=${r.Hm.toFixed(2)}m。`;
+}
+function flash(id){
+  const el = $(id); if(!el) return;
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+function refreshMetrics(){
+  const r = route();
+  $("mQm").textContent = P.Qm;
+  $("mqm").textContent = r.qm.toFixed(0);
+  $("mqmSub").textContent = `t≈${r.tq}h · 入库峰 ${P.Qm}`;
+  $("mHm").textContent = r.Hm.toFixed(2);
+  $("mCut").textContent = r.cut.toFixed(1);
+  $("mCutSub").textContent = `(Qm−qm)/Qm`;
+  flash("mQm"); flash("mqm"); flash("mHm"); flash("mCut");
+}
+
+/* ============ Canvas 过程曲线 ============ */
+const W_ = 820, H_ = 420;
+const cv = $("routCanvas"), ctx = cv.getContext("2d");
+function drawCanvas(){
+  ctx.clearRect(0, 0, W_, H_);
+  const r = route();
+  // 左：Q(t)/q(t) 过程线
+  const l = { l: 56, r: 520, t: 24, b: 46 };
+  const qmax = Math.max(P.Qm, r.qm) * 1.1;
+  const X = t => l.l + t / T * (l.r - l.l);
+  const Y = q => H_ - l.b - q / qmax * (H_ - l.t - l.b);
+  ctx.font = "10px ui-monospace,monospace"; ctx.fillStyle = "#5b6572"; ctx.strokeStyle = "#232b38";
+  for (let qq = 0; qq <= qmax; qq += Math.ceil(qmax / 5 / 100) * 100){
+    const y = Y(qq); ctx.beginPath(); ctx.moveTo(l.l, y); ctx.lineTo(l.r, y); ctx.stroke(); ctx.fillText(qq, l.l - 30, y + 4);
+  }
+  for (let t = 0; t <= T; t += 6){ ctx.beginPath(); ctx.moveTo(X(t), l.t); ctx.lineTo(X(t), H_ - l.b); ctx.stroke(); ctx.fillText(t + "h", X(t) - 8, H_ - l.b + 16); }
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("流量 (m³/s)", 8, 60);
+  ctx.fillText("入库 Q(t) vs 出库 q(t)", l.l, l.t - 6);
+  // 入库
+  ctx.strokeStyle = "#ffb020"; ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  r.rows.forEach((rr, i) => i ? ctx.lineTo(X(rr.t), Y(rr.Qin)) : ctx.moveTo(X(rr.t), Y(rr.Qin)));
+  ctx.stroke();
+  // 出库
+  ctx.strokeStyle = "#3ddc84"; ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  r.rows.forEach((rr, i) => i ? ctx.lineTo(X(rr.t), Y(rr.q)) : ctx.moveTo(X(rr.t), Y(rr.q)));
+  ctx.stroke();
+  // 标注
+  ctx.fillStyle = "#ffb020"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText(`Qm=${P.Qm}`, X(P.tp) - 6, Y(P.Qm) - 8);
+  ctx.fillStyle = "#3ddc84";
+  ctx.fillText(`qm=${r.qm.toFixed(0)}`, X(r.tq) + 6, Y(r.qm) - 8);
+  ctx.fillStyle = "#5b6572"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText(`削峰率 ${r.cut.toFixed(1)}% · 峰现错后`, l.l, H_ - 34);
+
+  // 右：库水位过程 + 平衡锚点
+  const rx = 560;
+  ctx.fillStyle = "#8b95a3"; ctx.font = "13px -apple-system,Microsoft YaHei";
+  ctx.fillText("库水位 H(t) 与平衡锚点", rx, 36);
+  const Hstar = Math.pow(P.Qm / (1.7 * P.b), 2 / 3);
+  const Hmax = Math.max(Hstar * 1.15, 2);
+  const x0 = rx, y0 = 48, w = 230, h2 = 200;
+  ctx.strokeStyle = "#232b38"; ctx.strokeRect(x0, y0, w, h2);
+  const XX = t => x0 + t / T * w;
+  const YY = h => y0 + h2 - h / Hmax * h2;
+  ctx.strokeStyle = "#59d6ff"; ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  r.rows.forEach((rr, i) => i ? ctx.lineTo(XX(rr.t), YY(rr.H)) : ctx.moveTo(XX(rr.t), YY(rr.H)));
+  ctx.stroke();
+  ctx.strokeStyle = "#ff5252"; ctx.lineWidth = 1.4; ctx.setLineDash([5, 5]);
+  ctx.beginPath(); ctx.moveTo(x0, YY(Hstar)); ctx.lineTo(x0 + w, YY(Hstar)); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = "#ff5252"; ctx.font = "10px ui-monospace,monospace";
+  ctx.fillText("平衡态 H*=" + Hstar.toFixed(2) + "m", x0 + 4, YY(Hstar) - 4);
+  ctx.fillStyle = "#59d6ff"; ctx.font = "11px ui-monospace,monospace";
+  ctx.fillText(`Hm=${r.Hm.toFixed(2)}m`, XX(r.tq) + 4, YY(r.Hm) + 14);
+  ctx.fillStyle = "#5b6572"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("b 越窄：qm 越小（削峰↑）但 Hm 越高（坝压↑）", rx, H_ - 40);
+}
+
+/* ============ 动作 ============ */
+$("actBtn").onclick = () => {
+  if (step < 5) step++;
+  if (step === 4){ renderConclusion(); }
+  renderSeg(); narrate();
+};
+$("resetBtn").onclick = resetAll;
+function resetAll(){
+  P = { Qm: 600, b: 20, tp: 6 };
+  step = 0;
+  $("qRange").value = 600; $("bRange").value = 20; $("tpRange").value = 6;
+  $("conclusionCard").style.display = "none";
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+}
+$("qRange").oninput = e => { P.Qm = +e.target.value; $("qVal").textContent = P.Qm + " m³/s"; refreshMetrics(); narrate(); drawCanvas(); };
+$("bRange").oninput = e => { P.b = +e.target.value; $("bVal").textContent = P.b + " m"; refreshMetrics(); narrate(); drawCanvas(); };
+$("tpRange").oninput = e => { P.tp = +e.target.value; $("tpVal").textContent = P.tp + " h"; refreshMetrics(); narrate(); drawCanvas(); };
+function renderConclusion(){
+  const r = route();
+  $("conclusionCard").style.display = "";
+  $("resBig").textContent = r.qm.toFixed(0);
+  $("resState").textContent = `Qm=${P.Qm} · b=${P.b}m · tp=${P.tp}h`;
+  $("concText").innerHTML = `入库洪峰 <b>${P.Qm} m³/s</b> → 经调蓄后最大下泄 <b>${r.qm.toFixed(0)} m³/s</b>，削峰率 <b>${r.cut.toFixed(1)}%</b>，峰现时间错后至约 ${r.tq}h。<br><span class='good'>最高库水位 Hm=${r.Hm.toFixed(2)}m（堰顶以上）——溢洪道净宽 b=${P.b}m 下，削峰与坝高压力在此平衡。</span><br>工程要点：q=1.7·b·H^1.5 泄流能力随水位非线性放大；窄堰削峰狠但坝要加高，宽堰泄得快但下游压力大——调洪演算就是算这笔账。`;
+}
+
+/* ============ 初始化 ============ */
+window.addEventListener("load", () => {
+  setTimeout(() => $("loader").classList.add("done"), 700);
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>地质工程虚拟实验包</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 15h16l-3 5H7z' fill='%2359d6ff'/%3E%3Cpath d='M8 10l3-6 3 6z' fill='none' stroke='%23ffb020' stroke-width='1.6'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#0a0d12;--panel:#11151d;--panel2:#151b25;--line:#232b38;--txt:#e8eef4;--dim:#8b95a3;--faint:#5b6572;--amber:#ffb020;--amber-dim:#8a5c10;--cyan:#59d6ff;--danger:#ff5252;--ok:#3ddc84;--violet:#b48cff;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;min-height:100vh}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes lift{0%{transform:translateY(0)}50%{transform:translateY(-8px)}100%{transform:translateY(0)}}
+.lift{animation:lift 2s ease-in-out infinite}
+.wrap{max-width:1080px;margin:0 auto;padding:22px 18px 48px}
+header{padding:26px 4px 10px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.1em}
+h1 .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:16px;font-size:16px;color:var(--txt);line-height:1.75;border-left:3px solid var(--amber);padding-left:14px;max-width:760px}
+.oneliner b{color:var(--amber)}
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:26px}
+@media (max-width:760px){.cards{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;display:block;text-decoration:none;color:inherit;transition:border-color .15s,transform .15s}
+.card:hover{border-color:var(--amber-dim);transform:translateY(-2px)}
+.no{font-family:var(--mono);font-size:12px;color:var(--faint);letter-spacing:.2em}
+.card h2{font-size:18px;font-weight:700;margin:10px 0 6px;color:var(--txt)}
+.card .t{font-size:12px;letter-spacing:.2em;color:var(--amber);margin-bottom:10px}
+.card .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:9px 12px;font-size:12px;color:var(--cyan);line-height:1.8;margin-bottom:10px;overflow-x:auto;white-space:pre}
+.card .d{font-size:13px;color:var(--dim);line-height:1.7}
+.card .go{margin-top:12px;font-size:12px;color:var(--violet);letter-spacing:.15em}
+.note{background:var(--panel);border:1px dashed var(--line);border-radius:12px;padding:16px 18px;margin-top:22px;font-size:13px;color:var(--dim);line-height:1.9}
+.note b{color:var(--amber)}
+.note .m{font-family:var(--mono);color:var(--cyan);font-size:12px}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在布设勘探线…</p></div>
+<div class="wrap">
+<header>
+  <div class="kicker">ROCK MECHANICS · SOIL MECHANICS · HYDROGEOLOGY</div>
+  <h1>地质工程<span class="thin">虚拟实验包</span></h1>
+  <div class="sub">ENGINEERING GEOLOGY · SLOPE STABILITY · WELL HYDRAULICS</div>
+  <p class="oneliner"><b>地质工程的核心不是"看地层"，是"算岩土"：强度、渗透、稳定、涌水。</b><br>三轴定 c、φ，渗透试验定 k，条分法定边坡 Fs，泰斯公式定抽水降深——四页把岩土力学×水文地质串成勘察评价的完整链条。</p>
+</header>
+
+<div class="cards">
+  <a class="card" href="01-岩石三轴压缩试验-莫尔强度包线.html">
+    <div class="no">EXPERIMENT 01</div>
+    <h2>岩石三轴压缩 · 莫尔强度包线</h2>
+    <div class="t">岩体力学 · 强度准则</div>
+    <div class="f">σ1 = σ3·Kp + 2c·√Kp
+Kp = tan²(45°+φ/2)
+莫尔圆公切线 → c、φ</div>
+    <div class="d">围压系列三轴试验，看莫尔圆随 σ3 长大、包线斜率定 φ——"约束越强越抗压"。</div>
+    <div class="go">进入实验 →</div>
+  </a>
+  <a class="card" href="02-土的渗透试验-常水头与变水头.html">
+    <div class="no">EXPERIMENT 02</div>
+    <h2>土的渗透试验 · 常水头与变水头</h2>
+    <div class="t">土力学 · 渗透与达西定律</div>
+    <div class="f">常水头 k = Q·L/(A·Δh·t)
+变水头 k = 2.303·(aL/At)·lg(h1/h2)
+砂土 k 比黏土大 10^5 倍</div>
+    <div class="d">常水头测砂、变水头测黏性土，水位下降动画配读表——渗透系数量级一眼记住。</div>
+    <div class="go">进入实验 →</div>
+  </a>
+  <a class="card" href="03-边坡稳定性-瑞典条分法.html">
+    <div class="no">EXPERIMENT 03</div>
+    <h2>边坡稳定性 · 瑞典条分法</h2>
+    <div class="t">岩土工程 · 边坡稳定</div>
+    <div class="f">Fs = Σ(c·l + W·cosα·tanφ) / ΣW·sinα
+圆弧滑面 · 分条累加
+Fs&lt;1 失稳 · 1~1.3 临界</div>
+    <div class="d">圆弧滑面分条、逐条算抗滑与下滑力矩，调 φ、c、水位看 Fs 变——边坡塌不塌提前算出来。</div>
+    <div class="go">进入实验 →</div>
+  </a>
+  <a class="card" href="04-地下水井流-泰斯公式与抽水试验.html">
+    <div class="no">EXPERIMENT 04</div>
+    <h2>地下水井流 · 泰斯公式与抽水试验</h2>
+    <div class="t">水文地质 · 井流理论</div>
+    <div class="f">s = (Q/4πT)·W(u)，u = r²S/(4Tt)
+W(u) 井函数级数
+降深漏斗 s(r) 随时扩展</div>
+    <div class="d">承压完整井抽水试验：抽水量、导水系数、储水系数定降深——基坑降水与水源井设计的核心。</div>
+    <div class="go">进入实验 →</div>
+  </a>
+</div>
+
+<div class="note">
+  <b>谈单锚点</b>（《工程地质》《岩体力学》《土力学与地基基础》《水文地质学》）：三轴试验是岩土参数的第一来源；渗透试验是基坑降水、防渗设计的依据；条分法是边坡/滑坡评价标配；泰斯公式是抽水试验资料整理的看家本领。<br>
+  <b>可扩展模块（逻辑改编档，有单再补）</b>：赤平投影与节理统计分析、固结沉降 e-p 曲线与地基沉降计算、岩体分级 RMR/Q 系统、浅基础地基承载力（太沙基）、桩基承载力与沉桩分析、地下水数值模拟（MODFLOW 概念演示）。
+</div>
+
+<footer>
+  <span>地质工程虚拟实验包 · 单文件零依赖 · 双击即开</span>
+  <span>GEO-VIRTLAB</span>
+</footer>
+</div>
+<script>
+window.addEventListener("load", () => setTimeout(() => document.getElementById("loader").classList.add("done"), 650));
+</script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>材料科学与工程·虚拟实验包目录</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='8' fill='none' stroke='%2359d6ff' stroke-width='1.6'/%3E%3Cpath d='M7 12h4M11 12l2-3 2 3h1M11 15l-2-3-2 3' stroke='%23ffb020' stroke-width='1.5' fill='none'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:40px 18px}
+header{padding:30px 4px 10px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:12px}
+h1{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1 .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:16px;font-size:15px;line-height:1.8;color:var(--txt);border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.pos{margin-top:14px;font-size:12px;color:var(--faint);font-family:var(--mono)}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:24px}
+@media (max-width:700px){.grid{grid-template-columns:1fr}}
+.entry{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 20px;text-decoration:none;color:var(--txt);position:relative;overflow:hidden;transition:border-color .15s, transform .15s;display:block}
+.entry:hover{border-color:var(--amber-dim);transform:translateY(-2px)}
+.entry .no{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.25em;margin-bottom:8px}
+.entry .t{font-size:21px;font-weight:700;letter-spacing:.04em;margin-bottom:10px;color:var(--cyan)}
+.entry .d{font-size:13px;color:var(--dim);line-height:1.8;margin-bottom:12px}
+.entry .f{font-family:var(--mono);font-size:11.5px;color:var(--violet);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;line-height:1.9}
+.entry .arrow{position:absolute;right:16px;top:16px;color:var(--faint);font-size:20px}
+.foot{margin-top:30px;padding-top:18px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.note{margin-top:22px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--amber);border-radius:10px;padding:14px 16px;font-size:13px;color:var(--dim);line-height:1.9}
+.note b{color:var(--txt)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">MATL · VIRTUAL LAB PACK · 4 EXPERIMENTS</div>
+    <h1>材料科学与工程<span class="thin">虚拟实验包</span></h1>
+    <div class="sub">MATERIALS SCIENCE &amp; ENGINEERING · STRENGTH TO PHASE</div>
+    <p class="oneliner">符号：<b>σ−ε 曲线、HV/HRC、KIC、晶格、相图</b>。设备：拉伸试验机、硬度计、金相显微镜、电炉。四个代表实验覆盖「拉伸→硬度→金相→热处理」完整教学链。<br>零依赖单文件，双击即开。</p>
+    <div class="pos">MATL-VIRTLAB · 2026-10 · 骨架复用 · 数值可复算</div>
+  </header>
+
+  <div class="grid">
+    <a class="entry" href="01-拉伸与晶粒尺寸-霍尔佩奇.html">
+      <div class="no">EXP 01</div>
+      <div class="t">拉伸与晶粒尺寸 · 霍尔-佩奇</div>
+      <div class="d">同一炉钢，晶粒从粗到细，屈服强度一路爬升——细晶强化是唯一"强度+韧性"双丰收的强化手段。看 σ-ε 曲线随晶粒变化。</div>
+      <div class="f">σy=σ0+kd⁻¹ᐟ² ｜ 退火100μm→170 ｜ 淬火10μm→321 MPa</div>
+      <div class="arrow">→</div>
+    </a>
+    <a class="entry" href="02-硬度实验-HBW-HRC-HV.html">
+      <div class="no">EXP 02</div>
+      <div class="t">硬度实验 · HBW/HRC/HV</div>
+      <div class="d">压痕越浅材料越硬——布氏钢球、洛氏金刚石锥、维氏四棱锥三种标尺，压痕尺寸反算硬度，再换算估强度。</div>
+      <div class="f">HBW=F/(πD/2·(D−√(D²−d²))) ｜ HRC=100−h/0.002 ｜ HV=1.8544·F/d²</div>
+      <div class="arrow">→</div>
+    </a>
+    <a class="entry" href="03-铁碳相图与金相-杠杆定律.html">
+      <div class="no">EXP 03</div>
+      <div class="t">铁碳相图与金相 · 杠杆定律</div>
+      <div class="d">碳含量决定室温组织：亚共析铁素体+珠光体、共析全珠光体、过共析多渗碳体——杠杆定律把比例算得明明白白。</div>
+      <div class="f">F%=(0.77−C)/0.748 ｜ P%=(C−0.0218)/0.748 ｜ 共析 0.77%/727°C</div>
+      <div class="arrow">→</div>
+    </a>
+    <a class="entry" href="04-热处理-淬火回火.html">
+      <div class="no">EXP 04</div>
+      <div class="t">热处理 · 淬火-回火</div>
+      <div class="d">同样 45 钢，水冷出马氏体 HRC55 硬脆、炉冷出珠光体 HRC20 软韧——冷却速度是命运开关；淬火后回火再调硬度韧性。</div>
+      <div class="f">水冷 M HRC55 → 回火 150/350/550°C → M回/T回/S回 ｜ 调质=淬火+高温回火</div>
+      <div class="arrow">→</div>
+    </a>
+  </div>
+
+  <div class="note"><b>谈单锚点：</b>四页覆盖材料力学性能（拉伸+硬度）、金属学（相图+杠杆定律）、热处理工艺（淬火回火）三门核心课的核心必做实验，直接对应《材料科学基础》《金属学与热处理》《工程材料》的虚拟仿真一流课程申报点。<br><b>可扩展模块（逻辑改编档，有单再补）：</b>菲克扩散定律（渗碳模拟，霍尔-佩奇同族扩散模型）、冲击韧性（夏比冲击，断裂韧性 KIC 关联失效分析）、XRD/SEM 图谱判读（衍射峰/形貌）。设备覆盖：拉伸试验机、硬度计、金相显微镜、电炉已入页；XRD/SEM 图谱判读可并入扩展页。</div>
+
+  <div class="foot">
+    <span>OPC · 工科虚拟仿真外包 · 单文件离线包</span>
+    <span>目录页 · 4 实验入口 · 拉伸→硬度→金相→热处理全链条</span>
+  </div>
+</div>
+</body>
+</html>

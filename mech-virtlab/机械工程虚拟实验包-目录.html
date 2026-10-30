@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>机械工程·虚拟实验包目录</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 20V10h4v10M16 20V10h4v10M12 14v6' stroke='%2359d6ff' stroke-width='1.6'/%3E%3Cpath d='M12 3l2 3h-1v8h-2V6h-1z' fill='%23ffb020'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:40px 18px}
+header{padding:30px 4px 10px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:12px}
+h1{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1 .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:16px;font-size:15px;line-height:1.8;color:var(--txt);border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.pos{margin-top:14px;font-size:12px;color:var(--faint);font-family:var(--mono)}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:24px}
+@media (max-width:700px){.grid{grid-template-columns:1fr}}
+.entry{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 20px;text-decoration:none;color:var(--txt);position:relative;overflow:hidden;transition:border-color .15s, transform .15s;display:block}
+.entry:hover{border-color:var(--amber-dim);transform:translateY(-2px)}
+.entry .no{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.25em;margin-bottom:8px}
+.entry .t{font-size:21px;font-weight:700;letter-spacing:.04em;margin-bottom:10px;color:var(--cyan)}
+.entry .d{font-size:13px;color:var(--dim);line-height:1.8;margin-bottom:12px}
+.entry .f{font-family:var(--mono);font-size:11.5px;color:var(--violet);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;line-height:1.9}
+.entry .arrow{position:absolute;right:16px;top:16px;color:var(--faint);font-size:20px}
+.foot{margin-top:30px;padding-top:18px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.note{margin-top:22px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--amber);border-radius:10px;padding:14px 16px;font-size:13px;color:var(--dim);line-height:1.9}
+.note b{color:var(--txt)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">MECH · VIRTUAL LAB PACK · 4 EXPERIMENTS</div>
+    <h1>机械工程<span class="thin">虚拟实验包</span></h1>
+    <div class="sub">MECHANICAL ENGINEERING · STRENGTH · KINEMATICS</div>
+    <p class="oneliner">符号：<b>σ、ε、E、ν、T、P、Re</b>。设备：万能试验机、硬度计、刹车制动台。四个代表实验覆盖「材料力学三大基本变形（拉/扭/弯）＋机械原理机构运动」。<br>零依赖单文件，双击即开。</p>
+    <div class="pos">MECH-VIRTLAB · 2026-10 · 骨架复用 · 数值可复算</div>
+  </header>
+
+  <div class="grid">
+    <a class="entry" href="01-拉伸实验-万能试验机.html">
+      <div class="no">EXP 01</div>
+      <div class="t">拉伸实验 · 万能试验机</div>
+      <div class="d">低碳钢先屈服后颈缩、铸铁一拉就断——四种材料四种脾气。逐步加载读 E、σs、σb、δ。</div>
+      <div class="f">σ=Eε ｜ σs 屈服强度 ｜ σb 抗拉强度 ｜ δ=(L1−L0)/L0</div>
+      <div class="arrow">→</div>
+    </a>
+    <a class="entry" href="02-扭转实验-圆轴扭转.html">
+      <div class="no">EXP 02</div>
+      <div class="t">扭转实验 · 圆轴扭转</div>
+      <div class="d">加扭矩、量转角、验切应力公式。钢横截面剪断，铸铁 45° 螺旋面拉断——断口会说话。</div>
+      <div class="f">τ=Tρ/Ip ｜ τmax=16T/πd³ ｜ φ=TL/GIp ｜ G 剪切模量</div>
+      <div class="arrow">→</div>
+    </a>
+    <a class="entry" href="03-弯曲正应力实验-简支梁.html">
+      <div class="no">EXP 03</div>
+      <div class="t">弯曲正应力 · 简支梁</div>
+      <div class="d">上压下拉、中性轴零应力——应变片贴表面，读数里全是答案。σ 理论值与应变片实测互验。</div>
+      <div class="f">σ=My/Iz ｜ M=FL/4 ｜ Iz=bh³/12 ｜ f=FL³/48EI</div>
+      <div class="arrow">→</div>
+    </a>
+    <a class="entry" href="04-机构运动仿真-曲柄滑块.html">
+      <div class="no">EXP 04</div>
+      <div class="t">机构运动仿真 · 曲柄滑块</div>
+      <div class="d">曲柄转一圈，滑块"慢慢去、快快回"。调曲柄/连杆/转速，看位移-速度-加速度曲线与急回特性。</div>
+      <div class="f">θe=2·arcsin(r/l) ｜ K=(180°+θe)/(180°−θe) ｜ H≈2r</div>
+      <div class="arrow">→</div>
+    </a>
+  </div>
+
+  <div class="note"><b>复用与逻辑改编说明：</b>元素表所列「流体机械性能」与给排水包 01 水泵性能曲线同源（伯努利、泵相似定律），可谈单时叠加引用；「刹车踏板强度测试」= 弯曲＋扭转组合梁校核（03 弯曲页的 σ=My/Iz 直接可改编，踏板=悬臂梁+扭转载荷）；「硬度测试（HV/HRC）」与「制造工艺（车床/铣床）」为逻辑改编档——有单再补，不主动推。<br><b>谈单锚点：</b>拉伸/扭转/弯曲是材料力学三大基本变形必做实验（万能试验机是各校标配，虚拟化价值在"试件不报废、材料随意换、断口随便看"）；机构运动仿真是机械原理课程设计标配——这四个页面对应《材料力学》《机械原理》两门课的四个计算难点，且全部带"参数-强度/运动学"联动，正是一流课程申报里的交互故事。</div>
+
+  <div class="foot">
+    <span>OPC · 工科虚拟仿真外包 · 单文件离线包</span>
+    <span>目录页 · 4 实验入口 · 流体机械见给排水包</span>
+  </div>
+</div>
+</body>
+</html>

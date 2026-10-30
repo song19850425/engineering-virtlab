@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>流体流动阻力实验室 · λ-Re</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M2 12h20' stroke='%2359d6ff' stroke-width='2'/%3E%3Ccircle cx='7' cy='12' r='3' fill='%2311151d' stroke='%23ffb020'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes dashFlow{to{stroke-dashoffset:-20}}
+.flowline{stroke-dasharray:7 5;animation:dashFlow 1.1s linear infinite}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric.warn .v{color:var(--danger)}
+.metric.good .v{color:var(--ok)}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+kbd.kbd{font-family:var(--mono);font-size:10px;color:var(--faint);border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:1px 5px;margin-left:6px;background:#0d1117;white-space:nowrap}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.kv-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media (max-width:600px){.kv-grid{grid-template-columns:1fr}}
+.kv{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.kv .k{font-size:11px;color:var(--faint)}
+.kv .v{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--txt);margin-top:2px}
+.kv .v em{font-style:normal;color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在建立流动…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">CHEME · VIRTUAL LAB 02</div>
+    <div class="kicker">化工原理 · 动量传递 · 直管阻力</div>
+    <h1 class="title">流体流动阻力<span class="thin">实验室</span></h1>
+    <div class="sub">FLUID FRICTION LAB · λ-Re DIAGRAM</div>
+    <p class="oneliner"><b>流量翻倍，压差翻几倍？</b>摩擦系数 λ 到底怎么随 Re 变——数据点自己画给你看。<br>25℃ 水 · 水平直管 · U 形压差计。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 启动</span></h3>
+      <svg class="scene" id="rigSvg" viewBox="0 0 420 190" role="img" aria-label="流体阻力实验装置">
+        <rect x="10" y="30" width="60" height="80" rx="6" fill="#151b25" stroke="#ffb020" stroke-width="2"/>
+        <text x="40" y="58" text-anchor="middle" fill="#ffb020" font-size="11" font-family="inherit">高位水箱</text>
+        <text x="40" y="88" text-anchor="middle" fill="#8b95a3" font-size="9" font-family="inherit">恒定水位</text>
+        <path d="M70 70 H100 V100 H130" stroke="#59d6ff" stroke-width="2.5" fill="none"/>
+        <path d="M70 70 H100 V100 H130" stroke="#bcdff0" stroke-width="1.5" fill="none" class="flowline" opacity=".5"/>
+        <circle cx="130" cy="100" r="7" fill="none" stroke="#ff5252" stroke-width="2"/>
+        <text x="130" y="124" text-anchor="middle" fill="#ff5252" font-size="9" font-family="inherit">阀门</text>
+        <path d="M137 100 H230" stroke="#59d6ff" stroke-width="2.5"/>
+        <path d="M137 100 H230" stroke="#bcdff0" stroke-width="1.5" fill="none" class="flowline" opacity=".5"/>
+        <rect x="230" y="84" width="120" height="32" rx="6" fill="#151b25" stroke="#b48cff" stroke-width="2"/>
+        <text x="290" y="102" text-anchor="middle" fill="#b48cff" font-size="10" font-family="inherit">测试直管 · L=2m</text>
+        <path d="M350 100 H410" stroke="#59d6ff" stroke-width="2.5"/>
+        <path d="M350 100 H410" stroke="#bcdff0" stroke-width="1.5" fill="none" class="flowline" opacity=".5"/>
+        <rect x="330" y="8" width="48" height="60" rx="4" fill="#151b25" stroke="#3ddc84" stroke-width="1.5"/>
+        <text x="354" y="40" text-anchor="middle" fill="#3ddc84" font-size="9" font-family="inherit">U 管</text>
+        <text x="354" y="56" text-anchor="middle" fill="#8b95a3" font-size="8" font-family="inherit">压差计</text>
+        <rect id="hgL" x="336" y="49" width="15" height="17" fill="#3ddc84" opacity=".55" style="transition:y .5s,height .5s"/>
+        <rect id="hgR" x="363" y="47" width="15" height="19" fill="#3ddc84" opacity=".55" style="transition:y .5s,height .5s"/>
+        <line x1="290" y1="84" x2="338" y2="30" stroke="#5b6572" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <line x1="290" y1="116" x2="374" y2="66" stroke="#5b6572" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <text x="210" y="170" text-anchor="middle" fill="#8b95a3" font-size="10" font-family="inherit">流量计 → 回水</text>
+        <rect x="150" y="156" width="120" height="12" rx="3" fill="#0d1117" stroke="#5b6572"/>
+        <rect id="flowFill" x="150" y="156" width="60" height="12" rx="3" fill="#59d6ff" opacity="0.55"/>
+      </svg>
+      <canvas id="lrCanvas" width="820" height="330" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">清空数据重做</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">流量 Q</div><div class="v" id="mQ">–<small>m³/h</small></div><div class="sub2">阀门开度</div></div>
+          <div class="metric"><div class="k">流速 u</div><div class="v" id="mU">–<small>m/s</small></div><div class="sub2">u = Q/A</div></div>
+          <div class="metric" id="mReM"><div class="k">雷诺数 Re</div><div class="v" id="mRe">–</div><div class="sub2">&lt;2000 层流 · 2000–4000 过渡 · &gt;4000 湍流</div></div>
+          <div class="metric" id="mLamM"><div class="k">摩擦系数 λ</div><div class="v" id="mLam">–</div><div class="sub2">范宁公式反算</div></div>
+        </div>
+        <div class="kv-grid" style="margin-bottom:14px">
+          <div class="kv"><div class="k">压差 Δpf</div><div class="v" id="mDp">–<small> Pa</small></div></div>
+          <div class="kv"><div class="k">压差计读数</div><div class="v" id="mHg">–<small> mmHg</small></div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">流量 Q</span><span class="val" id="qVal">2.00 m³/h</span></div>
+          <input type="range" id="qRange" min="0.2" max="6.0" step="0.1" value="2.0">
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">管径 d</span><span class="val" id="dVal">DN50</span></div>
+          <div class="seg" id="dSeg">
+            <button data-v="25">DN25<small>流速大</small></button>
+            <button data-v="50" class="on">DN50<small>常用</small></button>
+            <button data-v="75">DN75<small>流速小</small></button>
+          </div>
+        </div>
+        <div class="actionrow">
+          <button class="btn-ghost" id="recBtn" style="flex:1">读压差 · 记录数据点（<span id="recCount">0</span>/12）</button>
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>λ-Re 关系结论 · 范宁公式</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">个有效数据点</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">再测一组</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · 先开阀再开泵</div><div class="d">出口阀全关时开泵 = 憋压，泵过载、管路接头脱开。离心泵启动必须关小出口阀，但往复泵要全开出口阀（会憋爆）。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · 排气不净</div><div class="d">压差计测压引压管里有气泡，读数直接偏大、波动——测压前必须充分排气，读数等液柱稳定再读。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · 过渡区别硬套</div><div class="d">2000&lt;Re&lt;4000 摩擦系数不稳，实验点离散属正常，别强行归到层流或湍流公式；工程上尽量避开该区间。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">范宁公式：Δpf = λ · (L/d) · (ρu²/2)
+Re = ρ·u·d/μ        25℃水：ρ=997 kg/m³，μ=8.94×10⁻⁴ Pa·s
+层流区（Re&lt;2000）：λ = 64/Re            —— 斜率 −1
+湍流光滑管（Re&gt;4000）：λ = 0.3164/Re^0.25（Blasius）—— 斜率 −0.25
+过渡区（2000≤Re≤4000）：λ 不稳，取近似 0.03，数据点离散属正常
+压差计：1 mmHg = 133.3 Pa（汞柱）
+本页为确定性演示：λ 由 Re 按上式算出，再反算 Δpf，与手工计算一致。</div>
+    <p>演示模型按化工原理流体流动阻力测定装置设定（L=2m 水平直管，25℃ 清水）。教学演示用，不作为工程依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性） ============ */
+const RHO = 997, MU = 8.94e-4, L = 2;
+let P = { d: 0.05, Q: 2.0 };
+const area = () => Math.PI * P.d * P.d / 4;
+const u = () => P.Q / 3600 / area();
+const Re = () => RHO * u() * P.d / MU;
+function lambda(){
+  const re = Re();
+  if(re < 2000) return 64 / re;
+  if(re <= 4000) return 0.03;
+  return 0.3164 / Math.pow(re, 0.25);
+}
+const dPf = () => lambda() * (L / P.d) * (RHO * u() * u() / 2);
+let points = [];   // {Re, lambda}
+function regime(){
+  const re = Re();
+  return re < 2000 ? "层流" : (re <= 4000 ? "过渡区" : "湍流");
+}
+
+/* ============ 绘图（双对数 λ-Re） ============ */
+const W_ = 820, H_ = 330, pad = { l: 52, r: 16, t: 16, b: 36 };
+const cv = document.getElementById("lrCanvas"), ctx = cv.getContext("2d");
+const XMIN = 3, XMAX = 5, YMIN = -2.1, YMAX = -1;   // log10 范围：Re 1e3–1e5，λ 0.0079–0.1
+function lx(re){ return pad.l + (Math.log10(re) - XMIN) / (XMAX - XMIN) * (W_ - pad.l - pad.r); }
+function ly(lam){ return H_ - pad.b - (Math.log10(lam) - YMIN) / (YMAX - YMIN) * (H_ - pad.t - pad.b); }
+
+function drawLR(){
+  ctx.clearRect(0,0,W_,H_);
+  ctx.font = "10px ui-monospace,monospace";
+  ctx.strokeStyle = "#232b38"; ctx.fillStyle = "#5b6572";
+  // 网格：decade 线
+  for(let e=XMIN;e<=XMAX;e++){
+    for(let m=1;m<10;m++){
+      if(m===1){ ctx.beginPath(); ctx.moveTo(lx(Math.pow(10,e)),sy0()); ctx.lineTo(lx(Math.pow(10,e)),H_-pad.b); ctx.stroke(); }
+      else { ctx.beginPath(); ctx.moveTo(lx(Math.pow(10,e)*m),sy0()); ctx.lineTo(lx(Math.pow(10,e)*m),H_-pad.b); ctx.strokeStyle="#1a212c"; ctx.stroke(); ctx.strokeStyle="#232b38"; }
+    }
+    ctx.fillText("10^"+e, lx(Math.pow(10,e))-12, H_-pad.b+14);
+  }
+  for(let e=YMIN;e<=YMAX;e++){
+    ctx.beginPath(); ctx.moveTo(pad.l, ly(Math.pow(10,e))); ctx.lineTo(W_-pad.r, ly(Math.pow(10,e))); ctx.stroke();
+    ctx.fillText("10^"+e, 4, ly(Math.pow(10,e))+4);
+  }
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("Re（对数）", W_/2-30, H_-6);
+  ctx.save(); ctx.translate(14, H_/2+6); ctx.rotate(-Math.PI/2);
+  ctx.fillText("λ（对数）", -40, 0); ctx.restore();
+
+  // 过渡区阴影 2000–4000
+  ctx.fillStyle = "rgba(255,176,32,.08)";
+  ctx.fillRect(lx(2000), pad.t, lx(4000)-lx(2000), H_-pad.t-pad.b);
+  ctx.fillStyle = "#8a5c10"; ctx.font = "10px -apple-system,Microsoft YaHei";
+  ctx.fillText("过渡区", lx(2600), pad.t+10);
+
+  // 层流理论线 λ=64/Re（Re 100–2000）
+  ctx.strokeStyle = "#3ddc84"; ctx.lineWidth = 2; ctx.setLineDash([]);
+  ctx.beginPath();
+  for(let re=100;re<=2000;re+=50) ctx.lineTo(lx(re), ly(64/re));
+  ctx.stroke();
+  ctx.fillStyle = "#3ddc84"; ctx.fillText("层流 λ=64/Re (斜率−1)", lx(700), ly(64/700)-8);
+  // 湍流 Blasius（4000–1e5）
+  ctx.strokeStyle = "#59d6ff"; ctx.lineWidth = 2;
+  ctx.beginPath();
+  for(let re=4000;re<=100000;re+=1000) ctx.lineTo(lx(re), ly(0.3164/Math.pow(re,0.25)));
+  ctx.stroke();
+  ctx.fillStyle = "#59d6ff"; ctx.fillText("湍流光滑管 0.3164/Re^0.25 (斜率−0.25)", lx(12000), ly(0.3164/Math.pow(12000,0.25))+16);
+  // 数据点
+  points.forEach((p,i)=>{
+    ctx.fillStyle = "#ffb020";
+    ctx.beginPath(); ctx.arc(lx(p.Re), ly(p.lambda), 4.5, 0, 6.3); ctx.fill();
+    ctx.fillStyle = "#e8eef4"; ctx.font = "10px ui-monospace";
+    ctx.fillText(String(i+1), lx(p.Re)+7, ly(p.lambda)-6);
+  });
+  // 当前点闪烁标记
+  const re = Re(), lam = lambda();
+  ctx.strokeStyle = "#ffb020"; ctx.lineWidth = 1.5; ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(lx(re), sy0()); ctx.lineTo(lx(re), H_-pad.b); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = "#ffb020";
+  ctx.beginPath(); ctx.arc(lx(re), ly(lam), 5, 0, 6.3); ctx.stroke();
+  ctx.fillStyle = "#8b95a3"; ctx.font = "10px -apple-system,Microsoft YaHei";
+  ctx.fillText("当前", lx(re)+8, ly(lam)-8);
+}
+function sy0(){ return pad.t; }
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  {n:"① 启动"},{n:"② 排气"},{n:"③ 调流量"},{n:"④ 读压差"},{n:"⑤ 换流量"},{n:"⑥ 整理曲线"},{n:"⑦ 报告"}
+];
+const ACTLBL = ["启动系统 → 排气","排气完成 → 调流量","调定流量 → 读压差","记录该点 → 换流量","再测几组 → 整理曲线","整理完成 → 查看报告",""];
+const BENCH = [
+  `<div class="kv-grid">
+     <div class="kv"><div class="k">介质</div><div class="v"><em>25℃ 清水</em></div></div>
+     <div class="kv"><div class="k">测试管</div><div class="v">L=<em>2m</em> 水平</div></div>
+     <div class="kv"><div class="k">密度 ρ</div><div class="v">997 kg/m³</div></div>
+     <div class="kv"><div class="k">黏度 μ</div><div class="v">8.94×10⁻⁴ Pa·s</div></div>
+   </div>
+   <div class="tipbox"><b>启动：</b>高位水箱供水，先开出口阀再送水。<span class="warnline">阀门全关硬送 = 憋压，接头都可能崩开。</span></div>`,
+  `<div class="tipbox"><b>排气：</b>打开测压引压管上方的排气阀，让气泡随水流排出，直到 U 管液面平稳。<span class="warnline">引压管有气，读数直接偏大且乱跳。</span></div>`,
+  `<div class="kv-grid">
+     <div class="kv"><div class="k">流量</div><div class="v" id="bQ2">–</div></div>
+     <div class="kv"><div class="k">流速</div><div class="v" id="bU2">–</div></div>
+     <div class="kv"><div class="k">Re</div><div class="v" id="bRe2">–</div></div>
+     <div class="kv"><div class="k">流态</div><div class="v" id="bReg">–</div></div>
+   </div>
+   <div class="tipbox"><b>调流量：</b>用阀门开度控制流量。小流量先测——层流区 λ 大、压差小，读数要细心。</div>`,
+  `<div class="kv-grid">
+     <div class="kv"><div class="k">压差 Δpf</div><div class="v" id="bDp2">–</div></div>
+     <div class="kv"><div class="k">压差计</div><div class="v" id="bHg2">–</div></div>
+     <div class="kv"><div class="k">λ（反算）</div><div class="v" id="bLam2">–</div></div>
+     <div class="kv"><div class="k">流态</div><div class="v" id="bReg2">–</div></div>
+   </div>
+   <div class="tipbox"><b>读压差：</b>等液柱稳定后读数，按 Δpf=λ(L/d)(ρu²/2) 反算 λ。<span class="warnline">液柱还在波动就抄数 = 数据作废。</span>点下方"记录数据点"。</div>`,
+  `<div class="tipbox"><b>换流量再测：</b>每次改流量都等系统稳定再读。建议覆盖 <b>层流 + 湍流</b> 两个区（1e3–1e5），至少 8 个点。<span class="warnline">过渡区（2000–4000）点会飘，属正常。</span></div>`,
+  `<div class="tipbox"><b>整理：</b>把 (Re, λ) 点画到双对数坐标——层流点应落在斜率 −1 的直线上，湍流点落在 −0.25 线上。<b>两点连线的斜率就是判断依据。</b></div>`,
+  `<div class="tipbox">7 步走完：启动 → 排气 → 调流量 → 读压差 → 换流量 → 整理曲线 → 报告。<b>层流斜率 −1，湍流 −0.25，过渡区离散——这就是 λ-Re 图的全貌。</b></div>`,
+];
+let S = { step:0, max:0 };
+const $ = id => document.getElementById(id);
+
+function syncVals(){
+  const setTxt = (id, v) => { const el = $(id); if(el) el.textContent = v; };
+  const setHtml = (id, v) => { const el = $(id); if(el) el.innerHTML = v; };
+  $("qVal").textContent = P.Q.toFixed(2) + " m³/h";
+  $("dVal").textContent = "DN" + Math.round(P.d*1000);
+  $("mQ").innerHTML = P.Q.toFixed(2) + "<small>m³/h</small>";
+  $("mU").innerHTML = u().toFixed(2) + "<small>m/s</small>";
+  const re = Re(), lam = lambda(), dp = dPf();
+  $("mRe").textContent = re >= 10000 ? Math.round(re).toLocaleString() : Math.round(re).toString();
+  $("mReM").className = "metric" + (re<2000?"":re<=4000?" warn":" good");
+  $("mLam").textContent = lam.toFixed(4);
+  $("mLamM").className = "metric" + (re>2000 && re<=4000 ? " warn":"");
+  $("mDp").innerHTML = dp.toFixed(0) + "<small> Pa</small>";
+  $("mHg").innerHTML = (dp/133.322).toFixed(1) + "<small> mmHg</small>";
+  setTxt("bQ2", P.Q.toFixed(2) + " m³/h");
+  setTxt("bU2", u().toFixed(2) + " m/s");
+  setTxt("bRe2", Math.round(re).toString());
+  setTxt("bReg", regime());
+  setTxt("bDp2", dp.toFixed(0) + " Pa");
+  setTxt("bHg2", (dp/133.322).toFixed(1) + " mmHg");
+  setTxt("bLam2", lam.toFixed(4));
+  setTxt("bReg2", regime());
+  $("recCount").textContent = points.length;
+  const fill = document.getElementById("flowFill");
+  fill.setAttribute("width", Math.max(6, P.Q/6*120));
+  const hgL = document.getElementById("hgL"), hgR = document.getElementById("hgR");
+  if(hgL){
+    const delta = Math.min(22, Math.max(2, dPf()/40));
+    hgL.setAttribute("y", 66 - (18 - delta/2)); hgL.setAttribute("height", 18 - delta/2);
+    hgR.setAttribute("y", 66 - (18 + delta/2)); hgR.setAttribute("height", 18 + delta/2);
+  }
+}
+function narrate(){
+  const re = Re(), lam = lambda(), dp = dPf();
+  const N = [
+    `系统启动，高位水箱供水。<b>介质 25℃ 清水</b>，ρ=${RHO} kg/m³，μ=${MU.toExponential(1)} Pa·s。`,
+    `排气完成，U 管液面平稳。<span class="ok">引压管无气泡，读数可信。</span>`,
+    `流量调到 <b>${P.Q.toFixed(2)} m³/h</b>，u=<b>${u().toFixed(2)} m/s</b>，Re=<b>${Math.round(re)}</b>——当前处于<b>${regime()}区</b>。`,
+    `读压差：Δpf=<b>${dp.toFixed(0)} Pa</b>（${(dp/133.322).toFixed(1)} mmHg）。反算 λ=<b>${lam.toFixed(4)}</b>。${regime()==="过渡区"?'<span class="warn">过渡区读数不稳，多读两次取均值。</span>':''}`,
+    `换流量再测：${points.length} 点已入库。<b>${points.length<8?'建议凑够 8 个点再整理。':'数据点已够，去整理曲线吧。'}</b>`,
+    `λ-Re 双对数图：层流点斜率 <b>−1</b>（λ=64/Re），湍流点斜率 <b>−0.25</b>（Blasius）。`,
+    `结论：共 <b>${points.length}</b> 个数据点。${concTextShort()}`,
+  ];
+  $("narrate").innerHTML = N[S.step];
+}
+function concTextShort(){
+  if(!points.length) return '<span class="warn">还没记录数据点。</span>';
+  const lam = points.filter(p=>p.Re>4000 || p.Re<2000);
+  const ratio = lam.map(p=>p.lambda/expectedLam(p.Re));
+  const avg = ratio.reduce((a,b)=>a+b,0)/ratio.length;
+  const dev = Math.abs(avg-1)*100;
+  return dev < 8 ? `<span class="ok">实测 λ 与理论公式平均偏差 ${dev.toFixed(1)}%，符合良好。</span>` : `<span class="warn">平均偏差 ${dev.toFixed(1)}%，偏大——查排气与读数。</span>`;
+}
+function expectedLam(re){ return re<2000 ? 64/re : 0.3164/Math.pow(re,0.25); }
+function flash(id){
+  const m = $(id); if(!m) return;
+  m.classList.remove("flash"); void m.offsetWidth; m.classList.add("flash");
+}
+function refreshMetrics(){ syncVals(); drawLR(); flash("mReM"); flash("mLamM"); }
+function buildSeg(){
+  const seg = document.getElementById("stepSeg");
+  STEPS.forEach((s,i)=>{
+    const b = document.createElement("button");
+    b.textContent = s.n; b.onclick = ()=>goStep(i);
+    seg.appendChild(b);
+  });
+}
+function paintSeg(){
+  [...document.getElementById("stepSeg").children].forEach((b,i)=>{
+    b.classList.toggle("on", i===S.step);
+    b.classList.toggle("done", i<S.max || i<S.step);
+  });
+}
+function goStep(n){
+  if(n > S.max+1 || n < 0 || n > 6) return;
+  S.step = n; if(n > S.max) S.max = n;
+  render();
+}
+function render(){
+  $("sceneTitle").textContent = STEPS[S.step].n;
+  $("bench").innerHTML = BENCH[S.step];
+  syncVals();
+  narrate(); refreshMetrics();
+  const ab = $("actBtn");
+  if(S.step === 6){
+    ab.style.display = "none";
+    $("conclusionCard").style.display = "";
+    showConclusion();
+  } else {
+    ab.style.display = "";
+    ab.textContent = ACTLBL[S.step];
+    $("conclusionCard").style.display = "none";
+  }
+  paintSeg();
+}
+function showConclusion(){
+  $("resBig").textContent = points.length;
+  $("resState").textContent = points.length ? "实测点 vs 理论公式 · 覆盖 Re " + rangeTxt() : "暂无数据";
+  $("concText").innerHTML = points.length
+    ? (points.length<6
+      ? `<span class="bad">数据点太少（${points.length} 个）</span>，至少 6–8 个点才有说服力。回"换流量"补测，尽量覆盖层流与湍流两个区。`
+      : `共记录 <b>${points.length}</b> 个 (Re, λ) 点，覆盖 Re <b>${rangeTxt()}</b>。${concTextShort()} 层流区 λ=64/Re（斜率 −1）与湍流区 0.3164/Re^0.25（斜率 −0.25）两条理论线均已叠加在图上。<span class="good">结果与化工原理教材 λ-Re 图一致。</span>`)
+    : `<span class="bad">没有数据点。</span> 回"读压差"步骤，点"读压差 · 记录数据点"采集。`;
+}
+function rangeTxt(){
+  if(!points.length) return "—";
+  const re = points.map(p=>p.Re);
+  return Math.min(...re).toExponential(1).replace("e+","×10^") + " ~ " + Math.max(...re).toExponential(1).replace("e+","×10^");
+}
+function resetAll(){
+  points = [];
+  S.step = 0; S.max = 0;
+  render();
+}
+
+/* ============ 事件 ============ */
+$("qRange").addEventListener("input", e => { P.Q = parseFloat(e.target.value); syncVals(); refreshMetrics(); narrate(); });
+document.getElementById("dSeg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  P.d = parseInt(b.dataset.v)/1000;
+  [...document.getElementById("dSeg").children].forEach(x=>x.classList.toggle("on", x===b));
+  syncVals(); refreshMetrics(); narrate();
+});
+$("recBtn").addEventListener("click", ()=>{
+  if(points.length >= 12) return;
+  points.push({ Re: Re(), lambda: lambda() });
+  syncVals(); drawLR(); narrate();
+});
+$("resetBtn").addEventListener("click", ()=>{ points=[]; drawLR(); syncVals(); });
+$("actBtn").addEventListener("click", ()=>goStep(S.step+1));
+document.addEventListener("keydown", e=>{
+  if(e.key==="ArrowRight") goStep(S.step+1);
+  if(e.key==="ArrowLeft") goStep(S.step-1);
+  if(e.key===" "){ e.preventDefault(); $("actBtn").click(); }
+});
+
+/* init */
+buildSeg();
+render();
+document.getElementById("loader").classList.add("done");
+</script>
+</body>
+</html>

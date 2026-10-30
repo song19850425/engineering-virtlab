@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>能源与动力工程·虚拟实验包目录</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='5' fill='none' stroke='%2359d6ff' stroke-width='1.6'/%3E%3Cpath d='M12 4v3M12 17v3M4 12h3M17 12h3' stroke='%23ffb020' stroke-width='1.6'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:40px 18px}
+header{padding:30px 4px 10px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:12px}
+h1{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1 .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:16px;font-size:15px;line-height:1.8;color:var(--txt);border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.pos{margin-top:14px;font-size:12px;color:var(--faint);font-family:var(--mono)}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:24px}
+@media (max-width:700px){.grid{grid-template-columns:1fr}}
+.entry{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 20px;text-decoration:none;color:var(--txt);position:relative;overflow:hidden;transition:border-color .15s, transform .15s;display:block}
+.entry:hover{border-color:var(--amber-dim);transform:translateY(-2px)}
+.entry .no{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.25em;margin-bottom:8px}
+.entry .t{font-size:21px;font-weight:700;letter-spacing:.04em;margin-bottom:10px;color:var(--cyan)}
+.entry .d{font-size:13px;color:var(--dim);line-height:1.8;margin-bottom:12px}
+.entry .f{font-family:var(--mono);font-size:11.5px;color:var(--violet);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;line-height:1.9}
+.entry .arrow{position:absolute;right:16px;top:16px;color:var(--faint);font-size:20px}
+.foot{margin-top:30px;padding-top:18px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.note{margin-top:22px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--amber);border-radius:10px;padding:14px 16px;font-size:13px;color:var(--dim);line-height:1.9}
+.note b{color:var(--txt)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">ENERGY · VIRTUAL LAB PACK · 4 EXPERIMENTS</div>
+    <h1>能源与动力工程<span class="thin">虚拟实验包</span></h1>
+    <div class="sub">ENERGY &amp; POWER ENGINEERING · THERMODYNAMIC CYCLES</div>
+    <p class="oneliner">符号：<b>η、COP、h、s、α</b>。设备：锅炉、汽轮机、内燃机、换热器、燃烧器。四个代表实验覆盖「产热→做功→循环→制冷」全链条。<br>零依赖单文件，双击即开。</p>
+    <div class="pos">ENERGY-VIRTLAB · 2026-10 · 骨架复用 · 数值可复算</div>
+  </header>
+
+  <div class="grid">
+    <a class="entry" href="01-锅炉热平衡-反平衡效率.html">
+      <div class="no">EXP 01</div>
+      <div class="t">锅炉热平衡 · 反平衡效率</div>
+      <div class="d">烟气分析折算过量空气 α，逐项拆解 q2/q3/q4/q5/q6 损失，找效率峰值区。看 O₂ 调风、看排烟温度查受热面。</div>
+      <div class="f">η=100−Σq ｜ q2=3.2α(t_py−25)/100 ｜ q3∝(1.15−α)² ｜ O₂=21(α−1)/α</div>
+      <div class="arrow">→</div>
+    </a>
+    <a class="entry" href="02-内燃机性能试验-奥托循环.html">
+      <div class="no">EXP 02</div>
+      <div class="t">内燃机性能试验 · 奥托循环</div>
+      <div class="d">P-V 示功图 + 测功机/油耗仪：压缩比、转速、负荷联动，算有效功率、比油耗、奥托热效率。</div>
+      <div class="f">η_t=1−1/ε^(k−1) ｜ Pe ｜ b_e=81.8/η_e ｜ ηm</div>
+      <div class="arrow">→</div>
+    </a>
+    <a class="entry" href="03-朗肯循环-蒸汽动力.html">
+      <div class="no">EXP 03</div>
+      <div class="t">朗肯循环 · 蒸汽动力</div>
+      <div class="d">锅炉→汽轮机→冷凝器→给水泵：调主蒸汽压力、冷凝背压、汽轮机效率，看效率/热耗率/汽耗率。</div>
+      <div class="f">η_carnot=1−Tc/Th ｜ η_cycle ｜ HR=3600/η ｜ SR=3600/w</div>
+      <div class="arrow">→</div>
+    </a>
+    <a class="entry" href="04-制冷循环-蒸气压缩.html">
+      <div class="no">EXP 04</div>
+      <div class="t">制冷循环 · 蒸气压缩</div>
+      <div class="d">蒸发器/压缩机/冷凝器/节流阀四部件：调蒸发冷凝温差与冷负荷，算 COP、EER、压缩机功率。</div>
+      <div class="f">COP=0.52·Te/(Tc−Te) ｜ EER=COP×3.413 ｜ W_c=Q/COP</div>
+      <div class="arrow">→</div>
+    </a>
+  </div>
+
+  <div class="note"><b>复用说明：</b>元素表所列「传热实验」已在化工原理包交付（<span class="mono">chemeng-virtlab\03-传热实验-套管换热器.html</span>，LMTD 对数平均温差），本包不重复生产——两包叠加即覆盖能源动力课程的能量转换主线。<br><b>谈单锚点：</b>锅炉反平衡效率（燃烧与污染控制）、奥托循环示功图（热工基础）、朗肯循环热耗率（电厂热力系统）、制冷 COP（制冷与低温工程）——四个页面对应四门课的四个计算难点，且都带"参数-效率"因果联动，正是虚拟仿真一流课程申报里最好讲的故事。</div>
+
+  <div class="foot">
+    <span>OPC · 工科虚拟仿真外包 · 单文件离线包</span>
+    <span>目录页 · 4 实验入口 · 传热实验见化工包</span>
+  </div>
+</div>
+</body>
+</html>

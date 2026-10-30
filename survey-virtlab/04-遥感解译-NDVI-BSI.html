@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>遥感解译实验室</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='8' fill='none' stroke='%2359d6ff' stroke-width='1.6' stroke-dasharray='4 3'/%3E%3Ccircle cx='12' cy='12' r='3' fill='%23ffb020'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes orbit{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+.sat{transform-origin:210px 100px;transform-box:view-box;animation:orbit 6s linear infinite}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px;cursor:crosshair}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.spec-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+.spec-table th{font-size:11px;color:var(--faint);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);letter-spacing:.1em}
+.spec-table td{padding:9px 10px;border-bottom:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:13px}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader,#rp{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在下载 Sentinel-2 影像…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">SURV · VIRTUAL LAB 04</div>
+    <div class="kicker">遥感科学与技术 · 图像处理 · 植被指数</div>
+    <h1 class="title">遥感解译<span class="thin">实验室</span></h1>
+    <div class="sub">REMOTE SENSING · NDVI · BSI · LAND COVER</div>
+    <p class="oneliner"><b>植被在近红外反射强烈、在红光吸收强烈——两个波段一比，NDVI 就把"绿"量化成了数。</b>算指数、切阈值、分地类。<br>NDVI=(NIR−R)/(NIR+R) · BSI 裸土指数 · 土地覆盖分类 · 分辨率。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 影像获取</span></h3>
+      <svg class="scene" id="rig" viewBox="0 0 420 190" role="img" aria-label="卫星遥感示意">
+        <rect x="60" y="52" width="300" height="96" fill="#151b25" stroke="#232b38" stroke-width="1.5"/>
+        <rect x="70" y="62" width="24" height="18" fill="#1a7a3c"/><rect x="98" y="58" width="24" height="22" fill="#7fb069"/><rect x="126" y="64" width="24" height="16" fill="#d9a05b"/>
+        <rect x="154" y="56" width="24" height="26" fill="#1a7a3c"/><rect x="182" y="60" width="24" height="22" fill="#1a7a3c"/><rect x="210" y="64" width="24" height="18" fill="#d9a05b"/>
+        <rect x="238" y="62" width="24" height="16" fill="#b0a49a"/><rect x="266" y="66" width="24" height="18" fill="#b0a49a"/><rect x="294" y="58" width="24" height="24" fill="#2a6fdb"/>
+        <g class="sat">
+          <line x1="210" y1="100" x2="250" y2="40" stroke="#ff8c2a" stroke-width="2"/>
+          <rect x="244" y="30" width="14" height="10" rx="2" fill="#151b25" stroke="#ff8c2a" stroke-width="1.5"/>
+          <path d="M240 44 L258 44 L252 52 L246 52 Z" fill="#59d6ff"/>
+        </g>
+        <text x="210" y="182" text-anchor="middle" fill="#5b6572" font-size="9" font-family="inherit">Sentinel-2 多光谱 → R/NIR/B/SWIR 反射率 → NDVI/BSI 指数 → 分类</text>
+      </svg>
+      <canvas id="rsCanvas" width="820" height="420" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">重置影像</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">NDVI 均值</div><div class="v" id="mNd">–</div><div class="sub2">全图植被指数</div></div>
+          <div class="metric"><div class="k">植被占比</div><div class="v" id="mVe">–<small>%</small></div><div class="sub2">NDVI≥0.2 像元</div></div>
+          <div class="metric"><div class="k">BSI 均值</div><div class="v" id="mBs">–</div><div class="sub2">裸土指数</div></div>
+          <div class="metric" id="mSelc"><div class="k">选中像元</div><div class="v" id="mSel">–</div><div class="sub2" id="mSelSub">点击栅格查看</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">显示模式</span><span class="val" id="modeVal">NDVI 栅格</span></div>
+          <div class="seg" id="modeSeg">
+            <button data-v="0" class="on">NDVI<small>植被</small></button>
+            <button data-v="1">BSI<small>裸土</small></button>
+            <button data-v="2">分类<small>5 类</small></button>
+          </div>
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">像元分辨率</span><span class="val" id="resVal">10 m</span></div>
+          <div class="seg" id="resSeg">
+            <button data-v="10" class="on">10m<small>Sentinel-2</small></button>
+            <button data-v="30">30m<small>Landsat</small></button>
+          </div>
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>实验结论 · NDVI/BSI 土地覆盖解译</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">（全图 NDVI 均值）</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">重看影像</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · NDVI 不是万能绿度计</div><div class="d">云、云影、雪、山体阴影都会压低 NDVI 造成假裸土；高植被区 NDVI 会饱和（0.8 以上拉不开差距）。做时序监测必须先去云掩膜，不能直接拿原始值下结论。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · 分辨率决定你能看见什么</div><div class="d">30m Landsat 像元混着树、土、房子——"混合像元"让 NDVI 被平均；10m Sentinel-2 更细但同样有混合。城市尺度监测选 10m，区域尺度用 30m 足够，别拿分辨率当借口。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · 阈值是经验的，不是物理的</div><div class="d">"NDVI>0.2 算植被"这类阈值因区域、季节、传感器而异——干旱区植被 NDVI 常年不到 0.3，湿润区裸土也有 0.15。分类前先做样本点野外核实，阈值要跟着区域走。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">归一化植被指数：NDVI = (NIR − R)/(NIR + R)      [−1, +1]
+裸土指数：BSI = ((SWIR+R) − (NIR+B)) / ((SWIR+R) + (NIR+B))
+分类阈值（演示）：NDVI ≥ 0.45 茂密植被；0.2~0.45 稀疏植被/农田；
+  0~0.2 裸土/建成区；NDVI &lt; 0 且 NIR &lt; 0.06 水体
+典型像元：茂密植被 NDVI≈0.7~0.8；裸土 NDVI≈0.05~0.15；水体 NDVI&lt;0
+分辨率：Sentinel-2 多光谱 10 m / Landsat 30 m（混合像元）
+本页为确定性演示：影像数据固定、模式与分辨率可切，指数可复算。</div>
+    <p>演示模型按 Sentinel-2 反射率产品计算设定（反射率 0~0.6，含云影污染像元供判读）；实际分类阈值需按区域标定。教学演示用，不作为遥感解译成果依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 影像数据（确定性） ============ */
+// 6 行 × 8 列，每像元 [R, NIR, B, SWIR] 反射率
+const IMG = [
+  // 行0：裸土带
+  [0.26,0.32,0.15,0.35],[0.24,0.33,0.16,0.37],[0.27,0.31,0.14,0.34],[0.25,0.34,0.15,0.36],[0.26,0.30,0.16,0.35],[0.24,0.32,0.15,0.33],[0.27,0.33,0.16,0.38],[0.25,0.31,0.14,0.36],
+  // 行1：农田/稀疏植被带
+  [0.18,0.30,0.12,0.24],[0.10,0.32,0.09,0.18],[0.12,0.35,0.10,0.20],[0.08,0.38,0.09,0.16],[0.09,0.36,0.10,0.17],[0.11,0.34,0.09,0.19],[0.19,0.29,0.12,0.25],[0.20,0.28,0.13,0.26],
+  // 行2：茂密植被（中央农田核心）
+  [0.16,0.28,0.11,0.22],[0.06,0.48,0.05,0.14],[0.05,0.52,0.04,0.12],[0.05,0.55,0.04,0.11],[0.06,0.53,0.05,0.12],[0.05,0.50,0.04,0.13],[0.15,0.29,0.11,0.21],[0.17,0.27,0.12,0.23],
+  // 行3：茂密植被
+  [0.15,0.27,0.10,0.21],[0.05,0.54,0.04,0.12],[0.05,0.58,0.04,0.10],[0.04,0.60,0.04,0.10],[0.05,0.57,0.04,0.11],[0.05,0.52,0.05,0.12],[0.14,0.28,0.10,0.20],[0.16,0.26,0.11,0.22],
+  // 行4：混合带（左疏林、右建成）
+  [0.12,0.33,0.10,0.19],[0.10,0.36,0.09,0.17],[0.09,0.37,0.09,0.16],[0.20,0.24,0.16,0.28],[0.22,0.18,0.18,0.26],[0.24,0.16,0.19,0.27],[0.23,0.15,0.18,0.26],[0.21,0.17,0.17,0.25],
+  // 行5：左下水体 + 右下建成
+  [0.05,0.03,0.10,0.03],[0.04,0.03,0.11,0.03],[0.06,0.04,0.12,0.04],[0.08,0.08,0.13,0.08],[0.21,0.16,0.17,0.25],[0.24,0.14,0.18,0.27],[0.22,0.15,0.17,0.26],[0.23,0.16,0.18,0.27]
+];
+const ROWS = 6, COLS = 8;
+let P = { mode: 0, res: 10, sel: null };
+const $ = id => document.getElementById(id);
+const px = (r, c) => IMG[r * COLS + c];
+function ndvi(r, c){ const p = px(r, c); return (p[1] - p[0]) / (p[1] + p[0]); }
+function bsi(r, c){ const p = px(r, c); const a = p[3] + p[0], b2 = p[1] + p[2]; return (a - b2) / (a + b2); }
+function classify(r, c){
+  const n = ndvi(r, c), p = px(r, c);
+  if (n < 0 && p[1] < 0.06) return "水体";
+  if (n >= 0.45) return "茂密植被";
+  if (n >= 0.2) return "稀疏植被";
+  return "裸土/建成区";
+}
+const CLS = {
+  "茂密植被": ["#1a7a3c", "NDVI≥0.45"],
+  "稀疏植被": ["#7fb069", "0.2~0.45"],
+  "裸土/建成区": ["#d9a05b", "0~0.2"],
+  "水体": ["#2a6fdb", "NDVI<0 NIR<0.06"]
+};
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  { t: "影像获取", s: "下载 Sentinel-2 多光谱影像，做辐射定标/大气校正得到地表反射率。", bench: "准备：\n① Sentinel-2 多光谱 L2A 产品\n② R/NIR/B/SWIR 波段提取\n③ 云量检查与掩膜\n④ 8×6 像元演示影像" },
+  { t: "取波段", s: "提取红光 R、近红外 NIR、蓝 B、短波红外 SWIR 反射率（0~0.6）。", bench: "" },
+  { t: "算 NDVI", s: "NDVI=(NIR−R)/(NIR+R)，范围 −1~1；植被在 NIR 高 R 低 → NDVI 高。", bench: "" },
+  { t: "算 BSI", s: "BSI 裸土指数：裸土 SWIR 反射强 → BSI 高；水体/植被 BSI 低或为负。", bench: "" },
+  { t: "分类", s: "按阈值分 5 类：茂密植被/稀疏植被/裸土/建成区/水体，点击像元查值。", bench: "" },
+  { t: "报告", s: "统计植被占比、NDVI/BSI 均值，输出土地覆盖分类图。", bench: "" }
+];
+let step = 0;
+
+function renderSeg(){
+  const el = $("stepSeg");
+  el.innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" class="${i < step ? "done" : i === step ? "on" : ""}">${i + 1} · ${s.t}<small>${i < step ? "已通过" : i === step ? "进行中" : "待执行"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { if(+b.dataset.i <= step){ step = +b.dataset.i; renderSeg(); narrate(); } });
+  $("sceneTitle").textContent = `${step + 1} · ${STEPS[step].t}`;
+  $("actBtn").textContent = step >= 5 ? "完成" : "下一步";
+}
+function narrate(){
+  const n = $("narrate");
+  if (step <= 1) n.innerHTML = STEPS[step].s;
+  else if (step === 2) n.innerHTML = `提取 4 波段：R/NIR/B/SWIR。植被像元 NIR≈0.5~0.6 而 R≈0.04~0.06——<b>近红外反射强、红光被叶绿素吸收</b>，这就是 NDVI 的物理基础。`;
+  else if (step === 3) n.innerHTML = `NDVI 全图均值 <b>${meanNd().toFixed(2)}</b>：茂密植被像元 NDVI≈0.8，水体像元 NDVI&lt;0——<b>指数越大越"绿"</b>。`;
+  else if (step === 4) n.innerHTML = `BSI 均值 <b>${meanBs().toFixed(2)}</b>：裸土像元 BSI≈+0.1~0.15，水体/植被 BSI≈−0.2~−0.35——<b>BSI 越大越"裸"</b>，干旱/荒漠监测常用。`;
+  else if (step === 5) n.innerHTML = `按阈值分类：点击栅格查看像元 4 波段 + NDVI + BSI + 地类。注意云影污染像元（左上角 NIR 偏低）会被误分——<span class='warn'>去云掩膜是前置步骤</span>。`;
+  else n.innerHTML = `报告：NDVI 均值=${meanNd().toFixed(2)}、植被占比=<b>${vegPct().toFixed(0)}%</b>、BSI 均值=${meanBs().toFixed(2)}。`;
+}
+function flash(id){
+  const el = $(id); if(!el) return;
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+function meanNd(){
+  let s = 0; for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) s += ndvi(r, c);
+  return s / (ROWS * COLS);
+}
+function meanBs(){
+  let s = 0; for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) s += bsi(r, c);
+  return s / (ROWS * COLS);
+}
+function vegPct(){
+  let k = 0; for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (ndvi(r, c) >= 0.2) k++;
+  return k / (ROWS * COLS) * 100;
+}
+function refreshMetrics(){
+  $("mNd").textContent = meanNd().toFixed(2);
+  $("mVe").textContent = vegPct().toFixed(0);
+  $("mBs").textContent = meanBs().toFixed(2);
+  if (P.sel){
+    const [r, c] = P.sel, p = px(r, c);
+    $("mSel").textContent = `(${c + 1},${r + 1})`;
+    $("mSelSub").textContent = `NDVI=${ndvi(r, c).toFixed(2)} · ${classify(r, c)}`;
+  } else {
+    $("mSel").textContent = "—";
+    $("mSelSub").textContent = "点击栅格查看";
+  }
+  flash("mNd"); flash("mVe"); flash("mBs");
+}
+
+/* ============ Canvas 栅格渲染 ============ */
+const W_ = 820, H_ = 420;
+const cv = $("rsCanvas"), ctx = cv.getContext("2d");
+const CELL = 52;
+const ox = 40, oy = 26;
+function ndColor(v){
+  v = Math.max(-0.4, Math.min(1, v));
+  const t = (v + 0.4) / 1.4;
+  // 蓝 → 红 → 黄 → 绿
+  const stops = [[42,111,219],[196,66,60],[255,176,32],[52,160,90]];
+  const seg = Math.min(3, Math.floor(t * 3));
+  const f = t * 3 - seg;
+  const a = stops[seg], b = stops[Math.min(3, seg + 1)];
+  return `rgb(${Math.round(a[0] + (b[0] - a[0]) * f)},${Math.round(a[1] + (b[1] - a[1]) * f)},${Math.round(a[2] + (b[2] - a[2]) * f)})`;
+}
+function bsColor(v){
+  v = Math.max(-0.4, Math.min(0.3, v));
+  const t = (v + 0.4) / 0.7;
+  const a = [89,214,255], b = [217,160,91];
+  const f = Math.min(1, t);
+  return `rgb(${Math.round(a[0] + (b[0] - a[0]) * f)},${Math.round(a[1] + (b[1] - a[1]) * f)},${Math.round(a[2] + (b[2] - a[2]) * f)})`;
+}
+function drawCanvas(){
+  ctx.clearRect(0, 0, W_, H_);
+  // 标题
+  ctx.fillStyle = "#8b95a3"; ctx.font = "12px -apple-system,Microsoft YaHei";
+  ctx.fillText(`${P.mode === 0 ? "NDVI 栅格" : P.mode === 1 ? "BSI 栅格" : "土地覆盖分类"}（${P.res === 10 ? "Sentinel-2 10m" : "Landsat 30m"} 混合像元）`, ox, oy - 6);
+  // 像元
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++){
+    let color;
+    if (P.mode === 0) color = ndColor(ndvi(r, c));
+    else if (P.mode === 1) color = bsColor(bsi(r, c));
+    else color = CLS[classify(r, c)][0];
+    ctx.fillStyle = color;
+    ctx.fillRect(ox + c * CELL, oy + r * CELL, CELL - 2, CELL - 2);
+    if (P.mode !== 2){
+      const v = P.mode === 0 ? ndvi(r, c) : bsi(r, c);
+      ctx.fillStyle = "rgba(10,13,18,.75)"; ctx.font = "9px ui-monospace,monospace";
+      ctx.fillText(v.toFixed(2), ox + c * CELL + 3, oy + r * CELL + 11);
+    }
+  }
+  // 选中高亮
+  if (P.sel){
+    const [r, c] = P.sel;
+    ctx.strokeStyle = "#e8eef4"; ctx.lineWidth = 2;
+    ctx.strokeRect(ox + c * CELL - 1, oy + r * CELL - 1, CELL, CELL);
+  }
+  // 坐标标签
+  ctx.fillStyle = "#5b6572"; ctx.font = "10px ui-monospace,monospace";
+  for (let c = 0; c < COLS; c++) ctx.fillText(c + 1, ox + c * CELL + 18, oy + ROWS * CELL + 16);
+  for (let r = 0; r < ROWS; r++) ctx.fillText(r + 1, ox - 22, oy + r * CELL + 28);
+  // 图例
+  const ly = oy + 20;
+  ctx.font = "11px -apple-system,Microsoft YaHei";
+  if (P.mode === 0){
+    ctx.fillStyle = "#2a6fdb";
+    ctx.fillText("低(水/裸)", ox + COLS * CELL + 26, ly + 16);
+    ctx.fillStyle = "#1a7a3c";
+    ctx.fillText("高(植被)", ox + COLS * CELL + 26, ly + 38);
+    ctx.fillStyle = "#8b95a3";
+    ctx.fillText("NDVI: −0.4 → +1.0", ox + COLS * CELL + 26, ly + 60);
+  } else if (P.mode === 1){
+    ctx.fillStyle = "#59d6ff";
+    ctx.fillText("低(水/植被)", ox + COLS * CELL + 26, ly + 16);
+    ctx.fillStyle = "#d9a05b";
+    ctx.fillText("高(裸土)", ox + COLS * CELL + 26, ly + 38);
+    ctx.fillStyle = "#8b95a3";
+    ctx.fillText("BSI: −0.4 → +0.3", ox + COLS * CELL + 26, ly + 60);
+  } else {
+    let i = 0;
+    Object.keys(CLS).forEach(k => {
+      ctx.fillStyle = CLS[k][0];
+      ctx.fillRect(ox + COLS * CELL + 26, ly + i * 24, 12, 12);
+      ctx.fillStyle = "#8b95a3"; ctx.font = "10.5px -apple-system,Microsoft YaHei";
+      ctx.fillText(`${k} ${CLS[k][1]}`, ox + COLS * CELL + 44, ly + i * 24 + 11);
+      i++;
+    });
+  }
+  // 选中详情面板
+  if (P.sel){
+    const [r, c] = P.sel, p = px(r, c);
+    ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+    ctx.fillText(`像元(${c + 1},${r + 1}) 4 波段：`, ox + COLS * CELL + 26, ly + 110);
+    ctx.font = "10.5px ui-monospace,monospace";
+    ctx.fillStyle = "#e8eef4";
+    ctx.fillText(`R=${p[0].toFixed(2)} NIR=${p[1].toFixed(2)}`, ox + COLS * CELL + 26, ly + 128);
+    ctx.fillText(`B=${p[2].toFixed(2)} SWIR=${p[3].toFixed(2)}`, ox + COLS * CELL + 26, ly + 146);
+    ctx.fillStyle = "#ffb020";
+    ctx.fillText(`NDVI=${ndvi(r, c).toFixed(2)}  BSI=${bsi(r, c).toFixed(2)}`, ox + COLS * CELL + 26, ly + 164);
+    ctx.fillStyle = "#3ddc84";
+    ctx.fillText(`地类：${classify(r, c)}`, ox + COLS * CELL + 26, ly + 184);
+  }
+}
+
+/* 点击选像元 */
+cv.addEventListener("click", ev => {
+  const rect = cv.getBoundingClientRect();
+  const sx = (ev.clientX - rect.left) / rect.width * W_;
+  const sy = (ev.clientY - rect.top) / rect.height * H_;
+  const c = Math.floor((sx - ox) / CELL), r = Math.floor((sy - oy) / CELL);
+  if (c >= 0 && c < COLS && r >= 0 && r < ROWS){ P.sel = [r, c]; refreshMetrics(); drawCanvas(); narrate(); }
+});
+
+/* ============ 动作 ============ */
+$("actBtn").onclick = () => {
+  if (step < 5) step++;
+  if (step === 4){ renderConclusion(); }
+  renderSeg(); narrate();
+};
+$("resetBtn").onclick = resetAll;
+function resetAll(){
+  P = { mode: 0, res: 10, sel: null };
+  step = 0;
+  [...$("modeSeg").children].forEach((x, i) => x.className = i === 0 ? "on" : "");
+  [...$("resSeg").children].forEach((x, i) => x.className = i === 0 ? "on" : "");
+  $("conclusionCard").style.display = "none";
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+}
+[...$("modeSeg").children].forEach((b, i) => b.onclick = () => {
+  [...$("modeSeg").children].forEach((x, j) => x.className = j === i ? "on" : "");
+  P.mode = i;
+  $("modeVal").textContent = ["NDVI 栅格", "BSI 栅格", "分类图"][i];
+  refreshMetrics(); drawCanvas();
+});
+[...$("resSeg").children].forEach((b, i) => b.onclick = () => {
+  [...$("resSeg").children].forEach((x, j) => x.className = j === i ? "on" : "");
+  P.res = +b.dataset.v;
+  $("resVal").textContent = P.res + " m";
+  narrate(); drawCanvas();
+});
+function renderConclusion(){
+  $("conclusionCard").style.display = "";
+  $("resBig").textContent = meanNd().toFixed(2);
+  $("resUnit").textContent = "（全图 NDVI 均值）· 植被占比 " + vegPct().toFixed(0) + "%";
+  $("resState").textContent = `BSI=${meanBs().toFixed(2)} · ${P.res === 10 ? "Sentinel-2 10m" : "Landsat 30m"} · 8×6 像元`;
+  $("concText").innerHTML = `NDVI=(NIR−R)/(NIR+R)：植被像元 <b>+0.6~0.8</b>、水体 <b>&lt;0</b>；BSI 裸土指数：裸土 <b>+0.1~0.15</b>、植被/水体为负。<br><span class='good'>双指数对照：NDVI 找"绿"、BSI 找"裸"——干旱监测/荒漠化评估两者配合用。</span><br>注意事项：<b>云/云影/山影压 NDVI 造成假裸土</b>（本影像左上角即有污染像元）；<b>分辨率→混合像元</b>（30m 混着树土房，指数被平均）；<b>阈值随区域季节变</b>，分类前必须野外抽样标定。`;
+}
+
+/* ============ 初始化 ============ */
+window.addEventListener("load", () => {
+  setTimeout(() => $("loader").classList.add("done"), 700);
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+});
+</script>
+</body>
+</html>

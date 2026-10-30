@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>水利水电工程虚拟实验包</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 12c2-4 5-4 7 0s5 4 7 0 3-2 4 0v4H3z' fill='%2359d6ff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#0a0d12;--panel:#11151d;--panel2:#151b25;--line:#232b38;--txt:#e8eef4;--dim:#8b95a3;--faint:#5b6572;--amber:#ffb020;--amber-dim:#8a5c10;--cyan:#59d6ff;--danger:#ff5252;--ok:#3ddc84;--violet:#b48cff;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;min-height:100vh}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes ripple{0%{transform:translateY(0);opacity:.7}50%{transform:translateY(-14px);opacity:1}100%{transform:translateY(0);opacity:.7}}
+.water{animation:ripple 2.4s ease-in-out infinite}
+.wrap{max-width:1080px;margin:0 auto;padding:22px 18px 48px}
+header{padding:26px 4px 10px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.1em}
+h1 .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:16px;font-size:16px;color:var(--txt);line-height:1.75;border-left:3px solid var(--amber);padding-left:14px;max-width:760px}
+.oneliner b{color:var(--amber)}
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:26px}
+@media (max-width:760px){.cards{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;display:block;text-decoration:none;color:inherit;transition:border-color .15s,transform .15s}
+.card:hover{border-color:var(--amber-dim);transform:translateY(-2px)}
+.no{font-family:var(--mono);font-size:12px;color:var(--faint);letter-spacing:.2em}
+.card h2{font-size:18px;font-weight:700;margin:10px 0 6px;color:var(--txt)}
+.card .t{font-size:12px;letter-spacing:.2em;color:var(--amber);margin-bottom:10px}
+.card .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:9px 12px;font-size:12px;color:var(--cyan);line-height:1.8;margin-bottom:10px;overflow-x:auto;white-space:pre}
+.card .d{font-size:13px;color:var(--dim);line-height:1.7}
+.card .go{margin-top:12px;font-size:12px;color:var(--violet);letter-spacing:.15em}
+.note{background:var(--panel);border:1px dashed var(--line);border-radius:12px;padding:16px 18px;margin-top:22px;font-size:13px;color:var(--dim);line-height:1.9}
+.note b{color:var(--amber)}
+.note .m{font-family:var(--mono);color:var(--cyan);font-size:12px}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在放水…</p></div>
+<div class="wrap">
+<header>
+  <div class="kicker">HYDRAULIC · HYDROLOGY · HYDRAULIC STRUCTURE</div>
+  <h1>水利水电工程<span class="thin">虚拟实验包</span></h1>
+  <div class="sub">WATER RESOURCES · OPEN CHANNEL · RESERVOIR ROUTING</div>
+  <p class="oneliner"><b>水往哪走、走多快、存多少——三问就是水利的看家本领。</b><br>伯努利定能量、堰流公式定量、调洪演算定安全、谢才公式定过流，四页把水力学×水文学×水工建筑物串成一条线。</p>
+</header>
+
+<div class="cards">
+  <a class="card" href="01-伯努利方程-测压管水头线.html">
+    <div class="no">EXPERIMENT 01</div>
+    <h2>伯努利方程 · 测压管水头线</h2>
+    <div class="t">水力学基础 · 能量方程</div>
+    <div class="f">z + p/ρg + v²/2g = const
+断面收窄 → 流速水头涨 → 压能水头降
+沿程损失使总水头线逐段下坡</div>
+    <div class="d">渐变管段上排测压管，看动压与静压互换；改流量、改管径，能量守恒一眼看清。</div>
+    <div class="go">进入实验 →</div>
+  </a>
+  <a class="card" href="02-量水堰流量测验-薄壁堰.html">
+    <div class="no">EXPERIMENT 02</div>
+    <h2>量水堰流量测验 · 薄壁堰</h2>
+    <div class="t">水工量测 · 堰流公式</div>
+    <div class="f">Q = Cd·(2/3)·√(2g)·b·H^1.5
+三角堰 Q = Cd·(8/15)·√(2g)·tan(θ/2)·H^2.5
+水位-流量关系一测便知</div>
+    <div class="d">矩形/三角堰选型、堰上水头滑杆，流量系数与量程适用条件现场对账。</div>
+    <div class="go">进入实验 →</div>
+  </a>
+  <a class="card" href="03-水库调洪演算-静库容法.html">
+    <div class="no">EXPERIMENT 03</div>
+    <h2>水库调洪演算 · 静库容法</h2>
+    <div class="t">水文学 · 洪水过程</div>
+    <div class="f">(Q入1+Q入2)/2·Δt − (q1+q2)/2·Δt = ΔV
+q = 1.7·b·H^1.5（无闸溢洪道）
+逐时段试算 → 削峰率</div>
+    <div class="d">给入库洪水过程、调溢洪道净宽，数值演算看削峰、看最高水位——泄洪安全的底层逻辑。</div>
+    <div class="go">进入实验 →</div>
+  </a>
+  <a class="card" href="04-明渠均匀流-谢才公式与断面设计.html">
+    <div class="no">EXPERIMENT 04</div>
+    <h2>明渠均匀流 · 谢才公式与断面设计</h2>
+    <div class="t">水力学 · 渠道设计</div>
+    <div class="f">v = C·√(Ri)，C = (1/n)·R^(1/6)
+A=(b+mh)h，P=b+2h√(1+m²)
+不冲不淤流速区间卡设计</div>
+    <div class="d">梯形断面调水深、边坡、糙率，算过流能力并对照不冲不淤流速——渠道断面怎么定出来。</div>
+    <div class="go">进入实验 →</div>
+  </a>
+</div>
+
+<div class="note">
+  <b>谈单锚点</b>（《水力学》《工程水文学》《水工建筑物》）：伯努利实验是水力学第一个必开实验；堰流公式是明渠量测的"尺子"；调洪演算是水库设计的命门；谢才-曼宁是渠道设计标配。<br>
+  <b>可扩展模块（逻辑改编档，有单再补）</b>：水击与调压井（<span class="m">Δp=ρcΔv</span>）、管道水头损失（沿程+局部）、泄水建筑物消能（底流/挑流）、水文频率分析 P-III 曲线、土石坝渗流与浸润线。
+</div>
+
+<footer>
+  <span>水利水电工程虚拟实验包 · 单文件零依赖 · 双击即开</span>
+  <span>HYDRO-VIRTLAB</span>
+</footer>
+</div>
+<script>
+window.addEventListener("load", () => setTimeout(() => document.getElementById("loader").classList.add("done"), 650));
+</script>
+</body>
+</html>

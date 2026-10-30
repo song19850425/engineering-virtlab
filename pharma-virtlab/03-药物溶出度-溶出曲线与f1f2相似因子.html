@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>药物溶出度实验室</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='8' fill='none' stroke='%2359d6ff' stroke-width='1.6'/%3E%3Cpath d='M12 4v8l5 3' stroke='%23ffb020' stroke-width='1.6'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#0a0d12;--panel:#11151d;--panel2:#151b25;--line:#232b38;--txt:#e8eef4;--dim:#8b95a3;--faint:#5b6572;--amber:#ffb020;--amber-dim:#8a5c10;--cyan:#59d6ff;--danger:#ff5252;--ok:#3ddc84;--violet:#b48cff;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes stir{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+.stir{animation:stir 2.2s linear infinite;transform-origin:center;transform-box:fill-box}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px;cursor:crosshair}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在平衡介质…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">PHARMA · VIRTUAL LAB 03</div>
+    <div class="kicker">制药工程 · 药剂学 · 生物等效性评价</div>
+    <h1 class="title">药物溶出度<span class="thin">实验室</span></h1>
+    <div class="sub">DISSOLUTION · f1 f2 SIMILARITY · USP PADDLE</div>
+    <p class="oneliner"><b>处方改没改对，让溶出曲线说话——f2≥50 才算"等效候选"。</b><br>37℃/900mL 桨法跑参比和受试两条曲线，f2=50·log(100/√(1+ΣΔ²/n))，一条公式定生死。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 装置与介质</span></h3>
+      <svg class="scene" id="rig" viewBox="0 0 420 190" role="img" aria-label="溶出仪示意">
+        <rect x="140" y="55" width="140" height="85" rx="8" fill="#14202e" stroke="#59d6ff" stroke-width="1.6"/>
+        <g class="stir">
+          <path d="M210 45 L210 95" stroke="#8b95a3" stroke-width="3"/>
+          <path d="M196 92 L224 92" stroke="#8b95a3" stroke-width="3"/>
+        </g>
+        <circle cx="210" cy="112" r="6" fill="#ffb020"/>
+        <text x="210" y="170" text-anchor="middle" fill="#8b95a3" font-size="9" font-family="inherit">USP 桨法：37±0.5℃、900mL 介质、桨速 50~100rpm</text>
+        <text x="210" y="182" text-anchor="middle" fill="#5b6572" font-size="9" font-family="inherit">取样点：5/10/15/20/30/45/60 min</text>
+      </svg>
+      <canvas id="disCanvas" width="820" height="420" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">重置</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">相似因子 f2</div><div class="v" id="mF2">–</div><div class="sub2">f2≥50 相似</div></div>
+          <div class="metric" id="mSc"><div class="k">差异因子 f1</div><div class="v" id="mF1">–</div><div class="sub2">f1≤15 可接受</div></div>
+          <div class="metric"><div class="k">15min 溶出率</div><div class="v" id="mR">–<small>%</small></div><div class="sub2">参比 / 受试</div></div>
+          <div class="metric" id="mPc"><div class="k">等效判定</div><div class="v" id="mSt">–</div><div class="sub2" id="mStSub">两条曲线比较</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">受试溶出速率 k2</span><span class="val" id="kVal">0.15 /min</span></div>
+          <input type="range" id="kRange" min="0.05" max="0.4" step="0.005" value="0.15">
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">桨速</span><span class="val" id="rpmVal">75 rpm</span></div>
+          <div class="seg" id="rpmSeg"></div>
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>实验结论 · 溶出相似性</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">（相似因子 f2）</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">换处方再比</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · f2 只在"足够取样点"下可信</div><div class="d">参比与受试各取 12 片、7 个时间点、每点 6 片均值；变异太大（RSD 超标）时 f2 没意义。溶出介质要先做饱和溶解与脱气，气泡=假溶出。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · 全溶出不能掩盖差异</div><div class="d">两条曲线都在 15min 内溶到 85% 以上、f2 反而意义下降——速释片先看"15min 溶出度"和崩解，再看 f2；控释制剂要看 1/2/4h 各点，f2 算法不变。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · f2 相似 ≠ 生物等效</div><div class="d">溶出相似只是 BE（生物等效）的"候选入场券"；最终裁决靠人体药代（Cmax、AUC 90%CI 落在 80~125%）。处方微调（崩解剂、黏合剂）先跑溶出，省 BE 试验的钱。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">一级溶出模型（教学代表）：
+  R(t) = 100·(1−e^(−k1·t))，参比 k1=0.20/min 固定
+  T(t) = 100·(1−e^(−k2·t))，受试 k2 可调
+相似因子（FDA/药典法）：
+  f2 = 50·log( 100 / √(1 + (1/n)·Σ(Rt−Tt)²) )
+差异因子：
+  f1 = 100·Σ|Rt−Tt| / ΣRt
+取样点：5/10/15/20/30/45/60 min（n=7）
+判据：f2≥50 且 f1≤15 → 相似；f2&lt;50 → 不相似
+教学锚点：k2=0.15 → f2≈62（相似）、f1≈4.5
+  k2=0.10 → f2≈41（不相似，需调处方）
+  k2=0.20（同参比）→ f2=100</div>
+    <p>演示模型按溶出曲线比较法（f1/f2 相似因子）简化设定；实际按《中国药典》溶出度测定法执行 6 片/12 片取样与 RSD 判定。教学演示用，不作为 BE 评价依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性） ============ */
+let P = { k2: 0.15, rpm: 75 };
+const $ = id => document.getElementById(id);
+const K1 = 0.20, TIMES = [5, 10, 15, 20, 30, 45, 60];
+function diss(k, t){ return 100 * (1 - Math.exp(-k * t)); }
+function calc(){
+  const R = TIMES.map(t => diss(K1, t));
+  const T = TIMES.map(t => diss(P.k2, t));
+  let sumSq = 0, sumAbs = 0, sumR = 0;
+  for (let i = 0; i < TIMES.length; i++){
+    sumSq += (R[i] - T[i]) * (R[i] - T[i]);
+    sumAbs += Math.abs(R[i] - T[i]);
+    sumR += R[i];
+  }
+  const n = TIMES.length;
+  const f2 = 50 * Math.log10(100 / Math.sqrt(1 + sumSq / n));
+  const f1 = 100 * sumAbs / sumR;
+  const r15R = diss(K1, 15), r15T = diss(P.k2, 15);
+  let st, stSub, stColor;
+  if (f2 >= 50 && f1 <= 15){ st = "相似"; stSub = "f2≥50 · f1≤15"; stColor = "#3ddc84"; }
+  else if (f2 >= 50){ st = "边缘相似"; stSub = "f2≥50 但 f1>15"; stColor = "#ffb020"; }
+  else { st = "不相似"; stSub = "f2<50 需调处方"; stColor = "#ff5252"; }
+  return { f2: Math.round(f2 * 10) / 10, f1: Math.round(f1 * 10) / 10, r15R, r15T, st, stSub, stColor, R, T };
+}
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  { t: "装置与介质", s: "桨法/篮法，37℃、900mL 介质（水/缓冲液/表面活性剂）。", bench: "准备：\n① 选装置（桨/篮）与介质\n② 介质脱气、恒温 37±0.5℃\n③ 参比与受试各 6~12 片\n④ 定取样点（7 点）" },
+  { t: "投片计时", s: "投入药片，桨速定速，0 时刻起样。", bench: "" },
+  { t: "定时取样", s: "各取样点抽滤、测吸光度/浓度。", bench: "" },
+  { t: "画溶出曲线", s: "累积溶出% vs 时间，参比/受试并排。", bench: "" },
+  { t: "算 f1/f2", s: "f2=50·log(100/√(1+ΣΔ²/n))。", bench: "" },
+  { t: "报告", s: "报 f1/f2、判定与处方建议。", bench: "" }
+];
+let step = 0;
+
+function renderSeg(){
+  const el = $("stepSeg");
+  el.innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" class="${i < step ? "done" : i === step ? "on" : ""}">${i + 1} · ${s.t}<small>${i < step ? "已通过" : i === step ? "进行中" : "待执行"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { if(+b.dataset.i <= step){ step = +b.dataset.i; renderSeg(); narrate(); } });
+  $("sceneTitle").textContent = `${step + 1} · ${STEPS[step].t}`;
+  $("actBtn").textContent = step >= 5 ? "完成" : "下一步";
+}
+function renderRpmSeg(){
+  const el = $("rpmSeg");
+  el.innerHTML = [50, 75, 100].map(r =>
+    `<button data-r="${r}" class="${P.rpm === r ? "on" : ""}">${r}<small>rpm</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { P.rpm = +b.dataset.r; renderRpmSeg(); $("rpmVal").textContent = P.rpm + " rpm"; refreshMetrics(); narrate(); });
+}
+function narrate(){
+  const n = $("narrate");
+  const c = calc();
+  if (step <= 1) n.innerHTML = STEPS[step].s;
+  else if (step === 2) n.innerHTML = `投片计时，桨速 <b>${P.rpm} rpm</b>；受试制剂溶出速率 k2=<b>${P.k2.toFixed(2)}/min</b>（参比 k1=0.20）。`;
+  else if (step === 3) n.innerHTML = `取样 7 点：5→60min，测浓度换算累积溶出%。`;
+  else if (step === 4) n.innerHTML = `参比 15min 溶出 <b>${c.r15R.toFixed(0)}%</b>、受试 <b>${c.r15T.toFixed(0)}%</b>。`;
+  else if (step === 5) n.innerHTML = `f2=<b>${c.f2}</b>、f1=<b>${c.f1}</b>（n=7）。`;
+  else n.innerHTML = `报告：f2=<b>${c.f2}</b>、f1=<b>${c.f1}</b> → <b style="color:${c.stColor}">${c.st}</b>（${c.stSub}）。`;
+}
+function flash(id){
+  const el = $(id); if(!el) return;
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+function refreshMetrics(){
+  const c = calc();
+  $("mF2").textContent = c.f2;
+  $("mF2").style.color = c.f2 >= 50 ? "#3ddc84" : "#ff5252";
+  $("mF1").textContent = c.f1;
+  $("mR").textContent = c.r15R.toFixed(0) + " / " + c.r15T.toFixed(0);
+  $("mSt").textContent = c.st;
+  $("mStSub").textContent = c.stSub;
+  $("mSt").style.color = c.stColor;
+  flash("mF2"); flash("mF1"); flash("mR"); flash("mSt");
+}
+
+/* ============ Canvas ============ */
+const W_ = 820, H_ = 420;
+const cv = $("disCanvas"), ctx = cv.getContext("2d");
+function drawCanvas(){
+  ctx.clearRect(0, 0, W_, H_);
+  const c = calc();
+  const l = { l: 66, r: 460, t: 26, b: 40 };
+  const X = t => l.l + t / 70 * (l.r - l.l);
+  const Y = v => H_ - l.b - v / 110 * (H_ - l.t - l.b);
+  ctx.strokeStyle = "#232b38";
+  for (let i = 0; i <= 5; i++){
+    const v = i * 20, y = Y(v);
+    ctx.beginPath(); ctx.moveTo(l.l, y); ctx.lineTo(l.r, y); ctx.stroke();
+    ctx.fillStyle = "#5b6572"; ctx.font = "10px ui-monospace,monospace";
+    ctx.fillText(String(v), l.l - 24, y + 4);
+  }
+  [0, 10, 20, 30, 45, 60].forEach(t => {
+    const x = X(t);
+    ctx.beginPath(); ctx.moveTo(x, l.t); ctx.lineTo(x, H_ - l.b); ctx.stroke();
+    ctx.fillStyle = "#5b6572"; ctx.font = "10px ui-monospace,monospace";
+    ctx.fillText(String(t), x - 8, H_ - l.b + 16);
+  });
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("累积溶出率 %", 8, 34);
+  ctx.fillText("时间 min", l.r - 40, H_ - 4);
+  // 参比曲线
+  ctx.strokeStyle = "#59d6ff"; ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  for (let i = 0; i <= 70; i++){
+    const t = i / 70 * 70;
+    const v = diss(K1, t);
+    i ? ctx.lineTo(X(t), Y(v)) : ctx.moveTo(X(t), Y(v));
+  }
+  ctx.stroke();
+  // 受试曲线
+  ctx.strokeStyle = "#ffb020"; ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  for (let i = 0; i <= 70; i++){
+    const t = i / 70 * 70;
+    const v = diss(P.k2, t);
+    i ? ctx.lineTo(X(t), Y(v)) : ctx.moveTo(X(t), Y(v));
+  }
+  ctx.stroke();
+  ctx.fillStyle = "#59d6ff"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("参比 k1=0.20", X(52), Y(diss(K1, 50)) - 8);
+  ctx.fillStyle = "#ffb020"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("受试 k2=" + P.k2.toFixed(2), X(52), Y(diss(P.k2, 50)) + 16);
+  // 15min 参考线
+  ctx.setLineDash([4, 4]); ctx.strokeStyle = "#5b6572";
+  ctx.beginPath(); ctx.moveTo(X(15), l.t); ctx.lineTo(X(15), H_ - l.b); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = "#5b6572"; ctx.font = "10px ui-monospace,monospace";
+  ctx.fillText("15min", X(15) - 16, l.t + 14);
+
+  // 右：f1/f2
+  const rx = 500;
+  ctx.fillStyle = "#8b95a3"; ctx.font = "13px -apple-system,Microsoft YaHei";
+  ctx.fillText("相似性指标", rx, 36);
+  const x0 = rx, y0 = 56, w = 250, h2 = 250;
+  ctx.strokeStyle = "#232b38"; ctx.strokeRect(x0, y0, w, h2);
+  // f2 刻度 0~100
+  ctx.fillStyle = "#5b6572"; ctx.font = "10px ui-monospace,monospace";
+  for (let i = 0; i <= 5; i++){
+    const v = i * 20, y = y0 + h2 - v / 100 * h2;
+    ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x0 + w, y); ctx.stroke();
+    ctx.fillText(String(v), x0 - 22, y + 4);
+  }
+  ctx.fillStyle = "rgba(61,220,132,.18)"; ctx.fillRect(x0, y0 + h2 - 50 / 100 * h2, w, 50 / 100 * h2);
+  ctx.fillStyle = "rgba(255,82,82,.15)"; ctx.fillRect(x0, y0, w, 50 / 100 * h2);
+  ctx.setLineDash([4, 4]); ctx.strokeStyle = "#3ddc84";
+  ctx.beginPath(); ctx.moveTo(x0, y0 + h2 - 50 / 100 * h2); ctx.lineTo(x0 + w, y0 + h2 - 50 / 100 * h2); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = "#3ddc84"; ctx.font = "10px ui-monospace,monospace";
+  ctx.fillText("f2=50 相似线", x0 + 6, y0 + h2 - 50 / 100 * h2 - 5);
+  // f2 柱
+  const f2h = Math.min(c.f2, 100) / 100 * h2;
+  ctx.fillStyle = c.f2 >= 50 ? "#3ddc84" : "#ff5252";
+  ctx.fillRect(x0, y0 + h2 - f2h, 60, f2h);
+  ctx.fillStyle = "#e8eef4"; ctx.font = "bold 20px ui-monospace,monospace";
+  ctx.fillText(c.f2.toFixed(1), x0 + 70, y0 + h2 - f2h + 18);
+  // f1
+  const f1y = y0 + h2 - Math.min(c.f1, 100) / 100 * h2;
+  ctx.fillStyle = "#b48cff";
+  ctx.fillRect(x0 + 100, y0 + h2 - Math.min(c.f1, 100) / 100 * h2, 60, Math.min(c.f1, 100) / 100 * h2);
+  ctx.fillStyle = "#e8eef4"; ctx.font = "12px ui-monospace,monospace";
+  ctx.fillText("f1=" + c.f1.toFixed(1), x0 + 168, y0 + h2 - Math.min(c.f1, 100) / 100 * h2 + 14);
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("■ f2 相似因子（越高越像）", x0, y0 + h2 + 22);
+  ctx.fillStyle = "#b48cff"; ctx.fillText("■ f1 差异因子（≤15）", x0, y0 + h2 + 40);
+  ctx.fillStyle = c.stColor; ctx.font = "bold 13px -apple-system,Microsoft YaHei";
+  ctx.fillText("判定：" + c.st + "（" + c.stSub + "）", rx, H_ - 30);
+}
+
+/* ============ 动作 ============ */
+$("actBtn").onclick = () => {
+  if (step < 5) step++;
+  if (step === 4){ renderConclusion(); }
+  renderSeg(); narrate();
+};
+$("resetBtn").onclick = resetAll;
+function resetAll(){
+  P = { k2: 0.15, rpm: 75 };
+  step = 0;
+  $("kRange").value = 0.15;
+  $("conclusionCard").style.display = "none";
+  renderSeg(); renderRpmSeg(); refreshMetrics(); narrate(); drawCanvas();
+}
+$("kRange").oninput = e => { P.k2 = +e.target.value; $("kVal").textContent = P.k2.toFixed(2) + " /min"; refreshMetrics(); narrate(); drawCanvas(); };
+function renderConclusion(){
+  const c = calc();
+  $("conclusionCard").style.display = "";
+  $("resBig").textContent = c.f2;
+  $("resState").textContent = `受试 k2=${P.k2.toFixed(2)} · 桨速 ${P.rpm}rpm · f1=${c.f1}`;
+  $("concText").innerHTML = `相似因子 <b>f2=${c.f2}</b>、差异因子 <b>f1=${c.f1}</b>（7 点取样，参比 k1=0.20）。<br><span class='good'>判定：${c.st}——${c.stSub}。</span><br>工程要点：15min 溶出 ${c.r15R.toFixed(0)}% vs ${c.r15T.toFixed(0)}%；k2 掉到 0.10 f2 就跌破 50——崩解剂/黏合剂/硬度都会改 k2；溶出相似是 BE 试验的入场券，不是终点。`;
+}
+
+/* ============ 初始化 ============ */
+window.addEventListener("load", () => {
+  setTimeout(() => $("loader").classList.add("done"), 700);
+  renderSeg(); renderRpmSeg(); refreshMetrics(); narrate(); drawCanvas();
+});
+</script>
+</body>
+</html>

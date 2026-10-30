@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>铁碳相图实验室</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 4h16v10H8z' fill='none' stroke='%2359d6ff' stroke-width='1.6'/%3E%3Cpath d='M8 14l3 6h2l3-6' stroke='%23ffb020' stroke-width='1.6' fill='none'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes lensPulse{0%,100%{opacity:.7}50%{opacity:1}}
+.lens{animation:lensPulse 2.4s ease-in-out infinite}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px;cursor:crosshair}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.spec-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+.spec-table th{font-size:11px;color:var(--faint);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);letter-spacing:.1em}
+.spec-table td{padding:9px 10px;border-bottom:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:13px}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader,#rp{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在制备金相试样…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">MATL · VIRTUAL LAB 03</div>
+    <div class="kicker">材料科学与工程 · 金相 · 铁碳平衡组织</div>
+    <h1 class="title">铁碳相图与金相<span class="thin">实验室</span></h1>
+    <div class="sub">FE-C PHASE DIAGRAM · LEVER RULE · MICROSTRUCTURE</div>
+    <p class="oneliner"><b>碳含量决定室温组织：0.45%C 是铁素体+珠光体，0.77%C 全是珠光体，过共析再多一点渗碳体——杠杆定律把"多少"算得明明白白。</b><br>杠杆定律 · 珠光体片层 · 共析点 0.77% · 亚共析/过共析。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 试样制备</span></h3>
+      <svg class="scene" id="rig" viewBox="0 0 420 190" role="img" aria-label="金相观察示意">
+        <g class="lens">
+          <path d="M210 30 L196 58 L224 58 Z" fill="#59d6ff"/>
+          <line x1="210" y1="58" x2="210" y2="74" stroke="#8b95a3" stroke-width="2"/>
+        </g>
+        <circle cx="210" cy="96" r="40" fill="#0d1117" stroke="#232b38" stroke-width="2"/>
+        <g id="microG">
+          <rect x="184" y="72" width="12" height="48" fill="#3d4a5c"/>
+          <rect x="196" y="72" width="12" height="48" fill="#aeb7c2"/>
+          <rect x="208" y="72" width="12" height="48" fill="#3d4a5c"/>
+          <rect x="220" y="72" width="12" height="48" fill="#aeb7c2"/>
+          <rect x="232" y="72" width="8" height="48" fill="#3d4a5c"/>
+        </g>
+        <text x="210" y="152" text-anchor="middle" fill="#8b95a3" font-size="9" font-family="inherit">金相显微镜视场：珠光体片层（黑白相间）</text>
+        <text x="210" y="182" text-anchor="middle" fill="#5b6572" font-size="9" font-family="inherit">制样：切割→磨光→抛光→4% 硝酸酒精浸蚀→显微镜观察</text>
+      </svg>
+      <canvas id="feCanvas" width="820" height="420" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">重置</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">碳含量 C</div><div class="v" id="mC">–<small>wt%</small></div><div class="sub2">钢区 0.02~1.2</div></div>
+          <div class="metric" id="mSc"><div class="k">室温组织</div><div class="v" id="mOrg">–</div><div class="sub2" id="mOrgSub">–</div></div>
+          <div class="metric"><div class="k">铁素体 F</div><div class="v" id="mF">–<small>%</small></div><div class="sub2">杠杆定律</div></div>
+          <div class="metric" id="mPc"><div class="k">珠光体 P</div><div class="v" id="mP">–<small>%</small></div><div class="sub2" id="mPSub">渗碳体另计</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">碳含量</span><span class="val" id="cVal">0.45 wt%</span></div>
+          <input type="range" id="cRange" min="2" max="120" step="1" value="45">
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>实验结论 · 杠杆定律与组织定量</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">wt%（铁素体/珠光体比例）</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">换成分再看</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · 共析转变是"等温变形"</div><div class="d">727°C 时 γ(0.77%C) 等温共析为 α(0.0218%)+Fe3C(6.69%) 的机械混合物——珠光体片层就是一次共析反应的"出生证明"。碳含量变了，起点终点跟着变。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · 杠杆定律只对平衡态负责</div><div class="d">杠杆定律算的是缓慢冷却的平衡组织比例。实际冷却快一点，组织就偏离平衡（伪共析、贝氏体、马氏体）——快冷下杠杆定律直接失效，那是 04 号热处理实验的地盘。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · 含碳量是钢的"性格"</div><div class="d">低碳钢塑性好宜焊接、中碳钢强度塑性兼顾宜机械加工、高碳钢硬而脆宜做刀具。含碳量定组织，组织定性能——选钢先看 C%。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">铁碳相图关键点（钢区演示）：共析点 S=0.77%C / 727°C；A1=727°C
+亚共析钢（C&lt;0.77%）：室温组织 = 铁素体 F + 珠光体 P
+  杠杆定律：F% = (0.77 − C)/(0.77 − 0.0218)；P% = (C − 0.0218)/(0.77 − 0.0218)
+过共析钢（C&gt;0.77%）：室温组织 = 珠光体 P + 二次渗碳体 Fe3CII
+  P% = (6.69 − C)/(6.69 − 0.77)；Fe3CII% = (C − 0.77)/(6.69 − 0.77)
+演示钢号：20钢 C=0.20、45钢 C=0.45、T8 C=0.80、T12 C=1.20
+本页为确定性演示：碳含量可调，杠杆定律结果可复算。</div>
+    <p>演示模型按 Fe-Fe3C 平衡相图（钢区）设定，杠杆定律基于平衡态缓慢冷却；实际组织还受冷速影响（见热处理实验）。教学演示用，不作为材料检验依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性） ============ */
+let P = { C: 0.45 };
+const $ = id => document.getElementById(id);
+function lever(){
+  const C = P.C;
+  if (C <= 0.0218) return { F: 100, P: 0, Fe3C: 0 };
+  if (C < 0.77) return { F: (0.77 - C) / (0.77 - 0.0218) * 100, P: (C - 0.0218) / (0.77 - 0.0218) * 100, Fe3C: 0 };
+  if (C < 6.69) return { F: 0, P: (6.69 - C) / (6.69 - 0.77) * 100, Fe3C: (C - 0.77) / (6.69 - 0.77) * 100 };
+  return { F: 0, P: 0, Fe3C: 100 };
+}
+const orgName = () => {
+  const C = P.C;
+  if (C <= 0.0218) return "工业纯铁";
+  if (C < 0.77) return "亚共析钢 (F+P)";
+  if (C === 0.77) return "共析钢 (P)";
+  return "过共析钢 (P+Fe3CII)";
+};
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  { t: "试样制备", s: "切割→磨光→抛光→4% 硝酸酒精浸蚀，铁素体白亮、珠光体灰暗片层。", bench: "准备：\n① 不同碳含量钢样\n② 金相制样：磨/抛/浸蚀\n③ 显微镜低倍找组织\n④ 高倍观察珠光体片层" },
+  { t: "定位相图", s: "在铁碳相图上定位当前成分与温度，判断是亚共析/共析/过共析。", bench: "" },
+  { t: "杠杆定律", s: "室温平衡组织比例用杠杆定律计算：F/P/Fe3CII 各占多少。", bench: "" },
+  { t: "金相观察", s: "对照视场：亚共析=白亮铁素体+暗珠光体；共析=全珠光体片层。", bench: "" },
+  { t: "定量验证", s: "面积比≈质量比（视场统计），与杠杆定律结果对照。", bench: "" },
+  { t: "报告", s: "组织-成分关系总结：C% 定组织、组织定性能。", bench: "" }
+];
+let step = 0;
+
+function renderSeg(){
+  const el = $("stepSeg");
+  el.innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" class="${i < step ? "done" : i === step ? "on" : ""}">${i + 1} · ${s.t}<small>${i < step ? "已通过" : i === step ? "进行中" : "待执行"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { if(+b.dataset.i <= step){ step = +b.dataset.i; renderSeg(); narrate(); } });
+  $("sceneTitle").textContent = `${step + 1} · ${STEPS[step].t}`;
+  $("actBtn").textContent = step >= 5 ? "完成" : "下一步";
+}
+function narrate(){
+  const n = $("narrate");
+  const lv = lever();
+  if (step <= 1) n.innerHTML = STEPS[step].s;
+  else if (step === 2) n.innerHTML = `C=<b>${P.C.toFixed(2)} wt%</b>：${orgName()}。共析点 0.77%/727°C——成分在左为亚共析、在右为过共析。`;
+  else if (step === 3) n.innerHTML = `杠杆定律：F=<b>${lv.F.toFixed(1)}%</b>、P=<b>${lv.P.toFixed(1)}%</b>${lv.Fe3C > 0 ? `、Fe3CII=<b>${lv.Fe3C.toFixed(1)}%</b>` : ""}。`;
+  else if (step === 4) n.innerHTML = `金相视场：${orgName()}——${P.C < 0.77 ? "白亮铁素体块 + 暗色珠光体" : P.C === 0.77 ? "全部珠光体片层" : "珠光体基体 + 沿晶界白亮渗碳体网"}。`;
+  else if (step === 5) n.innerHTML = `定量验证：视场面积比≈杠杆定律质量比。含碳量越高，珠光体（暗区）越多。`;
+  else n.innerHTML = `报告：C=${P.C.toFixed(2)}% → ${orgName()}，F/P/Fe3CII 比例如上。低碳钢塑性好宜焊接、中碳钢综合性能好、高碳钢硬脆做刀具。`;
+}
+function flash(id){
+  const el = $(id); if(!el) return;
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+function refreshMetrics(){
+  const lv = lever();
+  $("mC").textContent = P.C.toFixed(2);
+  $("mOrg").textContent = orgName();
+  $("mOrgSub").textContent = `共析点 0.77% · A1=727°C`;
+  $("mF").textContent = lv.F.toFixed(1);
+  $("mP").textContent = lv.P.toFixed(1);
+  $("mPSub").textContent = lv.Fe3C > 0 ? `Fe3CII=${lv.Fe3C.toFixed(1)}%` : "无渗碳体";
+  flash("mC"); flash("mF"); flash("mP");
+  // 金相视场更新：珠光体片层随比例变化
+  const mg = $("microG");
+  mg.innerHTML = "";
+  const lv2 = lever();
+  const isHypo = P.C < 0.77;
+  // 视场宽 52px
+  let x = 184;
+  const drawStrip = (w, dark) => {
+    if (w <= 0) return;
+    if (dark){
+      const n = Math.max(1, Math.round(w / 3));
+      for (let i = 0; i < n; i++){
+        const r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        r.setAttribute("x", x); r.setAttribute("y", 72); r.setAttribute("width", w / n); r.setAttribute("height", 48);
+        r.setAttribute("fill", i % 2 === 0 ? "#3d4a5c" : "#aeb7c2");
+        mg.appendChild(r);
+        x += w / n;
+      }
+    } else {
+      const r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      r.setAttribute("x", x); r.setAttribute("y", 72); r.setAttribute("width", w); r.setAttribute("height", 48);
+      r.setAttribute("fill", "#c8d0da");
+      mg.appendChild(r);
+      x += w;
+    }
+  };
+  if (isHypo){
+    drawStrip(52 * lv2.F / 100, false);
+    drawStrip(52 * lv2.P / 100, true);
+  } else {
+    drawStrip(52 * lv2.P / 100, true);
+    drawStrip(52 * lv2.Fe3C / 100, false);
+  }
+}
+
+/* ============ Canvas 铁碳相图 + 杠杆 ============ */
+const W_ = 820, H_ = 420;
+const cv = $("feCanvas"), ctx = cv.getContext("2d");
+function drawCanvas(){
+  ctx.clearRect(0, 0, W_, H_);
+  // 左：铁碳相图（钢区简化）
+  const l = { l: 60, r: 430, t: 24, b: 44 };
+  const Cmax = 2.11, Tmax = 1150;
+  const X = c => l.l + c / Cmax * (l.r - l.l);
+  const Y = t => H_ - l.b - t / Tmax * (H_ - l.t - l.b);
+  ctx.font = "10px ui-monospace,monospace"; ctx.fillStyle = "#5b6572"; ctx.strokeStyle = "#232b38";
+  for (let c = 0; c <= 2; c += 0.5){ ctx.beginPath(); ctx.moveTo(X(c), l.t); ctx.lineTo(X(c), H_ - l.b); ctx.stroke(); ctx.fillText(c.toFixed(1), X(c) - 8, H_ - l.b + 16); }
+  for (let t = 200; t <= 1100; t += 200){ const y = Y(t); ctx.beginPath(); ctx.moveTo(l.l, y); ctx.lineTo(l.r, y); ctx.stroke(); ctx.fillText(t, 6, y + 4); }
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("碳含量 C (wt%)", l.l + 110, H_ - 8);
+  ctx.save(); ctx.translate(14, H_ / 2 + 6); ctx.rotate(-Math.PI / 2); ctx.fillText("温度 T (°C)", -34, 0); ctx.restore();
+  // 相区背景
+  ctx.fillStyle = "rgba(89,214,255,.06)"; ctx.fillRect(l.l, l.t, l.r - l.l, H_ - l.t - l.b);
+  // A1 线 727
+  ctx.strokeStyle = "#ffb020"; ctx.lineWidth = 1.8;
+  ctx.beginPath(); ctx.moveTo(l.l, Y(727)); ctx.lineTo(l.r, Y(727)); ctx.stroke();
+  ctx.fillStyle = "#ffb020"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("A1=727°C（共析）", l.l + 4, Y(727) - 4);
+  // A3 线（亚共析，0→912°C，0.77→727°C）
+  ctx.strokeStyle = "#59d6ff"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(X(0), Y(912)); ctx.lineTo(X(0.77), Y(727)); ctx.stroke();
+  ctx.fillStyle = "#59d6ff"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("A3（γ→α 开始）", X(0.25), Y(850));
+  // Acm 线（过共析，0.77→727，2.11→1147）
+  ctx.strokeStyle = "#b48cff"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(X(0.77), Y(727)); ctx.lineTo(X(2.11), Y(1147)); ctx.stroke();
+  ctx.fillStyle = "#b48cff"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("Acm（γ→Fe3C 开始）", X(1.2), Y(980));
+  // 共析点
+  ctx.fillStyle = "#ff5252";
+  ctx.beginPath(); ctx.arc(X(0.77), Y(727), 4, 0, 7); ctx.fill();
+  ctx.fillStyle = "#ff5252"; ctx.font = "10.5px -apple-system,Microsoft YaHei";
+  ctx.fillText("S 0.77%", X(0.77) + 8, Y(727) - 6);
+  // 区域标注
+  ctx.fillStyle = "#5b6572"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("γ 奥氏体区", l.l + 120, Y(1000));
+  ctx.fillText("α+γ", l.l + 40, Y(830));
+  ctx.fillText("γ+Fe3C", l.l + 300, Y(900));
+  ctx.fillText("α+Fe3C（珠光体区）", l.l + 90, H_ - l.b - 60);
+  // 当前成分垂线
+  const c = P.C;
+  ctx.strokeStyle = "#e8eef4"; ctx.setLineDash([4, 3]); ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.moveTo(X(c), l.t); ctx.lineTo(X(c), H_ - l.b); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = "#e8eef4"; ctx.font = "11px ui-monospace,monospace";
+  ctx.fillText(`C=${c.toFixed(2)}%`, X(c) - 30, l.t + 12);
+  // 右：杠杆定律比例条 + 组织示意
+  const rx = 460, ry = 60, rw = 300;
+  const lv = lever();
+  ctx.fillStyle = "#8b95a3"; ctx.font = "13px -apple-system,Microsoft YaHei";
+  ctx.fillText("杠杆定律 · 室温组织比例", rx, 36);
+  ctx.fillText("0%", rx, ry - 6);
+  ctx.fillText("100%", rx + rw - 24, ry - 6);
+  // 铁素体（浅）
+  ctx.fillStyle = "#c8d0da";
+  ctx.fillRect(rx, ry, rw * lv.F / 100, 26);
+  // 珠光体（暗）
+  ctx.fillStyle = "#3d4a5c";
+  ctx.fillRect(rx + rw * lv.F / 100, ry, rw * lv.P / 100, 26);
+  // 渗碳体
+  ctx.fillStyle = "#b48cff";
+  ctx.fillRect(rx + rw * (lv.F + lv.P) / 100, ry, rw * lv.Fe3C / 100, 26);
+  ctx.strokeStyle = "#232b38"; ctx.strokeRect(rx, ry, rw, 26);
+  // 图例
+  ctx.font = "11.5px -apple-system,Microsoft YaHei";
+  ctx.fillStyle = "#c8d0da"; ctx.fillRect(rx, ry + 44, 12, 12);
+  ctx.fillStyle = "#8b95a3"; ctx.fillText(`铁素体 F=${lv.F.toFixed(1)}%`, rx + 20, ry + 54);
+  ctx.fillStyle = "#3d4a5c"; ctx.fillRect(rx + 140, ry + 44, 12, 12);
+  ctx.fillStyle = "#8b95a3"; ctx.fillText(`珠光体 P=${lv.P.toFixed(1)}%`, rx + 160, ry + 54);
+  if (lv.Fe3C > 0){
+    ctx.fillStyle = "#b48cff"; ctx.fillRect(rx, ry + 66, 12, 12);
+    ctx.fillStyle = "#8b95a3"; ctx.fillText(`渗碳体 Fe3CII=${lv.Fe3C.toFixed(1)}%`, rx + 20, ry + 76);
+  }
+  // 组织文字
+  ctx.fillStyle = "#ffb020"; ctx.font = "13px -apple-system,Microsoft YaHei";
+  ctx.fillText(`${orgName()} · 共析点 0.77%`, rx, ry + 108);
+  ctx.fillStyle = "#5b6572"; ctx.font = "11.5px -apple-system,Microsoft YaHei";
+  ctx.fillText("杠杆定律适用平衡态（缓慢冷却）", rx, ry + 132);
+  ctx.fillText("快冷组织偏离平衡 → 见热处理实验", rx, ry + 152);
+}
+
+/* ============ 动作 ============ */
+$("actBtn").onclick = () => {
+  if (step < 5) step++;
+  if (step === 4){ renderConclusion(); }
+  renderSeg(); narrate();
+};
+$("resetBtn").onclick = resetAll;
+function resetAll(){
+  P = { C: 0.45 };
+  step = 0;
+  $("cRange").value = 45;
+  $("conclusionCard").style.display = "none";
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+}
+$("cRange").oninput = e => {
+  P.C = +e.target.value / 100;
+  $("cVal").textContent = P.C.toFixed(2) + " wt%";
+  refreshMetrics(); narrate(); drawCanvas();
+};
+function renderConclusion(){
+  const lv = lever();
+  $("conclusionCard").style.display = "";
+  $("resBig").textContent = lv.F.toFixed(1) + "/" + lv.P.toFixed(1);
+  $("resUnit").textContent = "（铁素体/珠光体 %）· " + orgName();
+  $("resState").textContent = `C=${P.C.toFixed(2)}%${lv.Fe3C > 0 ? " · Fe3CII=" + lv.Fe3C.toFixed(1) + "%" : ""} · 共析 0.77%/727°C`;
+  $("concText").innerHTML = `C=<b>${P.C.toFixed(2)} wt%</b>：${orgName()}。杠杆定律 → F=<b>${lv.F.toFixed(1)}%</b>、P=<b>${lv.P.toFixed(1)}%</b>${lv.Fe3C > 0 ? `、Fe3CII=<b>${lv.Fe3C.toFixed(1)}%</b>` : ""}。<br><span class='good'>碳含量定组织、组织定性能</span>：低碳钢塑性好宜焊接、中碳钢综合性能好、高碳钢硬脆做刀具。<br>注意：杠杆定律只在<b>平衡态（缓慢冷却）</b>成立；实际快冷会偏离平衡（伪共析/贝氏体/马氏体），那是热处理实验的内容。`;
+}
+
+/* ============ 初始化 ============ */
+window.addEventListener("load", () => {
+  setTimeout(() => $("loader").classList.add("done"), 700);
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+});
+</script>
+</body>
+</html>

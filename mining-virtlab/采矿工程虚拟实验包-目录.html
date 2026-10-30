@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>采矿工程·虚拟实验包目录</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 16l9-4 9 4-9 4z' fill='none' stroke='%2359d6ff' stroke-width='1.6'/%3E%3Cpath d='M3 12l9-4 9 4-9 4z' fill='none' stroke='%23ffb020' stroke-width='1.6'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:40px 18px}
+header{padding:30px 4px 10px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:12px}
+h1{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1 .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:16px;font-size:15px;line-height:1.8;color:var(--txt);border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.pos{margin-top:14px;font-size:12px;color:var(--faint);font-family:var(--mono)}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:24px}
+@media (max-width:700px){.grid{grid-template-columns:1fr}}
+.entry{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 20px;text-decoration:none;color:var(--txt);position:relative;overflow:hidden;transition:border-color .15s, transform .15s;display:block}
+.entry:hover{border-color:var(--amber-dim);transform:translateY(-2px)}
+.entry .no{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.25em;margin-bottom:8px}
+.entry .t{font-size:21px;font-weight:700;letter-spacing:.04em;margin-bottom:10px;color:var(--cyan)}
+.entry .d{font-size:13px;color:var(--dim);line-height:1.8;margin-bottom:12px}
+.entry .f{font-family:var(--mono);font-size:11.5px;color:var(--violet);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;line-height:1.9}
+.entry .arrow{position:absolute;right:16px;top:16px;color:var(--faint);font-size:20px}
+.foot{margin-top:30px;padding-top:18px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.note{margin-top:22px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--amber);border-radius:10px;padding:14px 16px;font-size:13px;color:var(--dim);line-height:1.9}
+.note b{color:var(--txt)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">MINING · VIRTUAL LAB PACK · 4 EXPERIMENTS</div>
+    <h1>采矿工程<span class="thin">虚拟实验包</span></h1>
+    <div class="sub">MINING ENGINEERING · VENTILATION · SAFETY · GEOMECHANICS</div>
+    <p class="oneliner">符号：<b>采高、顶板压力、瓦斯浓度、涌水量、矿石品位、剥采比</b>。设备：采煤机、掘进机、通风机、提升机、瓦斯抽采系统、尾矿库。四个代表实验覆盖「瓦斯安全→岩石力学→通风网络→尾矿稳定」四大红线。<br>零依赖单文件，双击即开。</p>
+    <div class="pos">MINING-VIRTLAB · 2026-10 · 骨架复用 · 数值可复算</div>
+  </header>
+
+  <div class="grid">
+    <a class="entry" href="01-瓦斯爆炸极限与涌出量.html">
+      <div class="no">EXP 01</div>
+      <div class="t">瓦斯爆炸极限 · 涌出量 · 爆炸三角</div>
+      <div class="d">甲烷 5%~15% 之间遇火才炸——爆炸三角画的是甲烷、氧气、惰性气的三方博弈：浓度够不着炸，氧不够也炸不起来。</div>
+      <div class="f">涌出量 q=Q风·C/100 ｜ 下限 5.0% ｜ 上限 15.0% ｜ 临界氧 ≈12.5%</div>
+      <div class="arrow">→</div>
+    </a>
+    <a class="entry" href="02-岩石力学-单轴抗压.html">
+      <div class="no">EXP 02</div>
+      <div class="t">岩石力学 · 单轴抗压强度</div>
+      <div class="d">煤、页岩、砂岩、灰岩、花岗岩五档岩性，含水软化系数直接决定强度——深部软岩巷道为什么总出事，算一遍就懂。</div>
+      <div class="f">σv=γ·H ｜ UCS ｜ 软化系数 η=σsat/σdry ｜ K=UCS/σv</div>
+      <div class="arrow">→</div>
+    </a>
+    <a class="entry" href="03-通风阻力定律.html">
+      <div class="no">EXP 03</div>
+      <div class="t">通风阻力定律 · 网络分配</div>
+      <div class="d">h=R·Q²——风量翻倍阻力翻四倍。摩擦阻力、局部阻力、串并联分配一次算清，风速超限直接预警。</div>
+      <div class="f">h=RQ² ｜ R=αLP/A³ ｜ hξ=ξ·ρv²/2 ｜ Q1:Q2=√(R2:R1)</div>
+      <div class="arrow">→</div>
+    </a>
+    <a class="entry" href="04-尾矿库边坡稳定.html">
+      <div class="no">EXP 04</div>
+      <div class="t">尾矿库边坡稳定 · 安全系数</div>
+      <div class="d">Fs=抗滑力/下滑力——浸润线一抬、孔隙水压力一涨，Fs 肉眼可见地往下掉。尾矿库按等别卡限差，Fs 不够就停。</div>
+      <div class="f">Fs=(c+(W·cosθ−u·l)tanφ)/(W·sinθ) ｜ u=γw·hw</div>
+      <div class="arrow">→</div>
+    </a>
+  </div>
+
+  <div class="note"><b>谈单锚点：</b>四页覆盖《采矿学》（开采方法与工艺背景）、《矿山通风与安全》（瓦斯爆炸三角+通风网络，对接煤矿安全规程瓦斯浓度限值）、《岩石力学》（单轴抗压+地压计算）、《尾矿库设计》（边坡稳定，对接《尾矿库安全技术规程》等别与 Fs 限差）。<br><b>可扩展模块（逻辑改编档，有单再补）：</b>采煤机/掘进机工作循环仿真、提升机运行（提升速度图）、涌水量预测（大井法）、矿石品位与剥采比计算（露天境界优化）。设备覆盖：采煤机、掘进机、通风机、提升机、瓦斯抽采系统、尾矿库已入页或可扩展。</div>
+
+  <div class="foot">
+    <span>OPC · 工科虚拟仿真外包 · 单文件离线包</span>
+    <span>目录页 · 4 实验入口 · 瓦斯→岩力→通风→尾矿全链条</span>
+  </div>
+</div>
+</body>
+</html>

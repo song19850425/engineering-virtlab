@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>制药工程虚拟实验包</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='6' y='6' width='12' height='14' rx='3' fill='none' stroke='%2359d6ff' stroke-width='1.6'/%3E%3Ccircle cx='12' cy='13' r='2.5' fill='%23ffb020'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#0a0d12;--panel:#11151d;--panel2:#151b25;--line:#232b38;--txt:#e8eef4;--dim:#8b95a3;--faint:#5b6572;--amber:#ffb020;--amber-dim:#8a5c10;--cyan:#59d6ff;--danger:#ff5252;--ok:#3ddc84;--violet:#b48cff;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.float{animation:float 3s ease-in-out infinite}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 18px 48px}
+header{padding:30px 4px 10px;text-align:center}
+.tag{display:inline-block;font-size:10px;letter-spacing:.3em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:4px 12px;margin-bottom:14px}
+h1{font-size:clamp(32px,5.5vw,52px);font-weight:800;letter-spacing:.14em}
+h1 .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.45em;color:var(--amber);margin-top:10px}
+.oneliner{margin-top:16px;font-size:16px;color:var(--dim);line-height:1.8;max-width:720px;margin-left:auto;margin-right:auto}
+.oneliner b{color:var(--amber)}
+.packintro{margin-top:22px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.pii{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;text-align:left}
+.pii .k{font-size:11px;letter-spacing:.2em;color:var(--faint);margin-bottom:6px}
+.pii .v{font-size:14px;color:var(--txt);line-height:1.7}
+.pii .v b{color:var(--cyan);font-family:var(--mono)}
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:26px}
+@media (max-width:760px){.cards{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px 20px 16px;position:relative;overflow:hidden;transition:transform .16s,border-color .16s;cursor:pointer;text-decoration:none;color:inherit;display:block}
+.card:hover{transform:translateY(-3px);border-color:var(--amber-dim)}
+.card .num{font-family:var(--mono);font-size:12px;color:var(--amber);letter-spacing:.2em}
+.card h3{font-size:19px;font-weight:700;margin:10px 0 8px;letter-spacing:.04em}
+.card .en{font-size:11px;letter-spacing:.28em;color:var(--faint);margin-bottom:12px}
+.card .desc{font-size:13px;color:var(--dim);line-height:1.75;margin-bottom:12px}
+.card .f{font-family:var(--mono);font-size:12px;color:var(--cyan);background:#0d1117;border-radius:8px;padding:8px 10px;line-height:1.8;margin-bottom:10px;overflow-x:auto;white-space:nowrap}
+.card .flags{display:flex;flex-wrap:wrap;gap:6px}
+.flag{font-size:10px;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 9px}
+.flag.hot{color:var(--amber);border-color:var(--amber-dim)}
+.arrow{position:absolute;right:16px;top:18px;width:26px;height:26px;color:var(--faint);transition:transform .16s}
+.card:hover .arrow{transform:translateX(4px);color:var(--amber)}
+.extras{margin-top:26px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+.extras h3{font-size:13px;letter-spacing:.25em;color:var(--faint);margin-bottom:12px}
+.extras .list{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.extras .item{font-size:13px;color:var(--dim);line-height:1.6;padding:8px 10px;background:var(--panel2);border-radius:8px}
+.extras .item b{color:var(--amber)}
+.pitch{margin-top:26px;background:linear-gradient(135deg,#1a160b,#11151d);border:1px solid var(--amber-dim);border-radius:14px;padding:20px 22px}
+.pitch h3{font-size:14px;letter-spacing:.2em;color:var(--amber);margin-bottom:10px}
+.pitch p{font-size:14px;line-height:1.9;color:var(--txt)}
+.pitch p b{color:var(--cyan);font-family:var(--mono)}
+footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);text-align:center;font-size:12px;color:var(--faint)}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在准备实验台…</p></div>
+<div class="wrap">
+  <header>
+    <div class="tag">PHARMA · VIRTUAL LAB PACK · 4 EXPERIMENTS</div>
+    <h1>制药工程<span class="thin">虚拟实验包</span></h1>
+    <div class="sub">GMP · STERILIZATION · LYOPHILIZATION · DISSOLUTION · WATER SYSTEM</div>
+    <p class="oneliner"><b>制药的逻辑只有一条：把"好药"稳定地、可证明地造出来。</b><br>F0 灭菌、冻干、溶出、纯化水——四场实验全按 GMP 验证口径，谈单直击制剂与生物药老师。</p>
+    <div class="packintro">
+      <div class="pii"><div class="k">符号锚点</div><div class="v"><b>F0、D值、Z值、SAL、f1/f2、TOC、WFI、电导率、内毒素</b></div></div>
+      <div class="pii"><div class="k">设备锚点</div><div class="v">灭菌柜、冻干机、溶出仪（USP桨/篮）、多效蒸馏水机、RO/EDI、洁净室</div></div>
+      <div class="pii"><div class="k">交付形态</div><div class="v">零依赖单文件 HTML，双击即开，页首常开动画 + 6 步状态机 + 三条红线</div></div>
+    </div>
+  </header>
+
+  <div class="cards">
+    <a class="card" href="01-湿热灭菌-F0值计算与无菌保证.html">
+      <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      <div class="num">01</div>
+      <h3>湿热灭菌 · F0 值计算与无菌保证</h3>
+      <div class="en">MOIST HEAT · F0 VALUE · SAL</div>
+      <div class="desc">D 值、Z 值、累积 F0=∫10^((T−121)/Z)dt；灭菌 115℃ 半小时不如 121℃ 十五分钟——F0≥12 才敢说"无菌保证水平 SAL≤10⁻⁶"。</div>
+      <div class="f">F0 = ∫10^((T−121)/10) dt · N=N0·10^(−F0/D121)</div>
+      <div class="flags"><span class="flag hot">灭菌验证</span><span class="flag hot">F0≥12</span><span class="flag">D值/Z值</span></div>
+    </a>
+
+    <a class="card" href="02-冷冻干燥-冻干曲线与残余水分.html">
+      <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      <div class="num">02</div>
+      <h3>冷冻干燥 · 冻干曲线与残余水分</h3>
+      <div class="en">LYOPHILIZATION · SUBLIMATION</div>
+      <div class="desc">预冻→一次干燥（升华）→二次干燥（解吸）；真空低于 6.1mbar 冰才能升华。板温、真空度、装量全可调，看残余水分怎么压到 1% 以下。</div>
+      <div class="f">q = Ks·(Ps(Ti)−Pc) · t = m0·ΔH/q</div>
+      <div class="flags"><span class="flag hot">生物药冻干</span><span class="flag">升华界面</span><span class="flag">压力升测试</span></div>
+    </a>
+
+    <a class="card" href="03-药物溶出度-溶出曲线与f1f2相似因子.html">
+      <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      <div class="num">03</div>
+      <h3>药物溶出度 · 溶出曲线与 f1/f2 相似因子</h3>
+      <div class="en">DISSOLUTION · f1 f2 SIMILARITY</div>
+      <div class="desc">USP 桨法 37℃/900mL，一级模型画参比 vs 受试两条曲线；f2=50·log(100/√(1+ΣΔ²/n))，f2≥50 才算"生物等效候选"。</div>
+      <div class="f">f2 = 50·log{ [1+Σ(Rt−Tt)²/n]^(−1/2)×100 }</div>
+      <div class="flags"><span class="flag hot">处方筛选</span><span class="flag">f2≥50</span><span class="flag">崩解剂</span></div>
+    </a>
+
+    <a class="card" href="04-纯化水与注射用水系统-验证三联动.html">
+      <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      <div class="num">04</div>
+      <h3>纯化水与注射用水 · 系统验证三联动</h3>
+      <div class="en">PW / WFI · CONDUCTIVITY · TOC · MICRO</div>
+      <div class="desc">RO→EDI→蒸馏逐级提纯，电导率/TOC/微生物限度三联动；WFI 内毒素 ≤0.25EU/mL——水系统是 GMP 检查第一站。</div>
+      <div class="f">脱盐率联动 · 电导率 500→5→1→0.5 μS/cm</div>
+      <div class="flags"><span class="flag hot">GMP验证</span><span class="flag">内毒素</span><span class="flag">警戒/行动限</span></div>
+    </a>
+  </div>
+
+  <div class="extras">
+    <h3>扩展模块（可谈单定制）</h3>
+    <div class="list">
+      <div class="item"><b>结晶与溶解度曲线</b>——过饱和度、晶习控制，原料药精制</div>
+      <div class="item"><b>发酵制药</b>——抗生素发酵、补料分批、效价测定</div>
+      <div class="item"><b>洁净室与空调净化</b>——GMP 分级、换气次数、浮游菌/沉降菌监测</div>
+      <div class="item"><b>片剂/胶囊工艺</b>——制粒、压片、包衣、崩解时限联动</div>
+    </div>
+  </div>
+
+  <div class="pitch">
+    <h3>谈单口径（制药工程线）</h3>
+    <p>四条天然匹配：① 灭菌/冻干/水系统实验<b>危险或不可进现场</b>，虚拟替代价值高；② 全部可参数化（F0、f2、电导率都有<b>硬判定公式</b>）；③ 制剂/生物药方向有<b>GMP 验证与申报需求</b>（认证、验证报告、教学一流课程）；④ 与已交付化工包<b>同源管线</b>（Arrhenius、传质、流体），know-how 现成。第一梯队内最容易被制剂、药分、GMP 教研室接走。</p>
+  </div>
+
+  <footer>制药工程虚拟实验包 · 4 实验 · 单文件离线可玩 · 教学演示用，不作为工艺验证依据</footer>
+</div>
+<script>
+window.addEventListener("load", () => setTimeout(() => document.getElementById("loader").classList.add("done"), 600));
+</script>
+</body>
+</html>

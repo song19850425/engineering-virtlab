@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>生物反应器放大实验室</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='7' y='3' width='10' height='18' rx='3' fill='none' stroke='%2359d6ff' stroke-width='1.6'/%3E%3Cpath d='M10 6h4M10 10h4M10 14h4M10 18h4' stroke='%23ffb020' stroke-width='1.5'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes tankPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.015)}}
+.tank{animation:tankPulse 3s ease-in-out infinite;transform-origin:50% 100%}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px;cursor:crosshair}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.spec-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+.spec-table th{font-size:11px;color:var(--faint);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);letter-spacing:.1em}
+.spec-table td{padding:9px 10px;border-bottom:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:13px}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader,#rp{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在几何相似放大…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">BIO · VIRTUAL LAB 04</div>
+    <div class="kicker">生物工程 · 生物反应器 · 放大工程</div>
+    <h1 class="title">生物反应器放大<span class="thin">实验室</span></h1>
+    <div class="sub">SCALE-UP · GEOMETRIC SIMILARITY · P/V · TIP SPEED · Re</div>
+    <p class="oneliner"><b>1L 摇瓶里 300rpm 转得好好的，放大到 100L 还按原转速转？叶尖线速度飙上天、功率爆炸——放大不是等比放大，是"选哪个量保持不变"的决策。</b><br>几何相似 λ=(V2/V1)^1/3 · 等 P/V · 等叶尖速度 · 等 Re。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 小罐基准</span></h3>
+      <svg class="scene" id="rig" viewBox="0 0 420 190" role="img" aria-label="罐体放大对比示意">
+        <g class="tank">
+          <rect x="40" y="40" width="60" height="110" rx="6" fill="#14202e" stroke="#59d6ff" stroke-width="2"/>
+          <path d="M70 52 L66 40 M70 52 L74 40" stroke="#8b95a3" stroke-width="2.5"/>
+          <text x="70" y="24" text-anchor="middle" fill="#59d6ff" font-size="10" font-family="inherit">1 L</text>
+        </g>
+        <g class="tank" style="animation-delay:.6s">
+          <rect x="170" y="40" width="140" height="110" rx="8" fill="#14202e" stroke="#ffb020" stroke-width="2"/>
+          <path d="M240 52 L230 40 M240 52 L250 40" stroke="#8b95a3" stroke-width="3"/>
+          <text x="240" y="24" text-anchor="middle" fill="#ffb020" font-size="10" font-family="inherit" id="v2Label">100 L</text>
+        </g>
+        <g class="tank" style="animation-delay:1.2s">
+          <rect x="360" y="40" width="20" height="110" rx="4" fill="#14202e" stroke="#b48cff" stroke-width="2"/>
+          <text x="370" y="24" text-anchor="middle" fill="#b48cff" font-size="10" font-family="inherit">…</text>
+        </g>
+        <text x="210" y="178" text-anchor="middle" fill="#5b6572" font-size="9" font-family="inherit">几何相似放大：直径、叶轮按 λ 同比放大，转速按选定的不变准则反推</text>
+      </svg>
+      <canvas id="scCanvas" width="820" height="420" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">重置</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">放大倍数</div><div class="v" id="mN">–<small>×</small></div><div class="sub2">体积比 V2/V1</div></div>
+          <div class="metric" id="mSc"><div class="k">几何比例 λ</div><div class="v" id="mL">–<small>×</small></div><div class="sub2">(V2/V1)^(1/3)</div></div>
+          <div class="metric"><div class="k">等 P/V 转速</div><div class="v" id="mNpv">–<small>rpm</small></div><div class="sub2">n1/λ^(2/3)</div></div>
+          <div class="metric" id="mPc"><div class="k">叶尖/Re 转速</div><div class="v" id="mNtip">–<small>rpm</small></div><div class="sub2" id="mNtipSub">–</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">放大倍数（V2/V1）</span><span class="val" id="nVal">100×</span></div>
+          <input type="range" id="nRange" min="10" max="10000" step="10" value="100">
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>实验结论 · 放大准则选择</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">rpm（等 P/V 转速）</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">换倍数再放大</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · 没有一个准则能同时保全</div><div class="d">等 P/V 保能耗与剪切相近，但叶尖速度涨；等叶尖保剪切，但 P/V 掉、混合变差；等 Re 保流动形态，转速掉得最狠。放大必须承认"保哪个丢哪个"，按关键限制因素选。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · 氧传质才是常用主线</div><div class="d">好氧发酵放大最常见"保 KLa"或"保 P/V"——因为限制因素就是供氧。实际工程还叠加 vvm 通气量修正与罐压，用经验关联式 KLa∝(P/V)^a·vs^b 迭代标定，不是拍一个转速完事。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · 放大后必须逐级验证</div><div class="d">1L→100L→1m³→20m³ 逐级放大，每级校核 DO/温度/pH/混合时间，代谢通量分析（MFA）跟踪副产物。一步从摇瓶跳工业罐，菌的命运由运气决定。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">几何相似放大：λ = (V2/V1)^(1/3)，叶轮直径 d2 = λ·d1
+三准则转速（n1=300 rpm 基准，小罐 d1）：
+  等 P/V（单位体积功率）：n2 = n1·λ^(−2/3)   （P∝n³d⁵，P/V∝n³d²）
+  等叶尖速度：n2 = n1·λ^(−1)                （u_tip=π·n·d）
+  等雷诺数：n2 = n1·λ^(−2)                  （Re∝n·d²）
+演示：1 L 基准罐 n1=300 rpm → 100 L：λ=4.64，
+  等 P/V → 108 rpm；等叶尖 → 65 rpm；等 Re → 14 rpm
+本页为确定性演示：放大倍数可调，三准则转速可复算。</div>
+    <p>演示模型按搅拌釜几何相似放大准则设定（P/V、叶尖、Re 三准则为教材通式）；实际放大用 KLa 关联与逐级验证，代谢通量分析（MFA）见高级课程。教学演示用，不作为工程设计依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性） ============ */
+const N1 = 300;
+let P = { N: 100 };
+const $ = id => document.getElementById(id);
+const lam = () => Math.pow(P.N, 1 / 3);
+const nPv = () => N1 * Math.pow(lam(), -2 / 3);
+const nTip = () => N1 / lam();
+const nRe = () => N1 / (lam() * lam());
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  { t: "小罐基准", s: "1 L 摇瓶/小罐：n1=300rpm，测菌浓、DO、产量——放大基准在此。", bench: "准备：\n① 1L 小罐工艺基准（n1=300rpm）\n② 几何相似：H/D、d/D、桨型一致\n③ 记录 DO/混合时间/产量\n④ 确定限制因素（通常供氧）" },
+  { t: "定放大倍数", s: "目标体积 V2/V1 决定几何比例 λ=(V2/V1)^(1/3)。", bench: "" },
+  { t: "等 P/V", s: "单位体积功率不变 → n2=n1·λ^(−2/3)，能耗与剪切相近。", bench: "" },
+  { t: "等叶尖", s: "叶尖线速度不变 → n2=n1/λ，剪切力保底。", bench: "" },
+  { t: "等 Re", s: "雷诺数不变 → n2=n1/λ²，流动形态保底（转速最慢）。", bench: "" },
+  { t: "报告", s: "三准则对照，按限制因素选工艺，规划逐级放大验证。", bench: "" }
+];
+let step = 0;
+
+function renderSeg(){
+  const el = $("stepSeg");
+  el.innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" class="${i < step ? "done" : i === step ? "on" : ""}">${i + 1} · ${s.t}<small>${i < step ? "已通过" : i === step ? "进行中" : "待执行"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { if(+b.dataset.i <= step){ step = +b.dataset.i; renderSeg(); narrate(); } });
+  $("sceneTitle").textContent = `${step + 1} · ${STEPS[step].t}`;
+  $("actBtn").textContent = step >= 5 ? "完成" : "下一步";
+}
+function narrate(){
+  const n = $("narrate");
+  const l = lam();
+  if (step <= 1) n.innerHTML = STEPS[step].s;
+  else if (step === 2) n.innerHTML = `${P.N}× 放大：λ=(V2/V1)^(1/3)=<b>${l.toFixed(2)}</b>——罐径、叶轮直径都放大 ${l.toFixed(2)} 倍。`;
+  else if (step === 3) n.innerHTML = `等 P/V：n2=n1·λ^(−2/3)=<b>${nPv().toFixed(0)} rpm</b>（300/λ^0.667）。单位体积功率相同，供氧与能耗相近。`;
+  else if (step === 4) n.innerHTML = `等叶尖速度：n2=n1/λ=<b>${nTip().toFixed(0)} rpm</b>（300/${l.toFixed(2)}）。叶尖剪切相近，但 P/V 掉到原来的 1/λ。`;
+  else if (step === 5) n.innerHTML = `等 Re：n2=n1/λ²=<b>${nRe().toFixed(0)} rpm</b>。流动形态保底，转速掉得最多、混合时间变长。`;
+  else n.innerHTML = `报告：${P.N}× 放大 → 等P/V=${nPv().toFixed(0)}rpm、等叶尖=${nTip().toFixed(0)}rpm、等Re=${nRe().toFixed(0)}rpm。好氧发酵常用保 KLa/P/V 路线，逐级验证。`;
+}
+function flash(id){
+  const el = $(id); if(!el) return;
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+function refreshMetrics(){
+  const l = lam();
+  $("mN").textContent = P.N;
+  $("mL").textContent = l.toFixed(2);
+  $("mNpv").textContent = nPv().toFixed(0);
+  $("mNtip").textContent = nTip().toFixed(0);
+  $("mNtipSub").textContent = `等叶尖 ${nTip().toFixed(0)} / 等Re ${nRe().toFixed(0)}`;
+  $("v2Label").textContent = P.N + " L";
+  flash("mN"); flash("mL"); flash("mNpv"); flash("mNtip");
+}
+
+/* ============ Canvas 三准则对比 ============ */
+const W_ = 820, H_ = 420;
+const cv = $("scCanvas"), ctx = cv.getContext("2d");
+function drawCanvas(){
+  ctx.clearRect(0, 0, W_, H_);
+  const l = lam();
+  const bars = [
+    { name: "基准 n1", v: N1, col: "#8b95a3", note: "1L 小罐" },
+    { name: "等 P/V", v: nPv(), col: "#ffb020", note: "供氧/能耗相近" },
+    { name: "等叶尖", v: nTip(), col: "#59d6ff", note: "剪切保底" },
+    { name: "等 Re", v: nRe(), col: "#b48cff", note: "流动形态保底" }
+  ];
+  const x0 = 60, y0 = 100, bw = 90, gap = 40, maxV = N1 * 1.1;
+  ctx.fillStyle = "#8b95a3"; ctx.font = "13px -apple-system,Microsoft YaHei";
+  ctx.fillText(`${P.N}× 放大 · 三准则转速对照（n1=300 rpm）`, 60, 40);
+  // 轴
+  ctx.strokeStyle = "#232b38";
+  ctx.beginPath(); ctx.moveTo(x0 - 10, y0); ctx.lineTo(x0 + 4 * (bw + gap), y0); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x0 - 10, y0); ctx.lineTo(x0 - 10, y0 - 240); ctx.stroke();
+  for (let v = 0; v <= 300; v += 60){
+    const y = y0 - v / maxV * 230;
+    ctx.beginPath(); ctx.moveTo(x0 - 10, y); ctx.lineTo(x0 + 4 * (bw + gap), y); ctx.stroke();
+    ctx.fillStyle = "#5b6572"; ctx.font = "10px ui-monospace,monospace";
+    ctx.fillText(v, x0 - 34, y + 4);
+  }
+  bars.forEach((b, i) => {
+    const x = x0 + i * (bw + gap);
+    const h = b.v / maxV * 230;
+    ctx.fillStyle = b.col;
+    ctx.fillRect(x, y0 - h, bw, h);
+    ctx.fillStyle = b.col; ctx.font = "13px ui-monospace,monospace";
+    ctx.fillText(b.v.toFixed(0), x + bw / 2 - 16, y0 - h - 8);
+    ctx.fillStyle = "#8b95a3"; ctx.font = "12px -apple-system,Microsoft YaHei";
+    ctx.fillText(b.name, x + 4, y0 + 22);
+    ctx.fillStyle = "#5b6572"; ctx.font = "10.5px -apple-system,Microsoft YaHei";
+    ctx.fillText(b.note, x - 6, y0 + 42);
+  });
+  // 右侧注记
+  const rx = 500;
+  ctx.fillStyle = "#8b95a3"; ctx.font = "12px -apple-system,Microsoft YaHei";
+  ctx.fillText("几何相似：λ = (V2/V1)^(1/3) = " + l.toFixed(2), rx, 60);
+  ctx.fillStyle = "#e8eef4"; ctx.font = "12px ui-monospace,monospace";
+  ctx.fillText("d2 = " + l.toFixed(2) + "·d1（叶轮同比放大）", rx, 84);
+  ctx.fillStyle = "#8b95a3"; ctx.font = "12px -apple-system,Microsoft YaHei";
+  ctx.fillText("转速反推公式：", rx, 120);
+  ctx.fillStyle = "#ffb020"; ctx.font = "11.5px ui-monospace,monospace";
+  ctx.fillText("等 P/V：n2 = 300·λ^(−2/3) = " + nPv().toFixed(0), rx, 142);
+  ctx.fillStyle = "#59d6ff"; ctx.font = "11.5px ui-monospace,monospace";
+  ctx.fillText("等叶尖：n2 = 300/λ = " + nTip().toFixed(0), rx, 162);
+  ctx.fillStyle = "#b48cff"; ctx.font = "11.5px ui-monospace,monospace";
+  ctx.fillText("等 Re ：n2 = 300/λ² = " + nRe().toFixed(0), rx, 182);
+  ctx.fillStyle = "#5b6572"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("好氧发酵主线：保 KLa / 保 P/V", rx, 220);
+  ctx.fillText("逐级放大 1L→100L→1m³→20m³ 验证", rx, 242);
+}
+
+/* ============ 动作 ============ */
+$("actBtn").onclick = () => {
+  if (step < 5) step++;
+  if (step === 4){ renderConclusion(); }
+  renderSeg(); narrate();
+};
+$("resetBtn").onclick = resetAll;
+function resetAll(){
+  P = { N: 100 };
+  step = 0;
+  $("nRange").value = 100;
+  $("conclusionCard").style.display = "none";
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+}
+$("nRange").oninput = e => {
+  P.N = +e.target.value;
+  $("nVal").textContent = P.N + "×";
+  refreshMetrics(); narrate(); drawCanvas();
+};
+function renderConclusion(){
+  const l = lam();
+  $("conclusionCard").style.display = "";
+  $("resBig").textContent = nPv().toFixed(0);
+  $("resState").textContent = `${P.N}× 放大 · λ=${l.toFixed(2)} · 等叶尖 ${nTip().toFixed(0)}rpm · 等Re ${nRe().toFixed(0)}rpm`;
+  $("concText").innerHTML = `${P.N}× 放大（λ=${l.toFixed(2)}）：<b>等 P/V → ${nPv().toFixed(0)} rpm</b>（能耗/供氧相近）、等叶尖 → ${nTip().toFixed(0)} rpm（剪切保底）、等 Re → ${nRe().toFixed(0)} rpm（流动保底）。<br><span class='good'>没有一个准则能同时保全——放大=按限制因素选准则</span>。<br>好氧发酵限制因素通常是供氧，常用"保 KLa / 保 P/V"主线，再叠加 vvm 通气修正与罐压。<br>工程纪律：1L→100L→1m³→20m³ 逐级放大，每级校核 DO/温度/pH/混合时间，代谢通量分析（MFA）跟踪副产物——一步跳级放大，菌的命运由运气决定。`;
+}
+
+/* ============ 初始化 ============ */
+window.addEventListener("load", () => {
+  setTimeout(() => $("loader").classList.add("done"), 700);
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+});
+</script>
+</body>
+</html>

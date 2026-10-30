@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>水泵性能曲线测定实验室</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='9' fill='none' stroke='%2359d6ff' stroke-width='1.6'/%3E%3Cpath d='M12 5v7l4 3' stroke='%23ffb020' stroke-width='1.6' fill='none'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes dashFlow{to{stroke-dashoffset:-20}}
+.flowline{stroke-dasharray:7 5;animation:dashFlow 1.1s linear infinite}
+@keyframes impSpin{to{transform:rotate(360deg)}}
+.imp{transform-origin:50px 88px;transform-box:view-box;animation:impSpin 2.2s linear infinite}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px;cursor:crosshair}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric.warn .v{color:var(--danger)}
+.metric.good .v{color:var(--ok)}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+.btn-mini{padding:9px 14px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--cyan);border:1px solid var(--line);border-radius:8px;font-family:var(--mono)}
+.btn-mini:hover{border-color:var(--cyan)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.spec-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+.spec-table th{font-size:11px;color:var(--faint);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);letter-spacing:.1em}
+.spec-table td{padding:9px 10px;border-bottom:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:13px}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader,#rp{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在标定泵特性曲线…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">WATER · VIRTUAL LAB 01</div>
+    <div class="kicker">给排水科学与工程 · 水泵与泵站</div>
+    <h1 class="title">水泵性能<span class="thin">曲线实验室</span></h1>
+    <div class="sub">PUMP CURVE LAB · H-Q / η-Q · AFFINITY LAW</div>
+    <p class="oneliner"><b>阀门一开流量上来，扬程为什么掉？转速翻倍，功率翻几倍？</b>调阀、变速、记录、拟合，把泵特性曲线画出来。<br>离心泵 · 泵相似定律 · 效率与轴功率。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 装置检查</span></h3>
+      <svg class="scene" id="rig" viewBox="0 0 420 190" role="img" aria-label="水泵实验台示意">
+        <defs>
+          <linearGradient id="pumpG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b2434"/><stop offset="1" stop-color="#0e1320"/></linearGradient>
+        </defs>
+        <rect x="12" y="30" width="80" height="58" rx="6" fill="url(#pumpG)" stroke="#59d6ff" stroke-width="2"/>
+        <circle cx="52" cy="88" r="11" fill="#151b25" stroke="#ffb020" stroke-width="2"/>
+        <g class="imp">
+          <line x1="52" y1="80" x2="52" y2="96" stroke="#ffb020" stroke-width="2.5"/>
+          <line x1="44" y1="88" x2="60" y2="88" stroke="#ffb020" stroke-width="2.5"/>
+        </g>
+        <text x="52" y="66" text-anchor="middle" fill="#59d6ff" font-size="9" font-family="inherit">离心泵</text>
+        <path d="M12 56 L2 56" stroke="#5b6572" stroke-width="3"/>
+        <text x="2" y="48" fill="#5b6572" font-size="9" font-family="inherit">吸入口</text>
+        <path d="M92 56 H160 V88 H200" fill="none" stroke="#59d6ff" stroke-width="3"/>
+        <path d="M92 56 H160 V88 H200" fill="none" stroke="#bcdff0" stroke-width="1.5" class="flowline" opacity=".5"/>
+        <circle cx="112" cy="56" r="6" fill="none" stroke="#3ddc84" stroke-width="2"/>
+        <text x="112" y="78" text-anchor="middle" fill="#3ddc84" font-size="8" font-family="inherit">真空表</text>
+        <circle cx="176" cy="78" r="6" fill="none" stroke="#3ddc84" stroke-width="2"/>
+        <text x="176" y="100" text-anchor="middle" fill="#3ddc84" font-size="8" font-family="inherit">压力表</text>
+        <circle cx="248" cy="88" r="14" fill="#151b25" stroke="#ff5252" stroke-width="2"/>
+        <path d="M240 88 H256 M248 80 V96" stroke="#ff5252" stroke-width="2.5"/>
+        <text x="248" y="118" text-anchor="middle" fill="#ff5252" font-size="9" font-family="inherit">出口阀</text>
+        <path d="M262 88 H380" stroke="#59d6ff" stroke-width="3"/>
+        <path d="M262 88 H380" stroke="#bcdff0" stroke-width="1.5" class="flowline" opacity=".5"/>
+        <rect x="330" y="76" width="50" height="24" rx="4" fill="#151b25" stroke="#b48cff" stroke-width="2"/>
+        <text x="355" y="92" text-anchor="middle" fill="#b48cff" font-size="9" font-family="inherit" id="flowMeter">Q=43 m³/h</text>
+        <text x="400" y="92" text-anchor="end" fill="#5b6572" font-size="8" font-family="inherit">流量计</text>
+        <text x="210" y="176" text-anchor="middle" fill="#5b6572" font-size="9" font-family="inherit">真空表+压力表换算扬程 H；流量计读数 Q；功率表读轴功率 P</text>
+      </svg>
+      <canvas id="pqCanvas" width="820" height="420" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="recBtn">记录数据点</button>
+        <button class="btn-ghost" id="resetBtn">重置</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">流量 Q</div><div class="v" id="mQ">–<small>m³/h</small></div><div class="sub2">出口阀调节</div></div>
+          <div class="metric" id="mHc"><div class="k">扬程 H</div><div class="v" id="mH">–<small>m</small></div><div class="sub2">H-Q 曲线工况点</div></div>
+          <div class="metric" id="mEc"><div class="k">效率 η</div><div class="v" id="mE">–<small>%</small></div><div class="sub2">峰值约 77%</div></div>
+          <div class="metric" id="mPc"><div class="k">轴功率 P</div><div class="v" id="mP">–<small>kW</small></div><div class="sub2">P=ρgQH/η</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">转速 n</span><span class="val" id="nVal">1750 rpm</span></div>
+          <input type="range" id="nRange" min="1200" max="2900" step="10" value="1750">
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">出口阀开度 K</span><span class="val" id="kVal">100%</span></div>
+          <input type="range" id="kRange" min="5" max="100" step="1" value="100">
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>实验结论 · 离心泵特性与相似定律</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">工况点（Q, H）</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">换工况再试</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · 汽蚀与关死运行</div><div class="d">吸入口压力过低（NPSH 不足）→ 叶轮汽蚀、泵体震动；出口阀全关运行 → 扬程顶到关死点、流体摩擦发热，泵壳升温。开泵前先微开出口阀，严禁长时间关死运行。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · 变速后功率暴涨</div><div class="d">泵相似定律 P ∝ n³：转速 ×2，轴功率 ×8——电机和电缆都按原工况配的，超速一挡就可能过载烧电机。变速调节要校核电机功率余量。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · 工况点不在曲线顶点</div><div class="d">效率最高点 ≈ 泵的设计点；阀门调节让工况点沿 H-Q 曲线跑，偏离设计点越远效率越低、电耗越大。长期低效区间运行要换泵或调速，而不是一直关阀门。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">泵特性曲线（设计转速 n0=1750 rpm，演示模型）：
+  H(Q) = H0 − S·Q²     H0=32 m，S=0.009 (m/(m³/h)²)
+效率：η(Q) = −0.0004·Q² + 0.035·Q     （Q 单位 m³/h，峰值 η≈76.6% @ Q≈44）
+轴功率：P = ρ·g·Q·H / η / 1000       [kW]（Q 换 m³/s，ρ=1000，g=9.81）
+泵相似定律（变速 k=n/n0）：
+  Q' = k·Q      H' = k²·H      P' = k³·P
+系统曲线：H_sys = H_static + R·Q²，H_static=5 m
+  R = R0·(100/K)²，R0=0.00556（K=100% 全开时 Q=60 损失 20 m）
+工况点 = 泵曲线 H(Q) 与系统曲线 H_sys(Q) 的交点：
+  Q* = sqrt((32·k² − 5) / (0.009 + R))
+本页为确定性演示：转速、阀开度全部可调，工况点由两曲线交点唯一确定。</div>
+    <p>演示模型按单级单吸离心泵通用特性设定；实际泵的 H-Q、η-Q 曲线以厂家试验数据为准。教学演示用，不作为工程选型依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性） ============ */
+const H0 = 32, S = 0.009, H_ST = 5, R0 = 0.00556, N0 = 1750;
+let P = { n: 1750, K: 100 };
+const $ = id => document.getElementById(id);
+const k = () => P.n / N0;
+function pumpH(Q){ return k() * k() * H0 - S * Q * Q; }          // 泵提供扬程
+function sysR(){ return R0 * Math.pow(100 / P.K, 2); }
+function workQ(){ const q2 = (k() * k() * H0 - H_ST) / (S + sysR()); return q2 > 0 ? Math.sqrt(q2) : 0; }
+function eff(Q){ return Math.max(0, -0.0004 * Q * Q + 0.035 * Q); }
+function power(Q, H){ return 9.81 * Q * H / (3600 * eff(Q)); }    // kW
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  { t: "装置检查", s: "确认泵体接地、轴承润滑、出口阀微开（严禁全关启动）。灌泵排气：泵壳充满水，排除气穴。", bench: "检查项：\n① 出口阀微开 5–10%（全关启动会憋压）\n② 灌泵排气，泵壳无气穴\n③ 真空表/压力表/功率表接线正常\n④ 转速预置 1750 rpm" },
+  { t: "启动", s: "合闸启动，泵达到额定转速后观察真空表、压力表读数。", bench: "" },
+  { t: "调阀读数据", s: "调出口阀开度 → 读流量 Q、扬程 H（压力表−真空表换算）、轴功率 P。多点采集覆盖 Q=10…满量程。", bench: "" },
+  { t: "绘制曲线", s: "把数据点画到 H-Q 与 η-Q 图上，与理论曲线对照。", bench: "" },
+  { t: "变速换算", s: "用泵相似定律把 1750 rpm 曲线换算到其他转速，验证 Q∝n、H∝n²、P∝n³。", bench: "" },
+  { t: "报告", s: "整理 H-Q、η-Q、P-Q 三曲线与工况点结论。", bench: "" }
+];
+let step = 0;
+let points = [];
+
+function renderSeg(){
+  const el = $("stepSeg");
+  el.innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" class="${i < step ? "done" : i === step ? "on" : ""}">${i + 1} · ${s.t}<small>${i < step ? "已通过" : i === step ? "进行中" : "待执行"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { if(+b.dataset.i <= step){ step = +b.dataset.i; renderSeg(); narrate(); } });
+  $("sceneTitle").textContent = `${step + 1} · ${STEPS[step].t}`;
+  $("actBtn").textContent = step >= 5 ? "完成" : "下一步";
+}
+function narrate(){
+  const Q = workQ(), H = pumpH(Q), e = eff(Q), Pk = power(Q, H);
+  const n = $("narrate");
+  if (step === 0 || step === 1) n.innerHTML = STEPS[step].s;
+  else if (step === 2) n.innerHTML = `阀开度 ${P.K}%，转速 ${P.n} rpm：工况点 <b>Q=${Q.toFixed(1)} m³/h，H=${H.toFixed(1)} m</b>，η=${(e * 100).toFixed(1)}%，P=${Pk.toFixed(1)} kW。点「记录数据点」采集。${Q < 8 ? "<span class='warn'>接近关死点：扬程顶高、效率趋零、流体发热——不要长时间停留。</span>" : ""}`;
+  else if (step === 3) n.innerHTML = `已采集 <b>${points.length}</b> 点。理论 H-Q 曲线 ${H0.toFixed(0)}m 起、随 Q 下降；数据点应落在曲线上。η 峰值约 <b>76.6%</b>（Q≈44 m³/h 处）。`;
+  else if (step === 4) n.innerHTML = `变速验证：n=${P.n} rpm（k=${k().toFixed(2)}）。相似定律：Q∝k、H∝k²、P∝k³。<span class="warn">n 拉到 ${Math.round(P.n)}rpm，功率变为 ${(Math.pow(k(), 3) * 100).toFixed(0)}% 额定——超速即过载。</span>`;
+  else n.innerHTML = `报告：H-Q 单调下降（H0=${H0}→S·Q²），η 单峰 ${(eff(44) * 100).toFixed(1)}%，P 随 Q 上升后回落。变速调节 Q∝n、H∝n²、P∝n³——调速是最节能的调节方式，关阀调节则把能量白白耗在阀门上。`;
+}
+function flash(id){
+  const m = $(id); if(!m) return;
+  m.classList.remove("flash"); void m.offsetWidth; m.classList.add("flash");
+}
+function refreshMetrics(){
+  const Q = workQ(), H = pumpH(Q), e = eff(Q), Pk = power(Q, H);
+  $("mQ").textContent = Q.toFixed(1);
+  $("mH").textContent = H.toFixed(1);
+  $("mE").textContent = (e * 100).toFixed(1);
+  $("mE").classList.toggle("warn", e < 0.25);
+  $("mP").textContent = Pk.toFixed(1);
+  $("flowMeter").textContent = `Q=${Q.toFixed(0)} m³/h`;
+  flash("mQ"); flash("mH"); flash("mE"); flash("mP");
+}
+
+/* ============ Canvas H-Q / η-Q ============ */
+const W_ = 820, H_ = 420, pad = { l: 52, r: 52, t: 16, b: 40 };
+const cv = $("pqCanvas"), ctx = cv.getContext("2d");
+const Qmax = 60, Hmax = 40, Emax = 0.9;
+const X = q => pad.l + q / Qmax * (W_ - pad.l - pad.r);
+const YH = h => H_ - pad.b - h / Hmax * (H_ - pad.t - pad.b);
+const YE = e => H_ - pad.b - e / Emax * (H_ - pad.t - pad.b);
+function drawCanvas(){
+  ctx.clearRect(0, 0, W_, H_);
+  ctx.font = "11px ui-monospace,monospace"; ctx.fillStyle = "#5b6572"; ctx.strokeStyle = "#232b38";
+  for (let i = 0; i <= 6; i++){
+    const q = i * 10;
+    ctx.beginPath(); ctx.moveTo(X(q), pad.t); ctx.lineTo(X(q), H_ - pad.b); ctx.stroke();
+    ctx.fillText(q, X(q) - 6, H_ - pad.b + 16);
+  }
+  for (let i = 0; i <= 8; i++){
+    const h = i * 5, y = YH(h);
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W_ - pad.r, y); ctx.stroke();
+    ctx.fillText(h, 8, y + 4);
+  }
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("流量 Q (m³/h)", W_ / 2 - 60, H_ - 8);
+  ctx.save(); ctx.translate(14, H_ / 2 + 6); ctx.rotate(-Math.PI / 2);
+  ctx.fillText("扬程 H (m)", -20, 0); ctx.restore();
+  ctx.fillStyle = "#b48cff"; ctx.font = "10px -apple-system,Microsoft YaHei";
+  ctx.save(); ctx.translate(W_ - pad.r + 6, H_ / 2); ctx.rotate(Math.PI / 2);
+  ctx.fillText("效率 η", 0, 0); ctx.restore();
+  // η-Q 曲线（右轴）
+  ctx.strokeStyle = "#b48cff"; ctx.lineWidth = 1.6; ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  for (let q = 0; q <= 60; q += 1){ const e = eff(q); q === 0 ? ctx.moveTo(X(q), YE(e)) : ctx.lineTo(X(q), YE(e)); }
+  ctx.stroke(); ctx.setLineDash([]);
+  // 泵 H-Q 曲线（当前转速）
+  ctx.strokeStyle = "#59d6ff"; ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  for (let q = 0; q <= 60; q += 1){ const h = pumpH(q); q === 0 ? ctx.moveTo(X(q), YH(h)) : ctx.lineTo(X(q), YH(h)); }
+  ctx.stroke();
+  ctx.fillStyle = "#59d6ff"; ctx.font = "12px -apple-system,Microsoft YaHei";
+  ctx.fillText(`泵 H-Q @ ${P.n} rpm`, X(30), YH(30) - 8);
+  // 系统曲线（当前阀开度）
+  ctx.strokeStyle = "#3ddc84"; ctx.lineWidth = 1.6; ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  for (let q = 0; q <= 60; q += 1){ const h = H_ST + sysR() * q * q; q === 0 ? ctx.moveTo(X(q), YH(h)) : ctx.lineTo(X(q), YH(h)); }
+  ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = "#3ddc84"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText(`系统曲线 K=${P.K}%`, X(44), YH(H_ST + sysR() * 44 * 44) + 14);
+  // 工况点
+  const Qw = workQ(), Hw = pumpH(Qw);
+  ctx.fillStyle = "#ffb020";
+  ctx.beginPath(); ctx.arc(X(Qw), YH(Hw), 6, 0, 7); ctx.fill();
+  ctx.fillStyle = "#ffb020"; ctx.font = "12px -apple-system,Microsoft YaHei";
+  ctx.fillText(`工况 (${Qw.toFixed(0)}, ${Hw.toFixed(1)})`, X(Qw) + 10, YH(Hw) - 8);
+  // 数据点
+  ctx.fillStyle = "#ff5252";
+  points.forEach(p => { ctx.fillRect(X(p.q) - 2.5, YH(p.h) - 2.5, 5, 5); });
+  if (points.length) { ctx.fillStyle = "#ff5252"; ctx.font = "11px -apple-system,Microsoft YaHei"; ctx.fillText(`实测 ${points.length} 点`, pad.l + 6, pad.t + 12); }
+}
+
+/* ============ 动作 ============ */
+$("actBtn").onclick = () => {
+  if (step < 5) step++;
+  if (step === 4){ renderConclusion(); }
+  renderSeg(); narrate();
+};
+$("recBtn").onclick = () => {
+  const Q = workQ(), H = pumpH(Q);
+  points.push({ q: +Q.toFixed(1), h: +H.toFixed(1) });
+  drawCanvas(); narrate();
+};
+$("resetBtn").onclick = resetAll;
+function resetAll(){
+  P = { n: 1750, K: 100 };
+  step = 0; points = [];
+  $("nRange").value = 1750; $("kRange").value = 100;
+  $("conclusionCard").style.display = "none";
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+}
+$("nRange").oninput = e => { P.n = +e.target.value; $("nVal").textContent = P.n + " rpm"; refreshMetrics(); narrate(); drawCanvas(); };
+$("kRange").oninput = e => { P.K = +e.target.value; $("kVal").textContent = P.K + "%"; refreshMetrics(); narrate(); drawCanvas(); };
+function renderConclusion(){
+  const Q = workQ(), H = pumpH(Q), e = eff(Q), Pk = power(Q, H);
+  $("conclusionCard").style.display = "";
+  $("resBig").textContent = `${Q.toFixed(1)}, ${H.toFixed(1)}`;
+  $("resUnit").textContent = `工况点（Q m³/h, H m）· n=${P.n} rpm · K=${P.K}%`;
+  $("resState").textContent = `η=${(e * 100).toFixed(1)}% · P=${Pk.toFixed(1)} kW`;
+  $("concText").innerHTML = `当前工况：转速 <b>${P.n} rpm</b>、阀开度 <b>${P.K}%</b> → Q=<b>${Q.toFixed(1)} m³/h</b>、H=<b>${H.toFixed(1)} m</b>、η=<b>${(e * 100).toFixed(1)}%</b>、P=<b>${Pk.toFixed(1)} kW</b>。<br>${e < 0.25 ? "<span class='bad'>效率低于 25%：工况严重偏离设计点，长期运行电耗浪费大——应调速或换泵，而不是持续关阀。</span>" : "<span class='good'>工况在效率中高区，运行经济。</span>"}<br>相似定律记忆：<b>Q∝n、H∝n²、P∝n³</b>——转速是小幅度、高效率的调节手段；关阀调节牺牲扬程换流量，能量耗在阀门上。`;
+}
+
+/* ============ 初始化 ============ */
+window.addEventListener("load", () => {
+  setTimeout(() => $("loader").classList.add("done"), 700);
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+});
+</script>
+</body>
+</html>

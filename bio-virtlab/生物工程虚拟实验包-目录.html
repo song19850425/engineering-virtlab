@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>生物工程·虚拟实验包目录</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 17c2-3 4 3 6 0s4 3 6 0' stroke='%2359d6ff' stroke-width='1.6' fill='none'/%3E%3Cpath d='M6 13c2-2 4 1 6-1s4 1 6-1' stroke='%23ffb020' stroke-width='1.6' fill='none'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:40px 18px}
+header{padding:30px 4px 10px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:12px}
+h1{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1 .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:16px;font-size:15px;line-height:1.8;color:var(--txt);border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.pos{margin-top:14px;font-size:12px;color:var(--faint);font-family:var(--mono)}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:24px}
+@media (max-width:700px){.grid{grid-template-columns:1fr}}
+.entry{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 20px;text-decoration:none;color:var(--txt);position:relative;overflow:hidden;transition:border-color .15s, transform .15s;display:block}
+.entry:hover{border-color:var(--amber-dim);transform:translateY(-2px)}
+.entry .no{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.25em;margin-bottom:8px}
+.entry .t{font-size:21px;font-weight:700;letter-spacing:.04em;margin-bottom:10px;color:var(--cyan)}
+.entry .d{font-size:13px;color:var(--dim);line-height:1.8;margin-bottom:12px}
+.entry .f{font-family:var(--mono);font-size:11.5px;color:var(--violet);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;line-height:1.9}
+.entry .arrow{position:absolute;right:16px;top:16px;color:var(--faint);font-size:20px}
+.foot{margin-top:30px;padding-top:18px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.note{margin-top:22px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--amber);border-radius:10px;padding:14px 16px;font-size:13px;color:var(--dim);line-height:1.9}
+.note b{color:var(--txt)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">BIO · VIRTUAL LAB PACK · 4 EXPERIMENTS</div>
+    <h1>生物工程<span class="thin">虚拟实验包</span></h1>
+    <div class="sub">BIOENGINEERING · GROWTH TO SCALE-UP</div>
+    <p class="oneliner">符号：<b>μ、OD600、DO、KLa、代谢通量</b>。设备：发酵罐、生物反应器、离心机、层流罩、显微镜、灭菌锅。四个代表实验覆盖「生长动力学→氧传质→酶动力学→放大工程」完整链条。<br>零依赖单文件，双击即开。</p>
+    <div class="pos">BIO-VIRTLAB · 2026-10 · 骨架复用 · 数值可复算</div>
+  </header>
+
+  <div class="grid">
+    <a class="entry" href="01-菌种培养与生长曲线-Monod.html">
+      <div class="no">EXP 01</div>
+      <div class="t">菌种培养 · OD 生长曲线 · Monod</div>
+      <div class="d">延滞→对数→稳定→衰亡四阶段，OD600 把整场戏记下来。底物定产量、μ 定速度，对数期斜率即比生长速率。</div>
+      <div class="f">μ=μmax·S/(Ks+S) ｜ Xmax=S0·Y+X0 ｜ OD=X×2.2</div>
+      <div class="arrow">→</div>
+    </a>
+    <a class="entry" href="02-发酵溶氧控制-KLa.html">
+      <div class="no">EXP 02</div>
+      <div class="t">发酵溶氧控制 · KLa 氧传质</div>
+      <div class="d">好氧发酵是供氧 vs 耗氧的拔河：通气量+搅拌定 KLa，菌浓定耗氧。DO 跌破临界 1.5，菌立刻改走厌氧代谢。</div>
+      <div class="f">dC/dt=KLa(C*−C)−qO2·X ｜ C_ss=C*−qO2X/KLa ｜ τ=1/KLa</div>
+      <div class="arrow">→</div>
+    </a>
+    <a class="entry" href="03-酶活测定-米氏动力学.html">
+      <div class="no">EXP 03</div>
+      <div class="t">酶活测定 · 米氏动力学</div>
+      <div class="d">底物少时速率随底物线性上升、底物管够后饱和到 Vmax——米氏曲线配 Lineweaver-Burk 双倒数，一次读出 Km 与 Vmax。</div>
+      <div class="f">v=Vmax·[S]/(Km+[S]) ｜ 1/v=(Km/Vmax)·1/[S]+1/Vmax</div>
+      <div class="arrow">→</div>
+    </a>
+    <a class="entry" href="04-生物反应器放大-ScaleUp.html">
+      <div class="no">EXP 04</div>
+      <div class="t">生物反应器放大 · Scale-up</div>
+      <div class="d">1L→100L 不是等比放大：等 P/V 保能耗、等叶尖保剪切、等 Re 保流动——放大=按限制因素选准则。</div>
+      <div class="f">λ=(V2/V1)^(1/3) ｜ n2=n1·λ^(−2/3) ｜ n2=n1/λ ｜ n2=n1/λ²</div>
+      <div class="arrow">→</div>
+    </a>
+  </div>
+
+  <div class="note"><b>谈单锚点：</b>四页覆盖《微生物学实验》（生长曲线+OD 测定）、《发酵工程》（溶氧控制+放大设计）、《酶工程》（米氏动力学+L-B 双倒数）三门核心课的必做实验，直接对应发酵工程/生物工程专业虚拟仿真一流课程申报点。<br><b>可扩展模块（逻辑改编档，有单再补）：</b>灭菌验证（灭菌锅 F0 值计算）、细胞培养（贴壁/悬浮计数与传代）、代谢通量分析（MFA 通量平衡演示）、离心分离（离心机 rcf 换算）。设备覆盖：发酵罐、生物反应器、离心机、层流罩、显微镜、灭菌锅已入页或可扩展。</div>
+
+  <div class="foot">
+    <span>OPC · 工科虚拟仿真外包 · 单文件离线包</span>
+    <span>目录页 · 4 实验入口 · 生长→氧传质→酶动→放大全链条</span>
+  </div>
+</div>
+</body>
+</html>

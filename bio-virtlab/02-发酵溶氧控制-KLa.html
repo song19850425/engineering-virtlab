@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>发酵溶氧控制实验室</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='8' fill='none' stroke='%2359d6ff' stroke-width='1.6'/%3E%3Ccircle cx='12' cy='12' r='4' fill='none' stroke='%23ffb020' stroke-width='1.6'/%3E%3Cpath d='M12 4v2M12 18v2M4 12h2M18 12h2' stroke='%233ddc84' stroke-width='1.6'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes spinImp{0%,100%{transform:rotate(0)}50%{transform:rotate(6deg)}}
+.imp{animation:spinImp 1.8s ease-in-out infinite;transform-origin:50% 50%}
+@keyframes rise{0%{transform:translateY(0);opacity:.2}100%{transform:translateY(-30px);opacity:.9}}
+.bub{animation:rise 2.2s ease-in-out infinite}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px;cursor:crosshair}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.spec-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+.spec-table th{font-size:11px;color:var(--faint);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);letter-spacing:.1em}
+.spec-table td{padding:9px 10px;border-bottom:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:13px}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader,#rp{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在启动发酵罐…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">BIO · VIRTUAL LAB 02</div>
+    <div class="kicker">生物工程 · 发酵工程 · 氧传质</div>
+    <h1 class="title">发酵溶氧控制<span class="thin">实验室</span></h1>
+    <div class="sub">DO CONTROL · KLa · OXYGEN TRANSFER</div>
+    <p class="oneliner"><b>好氧发酵是"供氧 vs 耗氧"的拔河：通气量、搅拌转速决定 KLa（供氧能力），菌浓决定耗氧速率。DO 跌破临界值，菌立刻改走厌氧代谢。</b><br>dC/dt=KLa(C*−C)−qO2·X · 溶解氧 DO · 临界 DO 1.5 mg/L。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 接种启动</span></h3>
+      <svg class="scene" id="rig" viewBox="0 0 420 190" role="img" aria-label="发酵罐供氧示意">
+        <rect x="150" y="30" width="120" height="120" rx="6" fill="#14202e" stroke="#59d6ff" stroke-width="2"/>
+        <g class="imp">
+          <path d="M210 70 L186 58 M210 70 L234 58 M210 70 L198 92 M210 70 L222 92" stroke="#ffb020" stroke-width="5" stroke-linecap="round"/>
+          <circle cx="210" cy="70" r="5" fill="#ffb020"/>
+        </g>
+        <circle cx="206" cy="112" r="2.6" fill="#59d6ff" class="bub"/>
+        <circle cx="216" cy="104" r="2.2" fill="#59d6ff" class="bub"/>
+        <circle cx="200" cy="94" r="2" fill="#59d6ff" class="bub"/>
+        <rect x="148" y="148" width="124" height="5" rx="3" fill="#232b38"/>
+        <path d="M165 28 L163 8 M255 28 L257 8" stroke="#8b95a3" stroke-width="3"/>
+        <text x="210" y="168" text-anchor="middle" fill="#8b95a3" font-size="9" font-family="inherit">机械搅拌发酵罐 · 通气→气泡→液膜→菌体</text>
+        <text x="210" y="182" text-anchor="middle" fill="#5b6572" font-size="9" font-family="inherit">氧传质路径：气相 → 气液界面 C* → 液相主体 C → 菌体（耗氧 qO2·X）</text>
+      </svg>
+      <canvas id="doCanvas" width="820" height="420" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">重置</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">溶解氧 DO</div><div class="v" id="mDO">–<small>mg/L</small></div><div class="sub2" id="mDOSub">–</div></div>
+          <div class="metric" id="mSc"><div class="k">体积传氧系数 KLa</div><div class="v" id="mKla">–<small>h⁻¹</small></div><div class="sub2">通气+搅拌</div></div>
+          <div class="metric"><div class="k">耗氧速率 qO2·X</div><div class="v" id="mQ">–<small>mg/L/h</small></div><div class="sub2">菌浓×比耗氧</div></div>
+          <div class="metric" id="mPc"><div class="k">供氧平衡</div><div class="v" id="mB">–</div><div class="sub2" id="mBSub">临界 DO=1.5</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">通气量 vvm</span><span class="val" id="vvmVal">1.0 vvm</span></div>
+          <input type="range" id="vvmRange" min="20" max="200" step="10" value="100">
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">搅拌转速</span><span class="val" id="rpmVal">600 rpm</span></div>
+          <input type="range" id="rpmRange" min="100" max="900" step="50" value="600">
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>实验结论 · 供氧-耗氧平衡</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">mg/L（稳态溶解氧）</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">调参数再试</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · 临界 DO 是道闸</div><div class="d">多数好氧菌临界 DO 1~2 mg/L，跌破后菌呼吸受限、副产物累积（乳酸/乙醇）。控 DO 不是越高越好：过高耗能、泡沫、CO2 超溶——稳定在临界值 1~2 倍即可。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · KLa 不是通气量一个旋钮</div><div class="d">KLa 由通气量、搅拌、消泡剂、罐体几何共同决定。搅拌把大气泡打碎成小气泡+延长停留时间，效果常比单纯加气强。高菌浓发酵耗氧巨大，只加气不加速搅拌照样缺氧。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · 搅拌功率是成本大头</div><div class="d">搅拌功耗 P∝n³d⁵，转速翻倍功率八倍。工业上"DO 掉→先加气、再加转速、最后才动补料"是有顺序的——每一步都是钱。DO 探头要定期标定，漂移会骗过整套控制。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">氧传质动态平衡：dC/dt = KLa·(C* − C) − qO2·X      [mg/L/h]
+饱和溶氧 C* = 7.5 mg/L（37°C 常压，演示）
+KLa = 50·vvm + 20 + 30·(rpm/600)      [h⁻¹]（通气+搅拌耦合演示式）
+耗氧速率 = qO2·X，qO2 = 60 mgO2/g菌/h，X = 5 g/L（固定演示）
+稳态解：C_ss = C* − qO2·X / KLa
+阶跃响应：C(t) = C_ss − (C_ss − C0)·e^(−KLa·t)
+临界 DO = 1.5 mg/L（低于即溶氧限制）
+本页为确定性演示：vvm、rpm 可调，DO 响应可复算。</div>
+    <p>演示模型按好氧发酵典型参数设定（KLa 关联式为教学演示，工程上用经验关联式如 P/V 法）。教学演示用，不作为工艺控制依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性） ============ */
+const CSTAR = 7.5, QO2 = 60, XFIX = 5, DO_CRIT = 1.5;
+let P = { vvm: 1.0, rpm: 600 };
+const $ = id => document.getElementById(id);
+const kla = () => 50 * P.vvm + 20 + 30 * (P.rpm / 600);
+const demand = () => QO2 * XFIX;
+const steadyDO = () => Math.max(0, CSTAR - demand() / kla());
+function doResponse(t0, C0){ // 从当前状态阶跃后的确定性响应
+  const css = steadyDO();
+  return { css, curve: t => css - (css - C0) * Math.exp(-kla() * t), k: kla() };
+}
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  { t: "接种启动", s: "发酵罐装料灭菌→接种→启动搅拌与通气，DO 探头在线监测。", bench: "准备：\n① 罐体灭菌（空消/实消）\n② 接种 5%\n③ 启动搅拌+通气\n④ 在线 DO 电极标定" },
+  { t: "测稳态 DO", s: "当前通气/搅拌下的稳态 DO：C_ss=C*−qO2X/KLa。", bench: "" },
+  { t: "判断平衡", s: "DO 高于临界 1.5 mg/L → 供氧够；低于 → 溶氧限制警告。", bench: "" },
+  { t: "调节供氧", s: "DO 低：先加通气量，再升搅拌；DO 高：反过来降——每步都是能耗。", bench: "" },
+  { t: "阶跃响应", s: "改变参数后看 DO 按指数趋近新稳态，时间常数=1/KLa。", bench: "" },
+  { t: "报告", s: "记录 vvm/rpm→KLa→DO 关系，确定工艺操作窗口。", bench: "" }
+];
+let step = 0;
+let c0 = 2.0; // 当前 DO 起点（阶跃演示）
+
+function renderSeg(){
+  const el = $("stepSeg");
+  el.innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" class="${i < step ? "done" : i === step ? "on" : ""}">${i + 1} · ${s.t}<small>${i < step ? "已通过" : i === step ? "进行中" : "待执行"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { if(+b.dataset.i <= step){ step = +b.dataset.i; renderSeg(); narrate(); } });
+  $("sceneTitle").textContent = `${step + 1} · ${STEPS[step].t}`;
+  $("actBtn").textContent = step >= 5 ? "完成" : "下一步";
+}
+function narrate(){
+  const n = $("narrate");
+  const k = kla(), d = demand(), ss = steadyDO();
+  if (step <= 1) n.innerHTML = STEPS[step].s;
+  else if (step === 2) n.innerHTML = `稳态 DO：C_ss=C*−qO2X/KLa=<b>${ss.toFixed(1)} mg/L</b>（KLa=${k.toFixed(0)} h⁻¹，耗氧 ${d} mg/L/h）。`;
+  else if (step === 3) n.innerHTML = ss >= DO_CRIT ? `<span class='ok'>DO=${ss.toFixed(1)} ≥ 临界 1.5——供氧够，菌正常好氧代谢。</span>` : `<span class='warn'>DO=${ss.toFixed(1)} &lt; 临界 1.5——溶氧限制！菌改走厌氧代谢，副产物累积。</span>`;
+  else if (step === 4) n.innerHTML = `调节建议：${ss < DO_CRIT ? "先加通气量（KLa∝50·vvm），再升搅拌（KLa∝30·rpm）——两步都无效才考虑降菌浓/补氧。" : "DO 富余：可降通气或降转速省能耗，或提高菌浓提产量。"}`;
+  else if (step === 5) n.innerHTML = `阶跃后 DO 按 e^(−KLa·t) 趋近新稳态，时间常数 τ=1/KLa=<b>${(1 / k).toFixed(2)} h</b>——KLa 越大响应越快。`;
+  else n.innerHTML = `报告：vvm=${P.vvm.toFixed(1)}、rpm=${P.rpm} → KLa=${k.toFixed(0)} h⁻¹、DO_ss=${ss.toFixed(1)} mg/L${ss < DO_CRIT ? "（溶氧受限，工艺不可行）" : "（供氧充足，工艺可行）"}。`;
+}
+function flash(id){
+  const el = $(id); if(!el) return;
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+function refreshMetrics(){
+  const k = kla(), d = demand(), ss = steadyDO();
+  $("mDO").textContent = ss.toFixed(1);
+  $("mDOSub").textContent = "稳态值 C_ss";
+  $("mKla").textContent = k.toFixed(0);
+  $("mQ").textContent = d;
+  $("mB").textContent = ss >= DO_CRIT ? "供氧够" : "溶氧限制";
+  $("mB").classList.toggle("good", ss >= DO_CRIT);
+  $("mB").classList.toggle("warn", ss < DO_CRIT);
+  $("mBSub").textContent = ss >= DO_CRIT ? "高于临界 1.5" : "低于临界 1.5";
+  flash("mDO"); flash("mKla"); flash("mQ"); flash("mB");
+}
+
+/* ============ Canvas DO 响应 ============ */
+const W_ = 820, H_ = 420;
+const cv = $("doCanvas"), ctx = cv.getContext("2d");
+function drawCanvas(){
+  ctx.clearRect(0, 0, W_, H_);
+  const l = { l: 56, r: W_ - 20, t: 24, b: 42 };
+  const tmax = 3; // h
+  const ss = steadyDO(), k = kla();
+  const c0v = c0, css = ss;
+  const doMax = Math.max(8, css * 1.15);
+  const X = t => l.l + t / tmax * (l.r - l.l);
+  const Y = c => H_ - l.b - c / doMax * (H_ - l.t - l.b);
+  ctx.font = "10px ui-monospace,monospace"; ctx.fillStyle = "#5b6572"; ctx.strokeStyle = "#232b38";
+  for (let t = 0; t <= 3; t += 0.5){ const x = X(t); ctx.beginPath(); ctx.moveTo(x, l.t); ctx.lineTo(x, H_ - l.b); ctx.stroke(); ctx.fillText(t.toFixed(1), x - 6, H_ - l.b + 16); }
+  for (let i = 0; i <= 4; i++){ const c = i * doMax / 4, y = Y(c); ctx.beginPath(); ctx.moveTo(l.l, y); ctx.lineTo(l.r, y); ctx.stroke(); ctx.fillText(c.toFixed(1), 6, y + 4); }
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("时间 t (h)", l.l + 140, H_ - 8);
+  ctx.fillText("DO 阶跃响应（从 " + c0v.toFixed(1) + " mg/L 起）", l.l + 8, l.t - 6);
+  ctx.save(); ctx.translate(14, H_ / 2 + 6); ctx.rotate(-Math.PI / 2); ctx.fillText("DO (mg/L)", -32, 0); ctx.restore();
+  // 临界线
+  ctx.strokeStyle = "#ff5252"; ctx.setLineDash([5, 4]);
+  ctx.beginPath(); ctx.moveTo(l.l, Y(DO_CRIT)); ctx.lineTo(l.r, Y(DO_CRIT)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = "#ff5252"; ctx.font = "10.5px -apple-system,Microsoft YaHei";
+  ctx.fillText("临界 DO=1.5", l.r - 92, Y(DO_CRIT) - 6);
+  // 响应曲线
+  ctx.strokeStyle = "#59d6ff"; ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  for (let t = 0; t <= tmax; t += 0.02){
+    const c = css - (css - c0v) * Math.exp(-k * t);
+    const x = X(t), y = Y(Math.max(0, c));
+    t === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  // 稳态虚线
+  ctx.strokeStyle = "#b48cff"; ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(l.l, Y(css)); ctx.lineTo(l.r, Y(css)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = "#b48cff"; ctx.font = "10.5px -apple-system,Microsoft YaHei";
+  ctx.fillText(`稳态 DO=${css.toFixed(1)}`, l.r - 110, Y(css) - 6);
+  // 起点与终点
+  ctx.fillStyle = "#ffb020";
+  ctx.beginPath(); ctx.arc(X(0), Y(c0v), 5, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.arc(X(tmax), Y(Math.max(0, css)), 5, 0, 7); ctx.fill();
+  ctx.fillStyle = "#ffb020"; ctx.font = "11px ui-monospace,monospace";
+  ctx.fillText(`τ=1/KLa=${(1 / k).toFixed(2)}h`, l.r - 120, H_ - l.b + 16);
+  // 右：平衡示意图
+  const rx = 480;
+  ctx.fillStyle = "#8b95a3"; ctx.font = "13px -apple-system,Microsoft YaHei";
+  ctx.fillText("供氧 vs 耗氧（mg/L/h）", rx, 36);
+  const d = demand();
+  const kDraw = Math.min(220, k * 2);
+  const dDraw = Math.min(220, d);
+  // 供氧柱
+  ctx.fillStyle = "#59d6ff"; ctx.fillRect(rx, 56, 100, 10);
+  ctx.fillStyle = "#59d6ff"; ctx.fillRect(rx + 130, 56, 100, 10);
+  // 用两列对比
+  ctx.fillStyle = "#59d6ff";
+  ctx.fillRect(rx, 70, kDraw, 26);
+  ctx.fillStyle = "#e8eef4"; ctx.font = "11px ui-monospace,monospace";
+  ctx.fillText("KLa·(C*−C) ≈ " + (k * Math.max(1, CSTAR - steadyDO())).toFixed(0), rx + 6, 88);
+  ctx.fillStyle = "#ff5252";
+  ctx.fillRect(rx, 110, dDraw, 26);
+  ctx.fillStyle = "#e8eef4"; ctx.font = "11px ui-monospace,monospace";
+  ctx.fillText("qO2·X = " + d, rx + 6, 128);
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("供氧柱（蓝） vs 耗氧柱（红）", rx, 160);
+  ctx.fillText("供氧 > 耗氧 → DO 稳态高；反之被拉低", rx, 180);
+  ctx.fillStyle = "#ffb020"; ctx.font = "12px -apple-system,Microsoft YaHei";
+  ctx.fillText(`DO_ss = ${steadyDO().toFixed(1)} mg/L`, rx, 210);
+}
+
+/* ============ 动作 ============ */
+$("actBtn").onclick = () => {
+  if (step < 5) step++;
+  if (step === 4){ renderConclusion(); }
+  renderSeg(); narrate();
+};
+$("resetBtn").onclick = resetAll;
+function resetAll(){
+  P = { vvm: 1.0, rpm: 600 }; c0 = 2.0;
+  step = 0;
+  $("vvmRange").value = 100; $("rpmRange").value = 600;
+  $("conclusionCard").style.display = "none";
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+}
+$("vvmRange").oninput = e => {
+  P.vvm = +e.target.value / 100;
+  $("vvmVal").textContent = P.vvm.toFixed(1) + " vvm";
+  c0 = steadyDO();
+  refreshMetrics(); narrate(); drawCanvas();
+};
+$("rpmRange").oninput = e => {
+  P.rpm = +e.target.value;
+  $("rpmVal").textContent = P.rpm + " rpm";
+  c0 = steadyDO();
+  refreshMetrics(); narrate(); drawCanvas();
+};
+function renderConclusion(){
+  const k = kla(), d = demand(), ss = steadyDO();
+  $("conclusionCard").style.display = "";
+  $("resBig").textContent = ss.toFixed(1);
+  $("resState").textContent = `vvm=${P.vvm.toFixed(1)} · rpm=${P.rpm} · KLa=${k.toFixed(0)} h⁻¹`;
+  $("concText").innerHTML = `稳态溶解氧 DO_ss=C*−qO2X/KLa=<b>${ss.toFixed(1)} mg/L</b>（KLa=<b>${k.toFixed(0)} h⁻¹</b>，耗氧 ${d} mg/L/h）。<br>${ss >= DO_CRIT ? "<span class='good'>供氧充足——工艺可行，菌走好氧代谢。</span>" : "<span class='bad'>溶氧限制！DO 低于临界 1.5——菌改走厌氧代谢，乳酸/乙醇累积，产量崩。</span>"}<br>操作顺序：DO 掉 → 先加通气量 → 再升搅拌 → 才动补料/降菌浓。<br>工程注意：搅拌功耗 P∝n³d⁵（转速翻倍功率八倍）；DO 电极要定期标定，漂移会骗过控制。`;
+}
+
+/* ============ 初始化 ============ */
+window.addEventListener("load", () => {
+  setTimeout(() => $("loader").classList.add("done"), 700);
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>菌种培养实验室</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='8' cy='10' r='4' fill='none' stroke='%2359d6ff' stroke-width='1.6'/%3E%3Ccircle cx='16' cy='15' r='5' fill='none' stroke='%23ffb020' stroke-width='1.6'/%3E%3Cpath d='M12 4v-2M12 4c0 1-1 1-1 2s1 1 1 2c0-1 1-1 1-2s-1-1-1-2z' fill='%233ddc84'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes shake{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
+.flask{animation:shake 1.6s ease-in-out infinite;transform-origin:50% 100%}
+@keyframes bubble{0%{transform:translateY(0);opacity:.25}100%{transform:translateY(-26px);opacity:.9}}
+.bub{animation:bubble 2.4s ease-in-out infinite}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px;cursor:crosshair}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.spec-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+.spec-table th{font-size:11px;color:var(--faint);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);letter-spacing:.1em}
+.spec-table td{padding:9px 10px;border-bottom:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:13px}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader,#rp{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在接种培养…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">BIO · VIRTUAL LAB 01</div>
+    <div class="kicker">生物工程 · 发酵工程 · 生长动力学</div>
+    <h1 class="title">菌种培养与生长曲线<span class="thin">实验室</span></h1>
+    <div class="sub">BATCH CULTURE · OD600 · MONOD</div>
+    <p class="oneliner"><b>接进去的菌不会立刻疯长——先适应（延滞期）、再指数翻倍（对数期）、底物吃完就躺平（稳定期）、最后衰亡。OD600 把这四幕全记下来。</b><br>Monod μ=μmax·S/(Ks+S) · OD600 比浊 · 四阶段 · 比生长速率。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 接种</span></h3>
+      <svg class="scene" id="rig" viewBox="0 0 420 190" role="img" aria-label="摇瓶培养示意">
+        <g class="flask">
+          <path d="M180 36 L176 120 Q160 138 140 142 H280 Q260 138 244 120 L240 36 Z" fill="#14202e" stroke="#59d6ff" stroke-width="2"/>
+          <path d="M206 36 L206 22 M214 36 L214 22" stroke="#8b95a3" stroke-width="3"/>
+          <ellipse cx="210" cy="110" rx="30" ry="8" fill="#1b2434"/>
+          <circle cx="206" cy="104" r="2.4" fill="#59d6ff" class="bub"/>
+          <circle cx="216" cy="98" r="2" fill="#59d6ff" class="bub"/>
+          <circle cx="202" cy="92" r="1.8" fill="#59d6ff" class="bub"/>
+        </g>
+        <rect x="136" y="140" width="148" height="8" rx="4" fill="#232b38"/>
+        <g class="bub" style="animation-delay:.4s"><rect x="176" y="72" width="3.5" height="9" rx="2" fill="#ffb020" opacity=".6"/></g>
+        <g class="bub" style="animation-delay:1s"><rect x="188" y="64" width="3" height="8" rx="2" fill="#ffb020" opacity=".5"/></g>
+        <g class="bub" style="animation-delay:1.6s"><rect x="224" y="70" width="3.5" height="9" rx="2" fill="#ffb020" opacity=".6"/></g>
+        <text x="210" y="168" text-anchor="middle" fill="#8b95a3" font-size="9" font-family="inherit">摇瓶培养 · 37°C · 200rpm 振荡 · 定时取样测 OD600</text>
+        <text x="210" y="182" text-anchor="middle" fill="#5b6572" font-size="9" font-family="inherit">OD600 与菌浓 X 成正比：X = OD600 × 校正系数</text>
+      </svg>
+      <canvas id="gcCanvas" width="820" height="420" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">重置</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">培养时间 t</div><div class="v" id="mT">–<small>h</small></div><div class="sub2">0~24h</div></div>
+          <div class="metric" id="mSc"><div class="k">OD600</div><div class="v" id="mOD">–</div><div class="sub2">比浊法读数</div></div>
+          <div class="metric"><div class="k">比生长速率 μ</div><div class="v" id="mMu">–<small>h⁻¹</small></div><div class="sub2">Monod 方程</div></div>
+          <div class="metric" id="mPc"><div class="k">阶段</div><div class="v" id="mPh">–</div><div class="sub2" id="mPhSub">–</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">最大比生长速率 μmax</span><span class="val" id="umVal">1.00 h⁻¹</span></div>
+          <input type="range" id="umRange" min="20" max="150" step="5" value="100">
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">初始底物 S0</span><span class="val" id="s0Val">5.0 g/L</span></div>
+          <input type="range" id="s0Range" min="10" max="100" step="5" value="50">
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>实验结论 · 生长曲线四阶段</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">h⁻¹（对数期 μ）· OD600=<span id="resOD" style="color:var(--dim)">–</span></div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">换参数再培养</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · OD600 是浊度不是菌数</div><div class="d">OD600 测的是光散射，菌体形状、颜色、死菌都干扰；OD 超过 1.0 后偏离线性，必须稀释再测。要精确菌数得平板计数或干重法——OD 只配做趋势监测。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · 延滞期不是白等的</div><div class="d">延滞期菌在适应新环境、合成酶系。接种对数期菌种、培养基同源、接种量足（5~10%）能把延滞期压到最短——工业生产里延滞期就是烧钱的空转。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · 对数期取 μ 有前提</div><div class="d">只有底物充足（S≫Ks）时 μ≈μmax 常数，取半对数直线斜率才算数；底物一受限 μ 立刻按 Monod 掉下来。放大设计和补料策略全围着"维持 μ 在什么区间"转。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">Monod 方程：μ = μmax·S/(Ks+S)      [h⁻¹]，Ks=0.2 g/L（演示）
+生长与底物消耗（欧拉步进，dt=0.05h）：
+  dX/dt = μ·X − kd·X（衰亡项，稳定期后激活 kd=0.08 h⁻¹）
+  dS/dt = −(1/Y)·μ·X，Y=0.5 g/g（菌得率）
+  OD600 = X·2.2（比浊校正，演示）
+四阶段：延滞（t&lt;1.5h）→ 对数（μ&gt;0.2·μmax）→ 稳定（μ≈0，底物耗尽）
+  → 衰亡（X 下降）
+本页为确定性演示：μmax、S0 可调，曲线可复算。</div>
+    <p>演示模型按批式培养典型动力学设定（延滞期长度、菌得率为典型值）；实际菌株参数差异大。教学演示用，不作为发酵工艺依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性欧拉步进） ============ */
+const KS = 0.2, YIELD = 0.5, KD = 0.08, LAG = 1.5, KOD = 2.2;
+let P = { umax: 1.0, S0: 5.0 };
+let SIM = []; // {t, X, S, mu, OD, phase}
+const $ = id => document.getElementById(id);
+function simulate(){
+  SIM = [];
+  const dt = 0.05;
+  let X = 0.05, S = P.S0, t = 0;
+  let phase = 0;
+  for (; t <= 24.0001; t += dt){
+    let mu;
+    if (t < LAG){ mu = 0; phase = 0; }
+    else {
+      mu = P.umax * S / (KS + S);
+      if (mu > 0.2 * P.umax) phase = 1;
+      else if (X >= SIM[SIM.length - 1].X) phase = 2;
+    }
+    if (phase === 2 && t > LAG + 6){
+      const prev = SIM[SIM.length - 1];
+      if (X < prev.X) phase = 3;
+    }
+    SIM.push({ t, X, S, mu, OD: X * KOD, phase });
+    // 积分
+    const dXd = mu * X;
+    const dSd = -(1 / YIELD) * dXd;
+    X += dXd * dt;
+    S += dSd * dt;
+    if (S < 0) S = 0;
+    if (phase >= 2 && SIM.length > 2){ X -= KD * X * dt; }
+  }
+}
+function sampleAt(t){
+  if (!SIM.length) simulate();
+  let i = Math.min(SIM.length - 1, Math.round(t / 0.05));
+  return SIM[i];
+}
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  { t: "接种", s: "对数期菌种按 5% 接种量接入新鲜培养基，37°C 摇瓶培养。", bench: "准备：\n① LB/合成培养基灭菌\n② 对数期种子液 5% 接种\n③ 37°C、200rpm 振荡\n④ 每 2h 取样测 OD600" },
+  { t: "延滞期", s: "1.5h 内菌体不增——适应新环境、合成酶系。延长≠浪费，是必然。", bench: "" },
+  { t: "对数期", s: "底物充足，μ≈μmax，菌量指数增长，OD 半对数直线上升。", bench: "" },
+  { t: "稳定期", s: "底物耗尽，μ→0，菌浓封顶 Xmax=S0·Y+X0——产量天花板在这。", bench: "" },
+  { t: "衰亡期", s: "营养耗尽、代谢物毒化，菌开始死亡，OD 掉头。", bench: "" },
+  { t: "报告", s: "读 μ、Xmax、阶段时长，为放大与补料设计提供参数。", bench: "" }
+];
+let step = 0, tCur = 0;
+
+function renderSeg(){
+  const el = $("stepSeg");
+  el.innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" class="${i < step ? "done" : i === step ? "on" : ""}">${i + 1} · ${s.t}<small>${i < step ? "已通过" : i === step ? "进行中" : "待执行"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { if(+b.dataset.i <= step){ step = +b.dataset.i; renderSeg(); narrate(); } });
+  $("sceneTitle").textContent = `${step + 1} · ${STEPS[step].t}`;
+  $("actBtn").textContent = step >= 5 ? "完成" : "下一步";
+}
+const PHN = ["延滞期", "对数期", "稳定期", "衰亡期"];
+function narrate(){
+  const n = $("narrate");
+  const s = sampleAt(tCur);
+  if (step <= 1) n.innerHTML = STEPS[step].s;
+  else if (step === 2) n.innerHTML = `t=<b>${tCur.toFixed(1)}h</b>、OD600=<b>${s.OD.toFixed(2)}</b>：${s.phase === 0 ? "仍在延滞——菌在适应环境" : "已进入" + PHN[s.phase]}。延滞期越长，生产效率越低。`;
+  else if (step === 3) n.innerHTML = `t=<b>${tCur.toFixed(1)}h</b>：μ=<b>${s.mu.toFixed(2)} h⁻¹</b>（μmax=${P.umax.toFixed(2)}）。S≫Ks 时 μ≈μmax，取半对数斜率即比生长速率。`;
+  else if (step === 4) n.innerHTML = `底物 S=<b>${s.S.toFixed(2)} g/L</b>：${s.phase === 2 ? "已耗尽 → 稳定期，X≈" + s.X.toFixed(2) : "仍在消耗，注意 μ 开始掉头"}。Xmax=S0·Y+X0=<b>${(P.S0 * YIELD + 0.05).toFixed(2)} g/L</b>——底物定产量。`;
+  else if (step === 5) n.innerHTML = `t=<b>${tCur.toFixed(1)}h</b>：${s.phase === 3 ? "衰亡期，OD 掉头——该收获了" : "还没到衰亡，继续观察"}。发酵终点常定在稳定期初（产量最高、代谢物最干净）。`;
+  else n.innerHTML = `报告：μmax=${P.umax.toFixed(2)} h⁻¹、S0=${P.S0.toFixed(1)} g/L、Xmax≈${(P.S0 * YIELD + 0.05).toFixed(1)} g/L。对数期 μ≈${Math.max(...SIM.map(v => v.mu)).toFixed(2)}。`;
+}
+function flash(id){
+  const el = $(id); if(!el) return;
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+function refreshMetrics(){
+  const s = sampleAt(tCur);
+  $("mT").textContent = tCur.toFixed(1);
+  $("mOD").textContent = s.OD.toFixed(2);
+  $("mMu").textContent = s.mu.toFixed(2);
+  $("mPh").textContent = PHN[s.phase];
+  $("mPhSub").textContent = s.phase === 1 ? "S≫Ks 指数增长" : s.phase === 2 ? "底物耗尽" : s.phase === 3 ? "菌体死亡" : "适应期";
+  flash("mT"); flash("mOD"); flash("mMu"); flash("mPh");
+}
+
+/* ============ Canvas 生长曲线 ============ */
+const W_ = 820, H_ = 420;
+const cv = $("gcCanvas"), ctx = cv.getContext("2d");
+function drawCanvas(){
+  ctx.clearRect(0, 0, W_, H_);
+  const l = { l: 56, r: W_ - 20, t: 24, b: 42 };
+  const tmax = 24;
+  const odMax = Math.max(...SIM.map(v => v.OD)) * 1.25;
+  const X = t => l.l + t / tmax * (l.r - l.l);
+  const Y = od => H_ - l.b - od / odMax * (H_ - l.t - l.b);
+  ctx.font = "10px ui-monospace,monospace"; ctx.fillStyle = "#5b6572"; ctx.strokeStyle = "#232b38";
+  for (let t = 0; t <= 24; t += 4){ const x = X(t); ctx.beginPath(); ctx.moveTo(x, l.t); ctx.lineTo(x, H_ - l.b); ctx.stroke(); ctx.fillText(t, x - 6, H_ - l.b + 16); }
+  for (let i = 0; i <= 4; i++){ const od = i * odMax / 4, y = Y(od); ctx.beginPath(); ctx.moveTo(l.l, y); ctx.lineTo(l.r, y); ctx.stroke(); ctx.fillText(od.toFixed(1), 6, y + 4); }
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("时间 t (h)", l.l + 140, H_ - 8);
+  ctx.fillText("OD600 生长曲线（OD=X×2.2）", l.l + 8, l.t - 6);
+  ctx.save(); ctx.translate(14, H_ / 2 + 6); ctx.rotate(-Math.PI / 2); ctx.fillText("OD600", -30, 0); ctx.restore();
+  // 阶段分界色带
+  const seg = SIM.filter(v => v.t >= LAG);
+  const phaseCols = ["#8b95a3", "#59d6ff", "#3ddc84", "#ff5252"];
+  const phaseIdx = [0, 1, 1, 2, 3];
+  // 曲线按阶段着色
+  for (let i = 1; i < SIM.length; i++){
+    const a = SIM[i - 1], b = SIM[i];
+    ctx.strokeStyle = phaseCols[a.phase]; ctx.lineWidth = 2.4;
+    ctx.beginPath(); ctx.moveTo(X(a.t), Y(a.OD)); ctx.lineTo(X(b.t), Y(b.OD)); ctx.stroke();
+  }
+  // 阶段标注
+  ctx.font = "10.5px -apple-system,Microsoft YaHei";
+  const stPos = [{ t: 1, label: "延滞" }, { t: 7, label: "对数" }, { t: 16, label: "稳定" }, { t: 21, label: "衰亡" }];
+  stPos.forEach(p => {
+    const s = sampleAt(p.t);
+    ctx.fillStyle = phaseCols[s.phase];
+    ctx.fillText(p.label + "期", X(p.t) - 12, Y(s.OD) - 14);
+  });
+  // 当前点
+  const s = sampleAt(tCur);
+  ctx.fillStyle = "#ffb020";
+  ctx.beginPath(); ctx.arc(X(s.t), Y(s.OD), 6, 0, 7); ctx.fill();
+  ctx.fillStyle = "#ffb020"; ctx.font = "12px ui-monospace,monospace";
+  ctx.fillText(`t=${s.t.toFixed(1)}h OD=${s.OD.toFixed(2)} μ=${s.mu.toFixed(2)}`, X(s.t) - 20, Y(s.OD) - 14);
+  // Xmax 参考线
+  const xmax = P.S0 * YIELD + 0.05;
+  ctx.strokeStyle = "#b48cff"; ctx.setLineDash([5, 4]);
+  ctx.beginPath(); ctx.moveTo(l.l, Y(xmax * KOD)); ctx.lineTo(l.r, Y(xmax * KOD)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = "#b48cff"; ctx.font = "10.5px -apple-system,Microsoft YaHei";
+  ctx.fillText(`Xmax=${xmax.toFixed(1)} g/L（S0·Y+X0）`, l.r - 150, Y(xmax * KOD) - 8);
+}
+
+/* ============ 动作 ============ */
+$("actBtn").onclick = () => {
+  if (step < 5) step++;
+  if (step === 4){ renderConclusion(); }
+  renderSeg(); narrate();
+};
+$("resetBtn").onclick = resetAll;
+function resetAll(){
+  P = { umax: 1.0, S0: 5.0 };
+  step = 0; tCur = 0;
+  $("umRange").value = 100; $("s0Range").value = 50;
+  $("conclusionCard").style.display = "none";
+  simulate(); renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+}
+$("umRange").oninput = e => {
+  P.umax = +e.target.value / 100;
+  $("umVal").textContent = P.umax.toFixed(2) + " h⁻¹";
+  simulate(); refreshMetrics(); narrate(); drawCanvas();
+};
+$("s0Range").oninput = e => {
+  P.S0 = +e.target.value / 10;
+  $("s0Val").textContent = P.S0.toFixed(1) + " g/L";
+  simulate(); refreshMetrics(); narrate(); drawCanvas();
+};
+// 时间轴：拖 canvas 取样
+cv.onclick = e => {
+  const r = cv.getBoundingClientRect();
+  const px = (e.clientX - r.left) / r.width;
+  tCur = Math.min(24, Math.max(0, px * 24));
+  refreshMetrics(); narrate(); drawCanvas();
+};
+function renderConclusion(){
+  const s = sampleAt(tCur);
+  const muMax = Math.max(...SIM.map(v => v.mu));
+  $("conclusionCard").style.display = "";
+  $("resBig").textContent = muMax.toFixed(2);
+  $("resOD").textContent = s.OD.toFixed(2);
+  $("resState").textContent = `S0=${P.S0.toFixed(1)} g/L · Xmax≈${(P.S0 * YIELD + 0.05).toFixed(1)} g/L · 当前 ${PHN[s.phase]}`;
+  $("concText").innerHTML = `培养曲线四阶段：<b>延滞（适应）→ 对数（μ≈μmax，指数翻倍）→ 稳定（底物耗尽）→ 衰亡</b>。<br>对数期比生长速率 μ=<b>${muMax.toFixed(2)} h⁻¹</b>（S≫Ks 时 μ≈μmax=${P.umax.toFixed(2)}）。<br><span class='good'>产量天花板：Xmax=S0·Y+X0=<b>${(P.S0 * YIELD + 0.05).toFixed(1)} g/L</b></span>——想多收菌，先看底物给够没。<br>工业启示：接种对数期种子、培养基同源、接种量 5~10% 压延滞；OD 超 1.0 必须稀释；发酵终点定在稳定期初，别拖到衰亡期。`;
+}
+
+/* ============ 初始化 ============ */
+window.addEventListener("load", () => {
+  setTimeout(() => $("loader").classList.add("done"), 700);
+  simulate(); renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+});
+</script>
+</body>
+</html>

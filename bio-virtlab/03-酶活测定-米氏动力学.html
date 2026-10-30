@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>酶活测定实验室</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='6' cy='14' r='3' fill='none' stroke='%2359d6ff' stroke-width='1.6'/%3E%3Cpath d='M9 12l6-6M15 6h3v3M14 10h3v3' stroke='%23ffb020' stroke-width='1.6' fill='none'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes pump{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.pip{animation:pump 2s ease-in-out infinite}
+@keyframes drop{0%{transform:translateY(0);opacity:.6}100%{transform:translateY(34px);opacity:0}}
+.drop{animation:drop 1.8s linear infinite}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px;cursor:crosshair}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.spec-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+.spec-table th{font-size:11px;color:var(--faint);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);letter-spacing:.1em}
+.spec-table td{padding:9px 10px;border-bottom:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:13px}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader,#rp{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在配制底物梯度…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">BIO · VIRTUAL LAB 03</div>
+    <div class="kicker">生物工程 · 酶工程 · 米氏动力学</div>
+    <h1 class="title">酶活测定<span class="thin">实验室</span></h1>
+    <div class="sub">ENZYME KINETICS · MICHAELIS-MENTEN · L-B PLOT</div>
+    <p class="oneliner"><b>底物少的时候速率随底物直线上升，底物管够以后速率饱和到 Vmax——米氏方程画的就是这条"吃撑曲线"，双倒数一拉直就同时读出 Vmax 和 Km。</b><br>v=Vmax·[S]/(Km+[S]) · Lineweaver-Burk · Km 亲和力 · Vmax 酶量。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 配制梯度</span></h3>
+      <svg class="scene" id="rig" viewBox="0 0 420 190" role="img" aria-label="酶促反应加样示意">
+        <g class="pip">
+          <path d="M150 20 L156 60 L144 60 Z" fill="#59d6ff"/>
+        </g>
+        <g class="drop">
+          <circle cx="150" cy="66" r="2.6" fill="#ffb020"/>
+        </g>
+        <rect x="108" y="86" width="84" height="54" rx="4" fill="#14202e" stroke="#ffb020" stroke-width="1.5"/>
+        <rect x="228" y="86" width="84" height="54" rx="4" fill="#14202e" stroke="#59d6ff" stroke-width="1.5"/>
+        <text x="150" y="118" text-anchor="middle" fill="#ffb020" font-size="8" font-family="inherit">底物[S]</text>
+        <text x="270" y="118" text-anchor="middle" fill="#59d6ff" font-size="8" font-family="inherit">酶+缓冲液</text>
+        <text x="210" y="166" text-anchor="middle" fill="#8b95a3" font-size="9" font-family="inherit">梯度底物 + 等量酶 → 定时取样测产物 → 初速率 v</text>
+        <text x="210" y="182" text-anchor="middle" fill="#5b6572" font-size="9" font-family="inherit">初速率法：产物在反应前 10% 时间内的斜率（底物消耗可忽略）</text>
+      </svg>
+      <canvas id="enzCanvas" width="820" height="420" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">重置</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">底物浓度 [S]</div><div class="v" id="mS">–<small>mM</small></div><div class="sub2">0.1~50</div></div>
+          <div class="metric" id="mSc"><div class="k">初速率 v</div><div class="v" id="mV">–<small>μmol/min</small></div><div class="sub2">米氏方程</div></div>
+          <div class="metric"><div class="k">v/Vmax 占比</div><div class="v" id="mR">–<small>%</small></div><div class="sub2">[S]/(Km+[S])</div></div>
+          <div class="metric" id="mPc"><div class="k">动力学区间</div><div class="v" id="mPh">–</div><div class="sub2" id="mPhSub">–</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">底物浓度 [S]</span><span class="val" id="sVal">5.0 mM</span></div>
+          <input type="range" id="sRange" min="1" max="100" step="1" value="10">
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">Vmax</span><span class="val" id="vmVal">2.0</span></div>
+          <input type="range" id="vmRange" min="50" max="500" step="10" value="200">
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">Km（亲和力倒数）</span><span class="val" id="kmVal">0.50 mM</span></div>
+          <input type="range" id="kmRange" min="10" max="500" step="10" value="50">
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>实验结论 · 米氏参数</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">μmol/min（初速率 v）</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">换条件再测</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · 初速率才有米氏</div><div class="d">米氏方程只在反应初期成立——产物还没积累、没有逆反应和产物抑制。取样测的必须是"斜率"，不是终点浓度。反应走久了，v 会因底物消耗/产物抑制偏离曲线。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · Km 是亲和力的倒数</div><div class="d">Km 越小酶对底物亲和力越强（一半 Vmax 所需的底物越少）。Km 是酶的本质属性（±pH/温度相关），Vmax 随酶量变——比酶活=Vmax/[E]，报告两个参数要写明条件。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · 双倒数图会放大误差</div><div class="d">L-B 直线把低底物点（1/[S] 大）的误差放得最大——高底物点反而可信。现代用非线性拟合（直接米氏回归）更稳，L-B 适合教学与快速目测。别把外推截距当精确值。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">米氏方程：v = Vmax·[S]/(Km + [S])      [μmol/min]
+  [S]=底物浓度 mM；Km=米氏常数 mM（v=Vmax/2 时的 [S]）
+Lineweaver-Burk 双倒数：1/v = (Km/Vmax)·(1/[S]) + 1/Vmax
+  截距 1/Vmax，斜率 Km/Vmax
+极限行为：[S]≪Km → v≈(Vmax/Km)·[S]（一级）；[S]≫Km → v≈Vmax（零级饱和）
+动力学区间判定：[S]&lt;0.1·Km 一级区；0.1·Km~10·Km 过渡区；&gt;10·Km 饱和区
+本页为确定性演示：[S]、Vmax、Km 可调，曲线与直线可复算。</div>
+    <p>演示模型按经典米氏酶动力学设定；实际酶 Km/Vmax 随 pH、温度、离子强度变化，比活测定按 GB/T 或厂商 SOP。教学演示用，不作为酶制剂验收依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性） ============ */
+let P = { S: 5.0, Vmax: 2.0, Km: 0.5 };
+const $ = id => document.getElementById(id);
+const v = () => P.Vmax * P.S / (P.Km + P.S);
+function regime(){
+  const r = P.S / P.Km;
+  if (r < 0.1) return ["一级区", "[S]≪Km 线性段"];
+  if (r <= 10) return ["过渡区", "Km 附近灵敏度最高"];
+  return ["饱和区", "[S]≫Km 接近 Vmax"];
+}
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  { t: "配制梯度", s: "配制 8~10 个底物浓度梯度（含 0.1·Km 与 10·Km 两端），恒温预平衡。", bench: "准备：\n① 底物梯度 0.1~50 mM\n② 酶液等量分装\n③ 缓冲液恒温 37°C\n④ 定时取样（前 10% 反应）" },
+  { t: "加酶启动", s: "等量酶液加入各梯度，计时，定时取样测定产物浓度。", bench: "" },
+  { t: "算初速率", s: "产物-时间曲线斜率即初速率 v，各梯度得一组 v~[S]。", bench: "" },
+  { t: "拟合米氏", s: "v vs [S] 拟合米氏曲线，读出 Vmax 与 Km。", bench: "" },
+  { t: "双倒数", s: "1/v vs 1/[S] 画 L-B 直线：截距 1/Vmax、斜率 Km/Vmax。", bench: "" },
+  { t: "报告", s: "报 Vmax、Km、比活，注明 pH/温度条件。", bench: "" }
+];
+let step = 0;
+
+function renderSeg(){
+  const el = $("stepSeg");
+  el.innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" class="${i < step ? "done" : i === step ? "on" : ""}">${i + 1} · ${s.t}<small>${i < step ? "已通过" : i === step ? "进行中" : "待执行"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { if(+b.dataset.i <= step){ step = +b.dataset.i; renderSeg(); narrate(); } });
+  $("sceneTitle").textContent = `${step + 1} · ${STEPS[step].t}`;
+  $("actBtn").textContent = step >= 5 ? "完成" : "下一步";
+}
+function narrate(){
+  const n = $("narrate");
+  const vv = v(), rg = regime();
+  if (step <= 1) n.innerHTML = STEPS[step].s;
+  else if (step === 2) n.innerHTML = `[S]=<b>${P.S.toFixed(1)} mM</b>：初速率 v=Vmax·[S]/(Km+[S])=<b>${vv.toFixed(2)} μmol/min</b>。`;
+  else if (step === 3) n.innerHTML = `占 Vmax 比例 ${(vv / P.Vmax * 100).toFixed(0)}%——${rg[0]}：${rg[1]}。`;
+  else if (step === 4) n.innerHTML = `米氏曲线：Vmax=<b>${P.Vmax.toFixed(1)}</b>、Km=<b>${P.Km.toFixed(2)} mM</b>。v=Vmax/2 时的 [S]=Km。`;
+  else if (step === 5) n.innerHTML = `L-B：1/v=<b>${(1 / vv).toFixed(2)}</b>、1/[S]=<b>${(1 / P.S).toFixed(2)}</b>；截距 1/Vmax=<b>${(1 / P.Vmax).toFixed(2)}</b>、斜率 Km/Vmax=<b>${(P.Km / P.Vmax).toFixed(3)}</b>。`;
+  else n.innerHTML = `报告：Vmax=${P.Vmax.toFixed(1)} μmol/min、Km=${P.Km.toFixed(2)} mM（37°C）。Km 越小亲和力越强；比活=Vmax/[E]。`;
+}
+function flash(id){
+  const el = $(id); if(!el) return;
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+function refreshMetrics(){
+  const vv = v(), rg = regime();
+  $("mS").textContent = P.S.toFixed(1);
+  $("mV").textContent = vv.toFixed(2);
+  $("mR").textContent = (vv / P.Vmax * 100).toFixed(0);
+  $("mPh").textContent = rg[0];
+  $("mPhSub").textContent = rg[1];
+  flash("mS"); flash("mV"); flash("mR"); flash("mPh");
+}
+
+/* ============ Canvas 米氏曲线 + L-B ============ */
+const W_ = 820, H_ = 420;
+const cv = $("enzCanvas"), ctx = cv.getContext("2d");
+function drawCanvas(){
+  ctx.clearRect(0, 0, W_, H_);
+  // 左：v vs [S]
+  const l = { l: 56, r: 430, t: 24, b: 42 };
+  const smax = 50, vmaxY = P.Vmax * 1.2;
+  const X = s => l.l + s / smax * (l.r - l.l);
+  const Y = vv => H_ - l.b - vv / vmaxY * (H_ - l.t - l.b);
+  ctx.font = "10px ui-monospace,monospace"; ctx.fillStyle = "#5b6572"; ctx.strokeStyle = "#232b38";
+  for (let s = 0; s <= 50; s += 10){ const x = X(s); ctx.beginPath(); ctx.moveTo(x, l.t); ctx.lineTo(x, H_ - l.b); ctx.stroke(); ctx.fillText(s, x - 6, H_ - l.b + 16); }
+  for (let i = 0; i <= 4; i++){ const vv = i * vmaxY / 4, y = Y(vv); ctx.beginPath(); ctx.moveTo(l.l, y); ctx.lineTo(l.r, y); ctx.stroke(); ctx.fillText(vv.toFixed(1), 6, y + 4); }
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("底物浓度 [S] (mM)", l.l + 110, H_ - 8);
+  ctx.fillText("米氏曲线 v vs [S]", l.l + 8, l.t - 6);
+  ctx.save(); ctx.translate(14, H_ / 2 + 6); ctx.rotate(-Math.PI / 2); ctx.fillText("v (μmol/min)", -40, 0); ctx.restore();
+  // Vmax 渐近线
+  ctx.strokeStyle = "#b48cff"; ctx.setLineDash([5, 4]);
+  ctx.beginPath(); ctx.moveTo(l.l, Y(P.Vmax)); ctx.lineTo(l.r, Y(P.Vmax)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = "#b48cff"; ctx.font = "10.5px -apple-system,Microsoft YaHei";
+  ctx.fillText(`Vmax=${P.Vmax.toFixed(1)}`, l.r - 90, Y(P.Vmax) - 6);
+  // 曲线
+  ctx.strokeStyle = "#59d6ff"; ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  for (let s = 0.05; s <= 50; s += 0.2){
+    const vv = P.Vmax * s / (P.Km + s);
+    const x = X(s), y = Y(vv);
+    s === 0.05 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  // Km 点（v=Vmax/2）
+  const hkm = P.Vmax / 2;
+  ctx.fillStyle = "#ffb020";
+  ctx.beginPath(); ctx.arc(X(P.Km), Y(hkm), 5, 0, 7); ctx.fill();
+  ctx.fillStyle = "#ffb020"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText(`Km=${P.Km.toFixed(2)} (v=Vmax/2)`, X(P.Km) + 6, Y(hkm) - 8);
+  // 当前点
+  const vv = v();
+  ctx.fillStyle = "#ff5252";
+  ctx.beginPath(); ctx.arc(X(P.S), Y(vv), 5, 0, 7); ctx.fill();
+  ctx.fillStyle = "#ff5252"; ctx.font = "11px ui-monospace,monospace";
+  ctx.fillText(`[S]=${P.S.toFixed(1)} v=${vv.toFixed(2)}`, X(P.S) + 6, Y(vv) + 14);
+  // 右：L-B 直线
+  const r = { l: 470, r: W_ - 20, t: 24, b: 42 };
+  const invSmax = 10, invVmaxY = 1.5 / Math.max(0.01, P.Vmax);
+  const X2 = i => r.l + i / invSmax * (r.r - r.l);
+  const Y2 = iv => H_ - r.b - iv / invVmaxY * (H_ - r.t - r.b);
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("Lineweaver-Burk：1/v vs 1/[S]", r.l + 8, r.t - 6);
+  ctx.strokeStyle = "#232b38";
+  ctx.beginPath(); ctx.moveTo(r.l, H_ - r.b); ctx.lineTo(r.r, H_ - r.b); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(r.l, r.t); ctx.lineTo(r.l, H_ - r.b); ctx.stroke();
+  ctx.font = "10px ui-monospace,monospace"; ctx.fillStyle = "#5b6572";
+  ctx.fillText("0", r.l - 6, H_ - r.b + 14);
+  ctx.fillText("1/[S]", r.l + 4, r.t + 10);
+  // 直线：y = (Km/Vmax)x + 1/Vmax
+  const slope = P.Km / P.Vmax, intercept = 1 / P.Vmax;
+  ctx.strokeStyle = "#ff8c2a"; ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  ctx.moveTo(X2(0), Y2(intercept));
+  ctx.lineTo(X2(invSmax), Y2(intercept + slope * invSmax));
+  ctx.stroke();
+  // 截距标注
+  ctx.fillStyle = "#ff8c2a";
+  ctx.beginPath(); ctx.arc(r.l, Y2(intercept), 4, 0, 7); ctx.fill();
+  ctx.fillStyle = "#ff8c2a"; ctx.font = "10.5px -apple-system,Microsoft YaHei";
+  ctx.fillText(`1/Vmax=${intercept.toFixed(2)}`, r.l + 6, Y2(intercept) - 6);
+  // 当前点
+  const iv = 1 / P.S, iiv = 1 / vv;
+  ctx.fillStyle = "#ff5252";
+  ctx.beginPath(); ctx.arc(X2(Math.min(invSmax, iv)), Y2(Math.min(1.5, iiv)), 4, 0, 7); ctx.fill();
+  // 备注
+  ctx.fillStyle = "#5b6572"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("斜率=Km/Vmax=" + slope.toFixed(3), r.l + 6, H_ - r.b - 16);
+}
+
+/* ============ 动作 ============ */
+$("actBtn").onclick = () => {
+  if (step < 5) step++;
+  if (step === 4){ renderConclusion(); }
+  renderSeg(); narrate();
+};
+$("resetBtn").onclick = resetAll;
+function resetAll(){
+  P = { S: 5.0, Vmax: 2.0, Km: 0.5 };
+  step = 0;
+  $("sRange").value = 10; $("vmRange").value = 200; $("kmRange").value = 50;
+  $("conclusionCard").style.display = "none";
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+}
+$("sRange").oninput = e => {
+  P.S = +e.target.value / 10;
+  $("sVal").textContent = P.S.toFixed(1) + " mM";
+  refreshMetrics(); narrate(); drawCanvas();
+};
+$("vmRange").oninput = e => {
+  P.Vmax = +e.target.value / 100;
+  $("vmVal").textContent = P.Vmax.toFixed(1);
+  refreshMetrics(); narrate(); drawCanvas();
+};
+$("kmRange").oninput = e => {
+  P.Km = +e.target.value / 100;
+  $("kmVal").textContent = P.Km.toFixed(2) + " mM";
+  refreshMetrics(); narrate(); drawCanvas();
+};
+function renderConclusion(){
+  const vv = v();
+  $("conclusionCard").style.display = "";
+  $("resBig").textContent = vv.toFixed(2);
+  $("resState").textContent = `[S]=${P.S.toFixed(1)} mM · Vmax=${P.Vmax.toFixed(1)} · Km=${P.Km.toFixed(2)} mM`;
+  $("concText").innerHTML = `v=Vmax·[S]/(Km+[S])=<b>${vv.toFixed(2)} μmol/min</b>，占 Vmax 的 ${(vv / P.Vmax * 100).toFixed(0)}%（${regime()[0]}）。<br>米氏参数：<b>Vmax=${P.Vmax.toFixed(1)} μmol/min</b>（酶量指标）、<b>Km=${P.Km.toFixed(2)} mM</b>（亲和力，越小越亲）。<br><span class='good'>双倒数 L-B：截距 1/Vmax=${(1 / P.Vmax).toFixed(2)}、斜率 Km/Vmax=${(P.Km / P.Vmax).toFixed(3)}</span>。<br>实验纪律：只取初速率（前 10% 反应）；Km 是酶属性（随 pH/温度变），Vmax 随酶量变；L-B 放大低底物点误差，正式测定用非线性拟合。`;
+}
+
+/* ============ 初始化 ============ */
+window.addEventListener("load", () => {
+  setTimeout(() => $("loader").classList.add("done"), 700);
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+});
+</script>
+</body>
+</html>

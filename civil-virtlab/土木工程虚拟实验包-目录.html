@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>土木工程·虚拟实验包目录</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 18L12 6l8 12z' fill='none' stroke='%2359d6ff' stroke-width='1.6'/%3E%3Cpath d='M4 14h16M4 10h16' stroke='%23ffb020' stroke-width='1.4'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:40px 18px}
+header{padding:30px 4px 10px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:12px}
+h1{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1 .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:16px;font-size:15px;line-height:1.8;color:var(--txt);border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.pos{margin-top:14px;font-size:12px;color:var(--faint);font-family:var(--mono)}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:24px}
+@media (max-width:700px){.grid{grid-template-columns:1fr}}
+.entry{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 20px;text-decoration:none;color:var(--txt);position:relative;overflow:hidden;transition:border-color .15s, transform .15s;display:block}
+.entry:hover{border-color:var(--amber-dim);transform:translateY(-2px)}
+.entry .no{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.25em;margin-bottom:8px}
+.entry .t{font-size:21px;font-weight:700;letter-spacing:.04em;margin-bottom:10px;color:var(--cyan)}
+.entry .d{font-size:13px;color:var(--dim);line-height:1.8;margin-bottom:12px}
+.entry .f{font-family:var(--mono);font-size:11.5px;color:var(--violet);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;line-height:1.9}
+.entry .arrow{position:absolute;right:16px;top:16px;color:var(--faint);font-size:20px}
+.foot{margin-top:30px;padding-top:18px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.note{margin-top:22px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--amber);border-radius:10px;padding:14px 16px;font-size:13px;color:var(--dim);line-height:1.9}
+.note b{color:var(--txt)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">CIVIL · VIRTUAL LAB PACK · 4 EXPERIMENTS</div>
+    <h1>土木工程<span class="thin">虚拟实验包</span></h1>
+    <div class="sub">CIVIL ENGINEERING · STRUCTURE · SOIL MECHANICS · CONCRETE</div>
+    <p class="oneliner">符号：<b>弯矩 M、剪力 V、轴力 N、配筋率 ρ、混凝土强度 C30、荷载组合</b>。设备：混凝土搅拌机、钢筋弯曲机、万能试验机、超声检测仪、脚手架、塔吊。四个代表实验覆盖「配合比设计→钢筋验收→受弯承载力→土的抗剪强度」四大主线。<br>零依赖单文件，双击即开。</p>
+    <div class="pos">CIVIL-VIRTLAB · 2026-10 · 骨架复用 · 数值可复算</div>
+  </header>
+
+  <div class="grid">
+    <a class="entry" href="01-混凝土配合比设计.html">
+      <div class="no">EXP 01</div>
+      <div class="t">混凝土配合比设计</div>
+      <div class="d">C30 不是喊出来的：配制强度、水灰比、用水量、砂率一路算下来，每方 2400kg 有多少斤水泥砂石，一清二楚。</div>
+      <div class="f">fcu,0=fcu,k+1.645σ ｜ fcu=αa·fb·(C/W−αb) ｜ 体积/容重法</div>
+      <div class="arrow">→</div>
+    </a>
+    <a class="entry" href="02-钢筋拉伸试验-万能试验机.html">
+      <div class="no">EXP 02</div>
+      <div class="t">钢筋拉伸 · 万能试验机</div>
+      <div class="d">HPB300 光圆有平台、HRB400 带肋没平台——屈服强度、极限强度、伸长率三项不过，整批钢筋拒收。</div>
+      <div class="f">σ=ReL=Fs/S0 ｜ δ=(Lu−L0)/L0 ｜ GB 1499.2 判定</div>
+      <div class="arrow">→</div>
+    </a>
+    <a class="entry" href="03-梁的弯曲破坏-受弯承载力.html">
+      <div class="no">EXP 03</div>
+      <div class="t">梁的弯曲破坏 · 受弯承载力</div>
+      <div class="d">配筋率定命运：少筋脆断、适筋延性、超筋压碎——Mu=α1fcbx(h0−x/2) 算的是"能扛多少弯矩"，破坏形态看配筋率落在哪。</div>
+      <div class="f">Mu=α1·fc·b·x·(h0−x/2) ｜ x=fyAs/(α1fcb) ｜ ρmin≤ρ≤ρmax</div>
+      <div class="arrow">→</div>
+    </a>
+    <a class="entry" href="04-土的直剪与三轴-抗剪强度.html">
+      <div class="no">EXP 04</div>
+      <div class="t">土的直剪与三轴 · 抗剪强度</div>
+      <div class="d">τ=c+σ·tanφ——砂土 c≈0 靠摩擦，黏土 c 撑着；快剪/固结快剪/慢剪的 c、φ 不同，包线一画全明白。</div>
+      <div class="f">τf=c+σ·tanφ ｜ 快剪/固结快剪/慢剪 ｜ q=k·i·A 达西渗流</div>
+      <div class="arrow">→</div>
+    </a>
+  </div>
+
+  <div class="note"><b>谈单锚点：</b>四页覆盖《土木工程材料》（配合比+钢筋验收）、《混凝土结构设计原理》（受弯承载力+适筋/超筋/少筋三态）、《土力学与地基基础》（直剪/三轴+抗剪强度+达西渗流）、《结构力学》（弯矩/荷载组合背景）四门核心课，直接对应土木工程专业虚拟仿真一流课程申报点。<br><b>可扩展模块（逻辑改编档，有单再补）：</b>混凝土搅拌机/钢筋弯曲机工作循环、超声检测仪（回弹法测强/超声测缺）、脚手架与塔吊安拆工况、土的三轴 UU/CU/CD 全谱、达西渗流与固结沉降（e-p 曲线）。设备覆盖：混凝土搅拌机、钢筋弯曲机、万能试验机、超声检测仪、脚手架、塔吊已入页或可扩展。</div>
+
+  <div class="foot">
+    <span>OPC · 工科虚拟仿真外包 · 单文件离线包</span>
+    <span>目录页 · 4 实验入口 · 材料→钢筋→梁→土全链条</span>
+  </div>
+</div>
+</body>
+</html>

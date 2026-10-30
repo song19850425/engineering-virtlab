@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>化工原理虚拟实验包 · 目录</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M8 3h8l-1 4H9z' fill='%23ffb020'/%3E%3Crect x='7' y='7' width='10' height='13' rx='2' fill='%2311151d' stroke='%23ffb020'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#0a0d12;--panel:#11151d;--panel2:#151b25;--line:#232b38;--txt:#e8eef4;--dim:#8b95a3;--faint:#5b6572;--amber:#ffb020;--cyan:#59d6ff;--danger:#ff5252;--ok:#3ddc84;--violet:#b48cff;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;min-height:100vh}
+.wrap{max-width:1000px;margin:0 auto;padding:44px 20px 60px}
+.tag{display:inline-block;font-size:11px;letter-spacing:.25em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:4px 12px;margin-bottom:16px}
+h1{font-size:clamp(28px,5vw,44px);font-weight:800;letter-spacing:.08em;margin-bottom:10px}
+h1 .thin{color:var(--dim);font-weight:300}
+.sub{font-size:12px;letter-spacing:.4em;color:var(--amber);margin-bottom:18px}
+.lead{border-left:3px solid var(--amber);padding-left:14px;font-size:15px;line-height:1.8;color:var(--txt);max-width:660px;margin-bottom:30px}
+.lead b{color:var(--amber)}
+.cards{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:700px){.cards{grid-template-columns:1fr 1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;display:block;text-decoration:none;color:var(--txt);transition:border-color .15s,transform .15s;position:relative;overflow:hidden}
+.card:hover{border-color:var(--amber);transform:translateY(-2px)}
+.card .idx{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.2em;margin-bottom:8px}
+.card h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.card h2 em{font-style:normal;color:var(--amber);font-weight:300}
+.card .dim{font-size:12.5px;color:var(--dim);line-height:1.7;margin-bottom:12px}
+.card .form{font-family:var(--mono);font-size:12px;color:var(--cyan);background:#0d1117;border:1px solid var(--line);border-radius:8px;padding:8px 12px;line-height:1.9}
+.card .go{position:absolute;top:18px;right:18px;font-family:var(--mono);color:var(--faint);font-size:16px}
+.cover{height:6px;border-radius:3px;margin:0 0 14px;background:linear-gradient(90deg,var(--amber),transparent)}
+.map{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:30px}
+@media(max-width:600px){.map{grid-template-columns:1fr 1fr}}
+.map .m{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center}
+.map .m b{display:block;font-size:20px;font-family:var(--mono);color:var(--amber);margin-bottom:4px}
+.map .m span{font-size:11px;color:var(--faint);letter-spacing:.15em}
+footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--faint);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tag">CHEME · VIRTUAL LAB PACK</div>
+  <h1>化工原理<span class="thin">虚拟实验包</span></h1>
+  <div class="sub">THREE TRANSFERS + ONE REACTION · 三传一反</div>
+  <p class="lead"><b>四张实验台，覆盖动量、热量、质量传递与反应工程。</b>每个实验都是确定性模型（无随机数凑结果），可调参数、可判红线、可导出结论——半定制外包的化工样板。</p>
+
+  <div class="cards">
+    <a class="card" href="01-精馏实验-McCabe-Thiele.html">
+      <div class="go">→</div>
+      <div class="cover" style="background:linear-gradient(90deg,#ffb020,transparent)"></div>
+      <div class="idx">EXP 01 · 质量传递</div>
+      <h2>精馏实验<em> · McCabe-Thiele</em></h2>
+      <p class="dim">回流比、进料组成、相对挥发度怎么影响理论板数？图解阶梯一眼看完。苯-甲苯常压精馏。</p>
+      <div class="form">y = αx/[1+(α−1)x] · 操作线 · q 线 · R&lt;Rmin 无法分离</div>
+    </a>
+    <a class="card" href="02-流体阻力测定-λRe.html">
+      <div class="go">→</div>
+      <div class="cover" style="background:linear-gradient(90deg,#59d6ff,transparent)"></div>
+      <div class="idx">EXP 02 · 动量传递</div>
+      <h2>流体流动阻力<em> · λ-Re</em></h2>
+      <p class="dim">调阀门看压差，数据点自动落在 λ-Re 双对数曲线上——层流、湍流、过渡区一次看清。</p>
+      <div class="form">Δpf = λ(L/d)(ρu²/2) · 层流 λ=64/Re · Blasius 0.3164/Re^0.25</div>
+    </a>
+    <a class="card" href="03-传热实验-套管换热器.html">
+      <div class="go">→</div>
+      <div class="cover" style="background:linear-gradient(90deg,#b48cff,transparent)"></div>
+      <div class="idx">EXP 03 · 热量传递</div>
+      <h2>传热实验<em> · 套管换热器</em></h2>
+      <p class="dim">蒸汽加热冷水，调流量看出口温度与对数平均温差——K 怎么随湍流增强而变大？</p>
+      <div class="form">Q=KAΔtm · Δtm=(Δt1−Δt2)/ln(Δt1/Δt2) · Nu=0.023Re^0.8Pr^0.4</div>
+    </a>
+    <a class="card" href="04-反应器对比-CSTR-PFR.html">
+      <div class="go">→</div>
+      <div class="cover" style="background:linear-gradient(90deg,#3ddc84,transparent)"></div>
+      <div class="idx">EXP 04 · 反应工程</div>
+      <h2>反应器对比<em> · CSTR vs PFR</em></h2>
+      <p class="dim">同温度同停留时间，全混流和活塞流的转化率差在哪？温度一指数效应看 Arrhenius。</p>
+      <div class="form">k=A·exp(−Ea/RT) · CSTR: X=τk/(1+τk) · PFR: X=1−exp(−τk)</div>
+    </a>
+  </div>
+
+  <div class="map">
+    <div class="m"><b>4</b><span>实验台</span></div>
+    <div class="m"><b>1 页 1 文件</b><span>离线单文件</span></div>
+    <div class="m"><b>0 依赖</b><span>无 CDN</span></div>
+    <div class="m"><b>全参数化</b><span>确定性模型</span></div>
+  </div>
+
+  <footer><span>化工原理虚拟实验包 · CHEME VIRTUAL LAB · 供院校定制参考</span><span>公式为教科书通用形式，演示参数可调</span></footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>机构运动仿真实验室</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='8' cy='8' r='3.5' fill='none' stroke='%2359d6ff' stroke-width='1.6'/%3E%3Cpath d='M11 8h6l3 4' stroke='%23ffb020' stroke-width='1.6' fill='none'/%3E%3Crect x='3' y='16' width='12' height='4' rx='1' fill='%23b48cff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px;cursor:crosshair}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.spec-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+.spec-table th{font-size:11px;color:var(--faint);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);letter-spacing:.1em}
+.spec-table td{padding:9px 10px;border-bottom:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:13px}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader,#rp{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在装配曲柄滑块机构…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">MECH · VIRTUAL LAB 04</div>
+    <div class="kicker">机械工程 · 机械原理 · 平面机构</div>
+    <h1 class="title">机构运动仿真<span class="thin">实验室</span></h1>
+    <div class="sub">MECHANISM SIMULATION · CRANK-SLIDER · QUICK-RETURN</div>
+    <p class="oneliner"><b>曲柄转一圈，滑块"慢慢去、快快回"——牛头刨床就是靠这个急回特性省时间的。</b>调曲柄、连杆、转速，看位移/速度/加速度曲线。<br>急回特性 · 行程速比系数 K · 死点 · 惯性力。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 机构组装</span></h3>
+      <svg class="scene" id="rig" viewBox="0 0 420 190" role="img" aria-label="曲柄滑块机构运动仿真">
+        <defs>
+          <marker id="arw" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#ffb020"/></marker>
+        </defs>
+        <line x1="20" y1="124" x2="400" y2="124" stroke="#232b38" stroke-width="4"/>
+        <circle cx="70" cy="124" r="5" fill="#ff8c2a"/>
+        <text x="52" y="112" text-anchor="end" fill="#ff8c2a" font-size="9" font-family="inherit">曲柄O</text>
+        <circle cx="70" cy="124" r="1.6" fill="#e8eef4"/>
+        <g id="crankG">
+          <circle cx="70" cy="124" r="30" fill="none" stroke="#232b38" stroke-width="1" stroke-dasharray="4 4"/>
+          <line id="crankLine" x1="70" y1="124" x2="100" y2="124" stroke="#ff8c2a" stroke-width="3"/>
+          <circle id="pinP" cx="100" cy="124" r="4" fill="#ffb020"/>
+        </g>
+        <line id="rodLine" x1="100" y1="124" x2="190" y2="124" stroke="#59d6ff" stroke-width="3"/>
+        <g id="sliderG">
+          <rect id="sliderRect" x="176" y="110" width="34" height="28" rx="3" fill="#151b25" stroke="#b48cff" stroke-width="2"/>
+          <circle cx="193" cy="124" r="3" fill="#b48cff"/>
+          <text x="193" y="103" text-anchor="middle" fill="#b48cff" font-size="9" font-family="inherit">滑块</text>
+        </g>
+        <text x="210" y="178" text-anchor="middle" fill="#5b6572" font-size="9" font-family="inherit">曲柄匀速回转 → 连杆传动 → 滑块沿导轨往复（工作行程慢、回程快）</text>
+      </svg>
+      <canvas id="kinCanvas" width="820" height="420" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="pauseBtn">暂停/继续</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">曲柄转角 θ</div><div class="v" id="mTh">–<small>°</small></div><div class="sub2">ω=2πn/60</div></div>
+          <div class="metric" id="mXc"><div class="k">滑块位移 x</div><div class="v" id="mX">–<small>mm</small></div><div class="sub2" id="mXSub">–</div></div>
+          <div class="metric" id="mVc"><div class="k">滑块速度 v</div><div class="v" id="mV">–<small>mm/s</small></div><div class="sub2">工作/回程对比</div></div>
+          <div class="metric"><div class="k">行程速比 K</div><div class="v" id="mK">–<small>–</small></div><div class="sub2" id="mKSub">极位夹角 θe</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">曲柄 r</span><span class="val" id="rVal">100 mm</span></div>
+          <input type="range" id="rRange" min="50" max="150" step="5" value="100">
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">连杆 l</span><span class="val" id="lVal">300 mm</span></div>
+          <input type="range" id="lRange" min="200" max="400" step="10" value="300">
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">转速 n</span><span class="val" id="nVal">60 rpm</span></div>
+          <input type="range" id="nRange" min="30" max="240" step="10" value="60">
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>实验结论 · 机构运动学</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">（行程速比系数 K）</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">重设机构</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · 急回特性是设计意图</div><div class="d">曲柄匀速，滑块往返却不对称：工作行程慢（刀具切削受力）、回程快（空走）。K=(180°+θe)/(180°−θe) 越大急回越明显——牛头刨床、插床就靠它省回程时间，K 是机构性能指标。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · 死点是机构的"卡壳点"</div><div class="d">曲柄与连杆共线（θ≈0°、180°）时滑块在极限位置：这时曲柄无论多大扭矩都推不动滑块（力沿连杆线传递、对曲柄无力矩）。单缸内燃机靠飞轮惯性闯过死点，这就是曲轴配飞轮的原因。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · 高转速先看加速度</div><div class="d">滑块加速度随 n² 增长：r=100、n=120rpm 时峰值加速度已超 15g——机构动载荷按 a 算，高速机构必须做动平衡，否则振动、螺栓松脱、疲劳断裂全来了。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">曲柄转角：θ = ωt，ω = 2πn/60      [rad/s]
+滑块位移（精确）：x = r·cosθ + √(l² − r²sin²θ)
+滑块速度：v = dx/dθ · ω = [−r·sinθ − r²·sinθ·cosθ/√(l²−r²sin²θ)] · ω
+滑块加速度：a = dv/dt（数值微分，本页演示用）
+行程速比系数：θe = 2·arcsin(r/l)，K = (180°+θe)/(180°−θe)
+行程：H ≈ 2r
+本页为确定性演示：曲柄、连杆、转速全可调，运动学可复算。</div>
+    <p>演示模型按平面铰链四杆机构（曲柄滑块）精确运动学设定；实际机构还需考虑间隙、弹性与惯性力。教学演示用，不作为工程计算依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性） ============ */
+let P = { r: 100, l: 300, n: 60 };
+let thetaDeg = 0, running = true;
+const $ = id => document.getElementById(id);
+const omega = () => 2 * Math.PI * P.n / 60;
+function xOf(td){
+  const th = td * Math.PI / 180;
+  const s2 = Math.pow(P.r * Math.sin(th), 2);
+  return P.r * Math.cos(th) + Math.sqrt(Math.max(P.l * P.l - s2, 0));
+}
+function vOf(td){
+  const d = 0.5;
+  return (xOf(td + d) - xOf(td - d)) / (2 * d / 180 * Math.PI) * omega();
+}
+function aOf(td){
+  const d = 0.5;
+  return (vOf(td + d) - vOf(td - d)) / (2 * d / 180 * Math.PI) * omega();
+}
+const thetaE = () => 2 * Math.asin(P.r / P.l) * 180 / Math.PI;
+const K = () => (180 + thetaE()) / (180 - thetaE());
+const xmin = () => P.l - P.r, xmax = () => P.l + P.r;
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  { t: "机构组装", s: "曲柄 O 铰接机架，连杆连接曲柄销与滑块，滑块沿导轨移动。检查各铰链转动副。", bench: "准备：\n① 曲柄绕 O 回转（主动件）\n② 连杆两端转动副\n③ 滑块沿导轨平移（从动件）\n④ 自由度 F=3n−2PL−PH=3×3−2×4=1" },
+  { t: "空转观察", s: "匀速转曲柄，观察滑块往复：工作行程与回程时间是否一样？", bench: "" },
+  { t: "测速度", s: "记录滑块过两端与中间时的速度，比较去程/回程快慢。", bench: "" },
+  { t: "算速比", s: "由极位夹角算行程速比系数 K，验证急回特性。", bench: "" },
+  { t: "看曲线", s: "读位移-速度-加速度随 θ 的变化曲线，找极值与死点位置。", bench: "" },
+  { t: "报告", s: "整理 H、K、v_max、a_max 与机构参数的关系。", bench: "" }
+];
+let step = 0;
+
+function renderSeg(){
+  const el = $("stepSeg");
+  el.innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" class="${i < step ? "done" : i === step ? "on" : ""}">${i + 1} · ${s.t}<small>${i < step ? "已通过" : i === step ? "进行中" : "待执行"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { if(+b.dataset.i <= step){ step = +b.dataset.i; renderSeg(); narrate(); } });
+  $("sceneTitle").textContent = `${step + 1} · ${STEPS[step].t}`;
+  $("actBtn").textContent = step >= 5 ? "完成" : "下一步";
+}
+function narrate(){
+  const n = $("narrate");
+  const th = thetaDeg % 360;
+  if (step <= 1) n.innerHTML = STEPS[step].s;
+  else if (step === 2) n.innerHTML = `θ=${th.toFixed(0)}°，x=<b>${xOf(th).toFixed(0)} mm</b>、v=<b>${vOf(th).toFixed(0)} mm/s</b>。${th < 180 ? "<span class='warn'>工作行程：滑块前进（去程）</span>" : "<span class='ok'>回程：滑块返回</span>"}——看看哪半圈更快？`;
+  else if (step === 3) n.innerHTML = `去程用时 180°/ω，回程用时也是 180°/ω 但滑块位移方向相反——往返最大速度 ${(vOf(90)).toFixed(0)} vs ${(vOf(270)).toFixed(0)} mm/s，${Math.abs(vOf(90)) > Math.abs(vOf(270)) ? "去程快" : "回程快"}。`;
+  else if (step === 4) n.innerHTML = `极位夹角 θe=<b>${thetaE().toFixed(1)}°</b>，行程速比系数 <b>K=${K().toFixed(2)}</b>（K&gt;1 即有急回）。r/l 越大 K 越大，但连杆摆角也越大。`;
+  else if (step === 5) n.innerHTML = `曲线：x 近似余弦（r/l 小时），v 类正弦、峰值在 θ≈90°/270°，a 峰值在极限位置（θ≈0°/180°）。`;
+  else n.innerHTML = `报告：r=${P.r}、l=${P.l}、n=${P.n} — H=${(2 * P.r).toFixed(0)} mm、K=${K().toFixed(2)}、a_max=${(aOf(0)).toFixed(0)} mm/s²。`;
+}
+function flash(id){
+  const el = $(id); if(!el) return;
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+function refreshMetrics(){
+  const th = thetaDeg;
+  $("mTh").textContent = (th % 360).toFixed(0);
+  $("mX").textContent = xOf(th).toFixed(0);
+  const v = vOf(th);
+  $("mV").textContent = v.toFixed(0);
+  $("mV").classList.toggle("good", v >= 0);
+  $("mXSub").textContent = `行程 H=${(2 * P.r).toFixed(0)} mm`;
+  $("mK").textContent = K().toFixed(2);
+  $("mKSub").textContent = `θe=${thetaE().toFixed(1)}°`;
+  flash("mTh"); flash("mX"); flash("mV"); flash("mK");
+  // SVG 位置
+  const rad = th * Math.PI / 180;
+  const scale = 0.6;
+  const Ox = 70, Oy = 124;
+  const px = Ox + P.r * scale * Math.cos(rad);
+  const py = Oy - P.r * scale * Math.sin(rad);
+  const qx = Ox + (xOf(th) - (P.l - P.r)) * scale + P.r * scale;
+  const qy = Oy;
+  const lx = $(`rodLine`), cr = $(`crankLine`), pin = $(`pinP`), sl = $(`sliderRect`), sld = $(`sliderG`);
+  cr.setAttribute("x2", px); cr.setAttribute("y2", py);
+  pin.setAttribute("cx", px); pin.setAttribute("cy", py);
+  lx.setAttribute("x1", px); lx.setAttribute("y1", py);
+  lx.setAttribute("x2", qx); lx.setAttribute("y2", qy);
+  sl.setAttribute("x", qx - 17);
+  sld.setAttribute("transform", `translate(${qx - 193},0)`);
+}
+
+/* ============ Canvas 位移/速度/加速度曲线 ============ */
+const W_ = 820, H_ = 420, pad = { l: 60, r: 14, t: 14, b: 40 };
+const cv = $("kinCanvas"), ctx = cv.getContext("2d");
+function drawCanvas(){
+  ctx.clearRect(0, 0, W_, H_);
+  const T = 360;
+  const X = t => pad.l + t / T * (W_ - pad.l - pad.r);
+  // 三条曲线归一化到同一画布：x→xmm 映射、v→归一、a→归一
+  const xr = [xmin(), xmax()];
+  const vmax = Math.max(Math.abs(vOf(90)), Math.abs(vOf(270))) * 1.1;
+  const amax = Math.max(Math.abs(aOf(0)), Math.abs(aOf(180))) * 1.1;
+  ctx.font = "10px ui-monospace,monospace"; ctx.fillStyle = "#5b6572"; ctx.strokeStyle = "#232b38";
+  for (let t = 0; t <= 360; t += 90){ ctx.beginPath(); ctx.moveTo(X(t), pad.t); ctx.lineTo(X(t), H_ - pad.b); ctx.stroke(); ctx.fillText(t + "°", X(t) - 12, H_ - pad.b + 16); }
+  for (let i = 0; i <= 3; i++){
+    const y = pad.t + i * (H_ - pad.t - pad.b) / 3;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W_ - pad.r, y); ctx.stroke();
+  }
+  // 左轴 x
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText(`x ${xr[0].toFixed(0)}`, 8, H_ - pad.b - 8);
+  ctx.fillText(`x ${xr[1].toFixed(0)}`, 8, pad.t + 8);
+  ctx.fillText(`v ${(-vmax).toFixed(0)}`, 8, H_ - pad.b * 0.7 - 8);
+  ctx.fillText(`v +${vmax.toFixed(0)}`, 8, H_ - pad.b * 0.3 - 8);
+  ctx.fillText("曲柄转角 θ (°)", W_ / 2 - 50, H_ - 8);
+  // 曲线（采样 360 点）
+  const Yx = t => H_ - pad.b - (xOf(t) - xr[0]) / (xr[1] - xr[0]) * (H_ - pad.t - pad.b);
+  const Yv = t => H_ - pad.b * 0.72 - vOf(t) / vmax * (H_ - pad.t - pad.b) * 0.55;
+  const Ya = t => H_ - pad.b * 0.7 + aOf(t) / amax * (H_ - pad.t - pad.b) * 0.6;
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "#b48cff";
+  ctx.beginPath(); for (let t = 0; t <= 360; t += 1){ t === 0 ? ctx.moveTo(X(t), Yx(t)) : ctx.lineTo(X(t), Yx(t)); } ctx.stroke();
+  ctx.strokeStyle = "#59d6ff";
+  ctx.beginPath(); for (let t = 0; t <= 360; t += 1){ t === 0 ? ctx.moveTo(X(t), Yv(t)) : ctx.lineTo(X(t), Yv(t)); } ctx.stroke();
+  ctx.strokeStyle = "#ff8c2a";
+  ctx.beginPath(); for (let t = 0; t <= 360; t += 1){ t === 0 ? ctx.moveTo(X(t), Ya(t)) : ctx.lineTo(X(t), Ya(t)); } ctx.stroke();
+  // 图例
+  ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillStyle = "#b48cff"; ctx.fillText("— 位移 x (mm)", pad.l + 8, pad.t + 14);
+  ctx.fillStyle = "#59d6ff"; ctx.fillText("— 速度 v (mm/s)", pad.l + 120, pad.t + 14);
+  ctx.fillStyle = "#ff8c2a"; ctx.fillText("— 加速度 a", pad.l + 240, pad.t + 14);
+  // 当前 θ 竖线
+  const ct = thetaDeg % 360;
+  ctx.strokeStyle = "#e8eef4"; ctx.setLineDash([3, 3]); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(X(ct), pad.t); ctx.lineTo(X(ct), H_ - pad.b); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = "#e8eef4"; ctx.font = "11px ui-monospace,monospace";
+  ctx.fillText(`θ=${ct.toFixed(0)}°`, X(ct) + 6, pad.t + 30);
+}
+
+/* ============ 动画循环 ============ */
+let lastTs = 0;
+function tick(ts){
+  if (running){
+    const dt = lastTs ? Math.min((ts - lastTs) / 1000, 0.05) : 0;
+    thetaDeg = (thetaDeg + P.n / 60 * 360 * dt) % 360;
+    refreshMetrics();
+    drawCanvas();
+  }
+  lastTs = ts;
+  requestAnimationFrame(tick);
+}
+
+/* ============ 动作 ============ */
+$("actBtn").onclick = () => {
+  if (step < 5) step++;
+  if (step === 4){ renderConclusion(); }
+  renderSeg(); narrate();
+};
+$("pauseBtn").onclick = () => { running = !running; $("pauseBtn").textContent = running ? "暂停/继续" : "暂停/继续"; };
+function resetAll(){
+  P = { r: 100, l: 300, n: 60 };
+  thetaDeg = 0; running = true;
+  $("rRange").value = 100; $("lRange").value = 300; $("nRange").value = 60;
+  $("rVal").textContent = "100 mm"; $("lVal").textContent = "300 mm"; $("nVal").textContent = "60 rpm";
+  step = 0;
+  $("conclusionCard").style.display = "none";
+  renderSeg(); narrate(); refreshMetrics(); drawCanvas();
+}
+$("rRange").oninput = e => { P.r = +e.target.value; $("rVal").textContent = P.r + " mm"; narrate(); refreshMetrics(); drawCanvas(); };
+$("lRange").oninput = e => { P.l = +e.target.value; $("lVal").textContent = P.l + " mm"; narrate(); refreshMetrics(); drawCanvas(); };
+$("nRange").oninput = e => { P.n = +e.target.value; $("nVal").textContent = P.n + " rpm"; narrate(); refreshMetrics(); drawCanvas(); };
+function renderConclusion(){
+  $("conclusionCard").style.display = "";
+  $("resBig").textContent = K().toFixed(2);
+  $("resUnit").textContent = `（行程速比系数）· r=${P.r} l=${P.l}`;
+  $("resState").textContent = `H=${(2 * P.r).toFixed(0)} mm · θe=${thetaE().toFixed(1)}° · v_max≈${vOf(90).toFixed(0)} mm/s · a_max≈${aOf(0).toFixed(0)} mm/s²`;
+  $("concText").innerHTML = `曲柄滑块 r=${P.r} mm、l=${P.l} mm、n=${P.n} rpm：行程 <b>H≈2r=${(2 * P.r).toFixed(0)} mm</b>，极位夹角 <b>θe=${thetaE().toFixed(1)}°</b>，行程速比系数 <b>K=${K().toFixed(2)}</b>。<br><span class='good'>K&gt;1 证明急回特性存在</span>——工作行程慢、回程快，牛头刨床/插床/冲压机构都靠它省时。<br>死点：θ≈0°/180° 时滑块在极限位置、曲柄自锁（<span class='bad'>单缸机必须配飞轮闯死点</span>）；高速时 a∝n²，动平衡是机构设计的下限。`;
+}
+
+/* ============ 初始化 ============ */
+window.addEventListener("load", () => {
+  setTimeout(() => $("loader").classList.add("done"), 700);
+  renderSeg(); narrate(); refreshMetrics(); drawCanvas();
+  requestAnimationFrame(tick);
+});
+</script>
+</body>
+</html>

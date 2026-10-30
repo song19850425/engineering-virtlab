@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>地下水井流实验室</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='4' fill='none' stroke='%2359d6ff' stroke-width='1.6'/%3E%3Cpath d='M12 2v3M12 19v3M2 12h3M19 12h3' stroke='%23ffb020' stroke-width='1.6'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#0a0d12;--panel:#11151d;--panel2:#151b25;--line:#232b38;--txt:#e8eef4;--dim:#8b95a3;--faint:#5b6572;--amber:#ffb020;--amber-dim:#8a5c10;--cyan:#59d6ff;--danger:#ff5252;--ok:#3ddc84;--violet:#b48cff;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes ring{0%{r:14;opacity:.8}100%{r:60;opacity:0}}
+.ring{animation:ring 2.4s ease-out infinite}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px;cursor:crosshair}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader,#rp{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在洗井降深…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">GEO · VIRTUAL LAB 04</div>
+    <div class="kicker">地质工程 · 水文地质 · 井流理论</div>
+    <h1 class="title">地下水井流<span class="thin">实验室</span></h1>
+    <div class="sub">THEIS EQUATION · CONE OF DEPRESSION · PUMPING TEST</div>
+    <p class="oneliner"><b>井一抽水，水位漏斗一样往下塌——降深怎么算、漏斗扩多快，泰斯公式说了算。</b><br>s=Q·W(u)/4πT，u=r²S/4Tt：抽水试验资料整理的看家公式。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 水文地质参数</span></h3>
+      <svg class="scene" id="rig" viewBox="0 0 420 190" role="img" aria-label="抽水井与降深漏斗示意">
+        <rect x="40" y="80" width="340" height="60" fill="#14202e" stroke="#59d6ff" stroke-width="1.6"/>
+        <g>
+          <circle cx="210" cy="110" r="10" fill="#ffb020"/>
+          <circle class="ring" cx="210" cy="110" r="14" fill="none" stroke="#59d6ff" stroke-width="1.4"/>
+          <circle class="ring" cx="210" cy="110" r="14" fill="none" stroke="#59d6ff" stroke-width="1.4" style="animation-delay:1.2s"/>
+        </g>
+        <path d="M210 60 L210 80" stroke="#8b95a3" stroke-width="3"/>
+        <text x="210" y="176" text-anchor="middle" fill="#8b95a3" font-size="9" font-family="inherit">承压完整井：抽水量 Q 恒定，降深漏斗 s(r,t) 向外扩展</text>
+        <text x="210" y="188" text-anchor="middle" fill="#5b6572" font-size="9" font-family="inherit">T 导水系数 · S 储水系数 · 泰斯井函数 W(u)</text>
+      </svg>
+      <canvas id="wellCanvas" width="820" height="420" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">重置</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">观测井降深 s</div><div class="v" id="mS">–<small>m</small></div><div class="sub2" id="mSSub">Q·W(u)/4πT</div></div>
+          <div class="metric" id="mSc"><div class="k">井函数 W(u)</div><div class="v" id="mW">–</div><div class="sub2">u=r²S/4Tt</div></div>
+          <div class="metric"><div class="k">导水系数 T</div><div class="v" id="mT">–<small>m²/d</small></div><div class="sub2">含水层性质</div></div>
+          <div class="metric" id="mPc"><div class="k">影响半径 R</div><div class="v" id="mR">–<small>m</small></div><div class="sub2" id="mRSub">1.5√(Tt/S)</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">抽水量 Q</span><span class="val" id="qVal">1000 m³/d</span></div>
+          <input type="range" id="qRange" min="500" max="2000" step="50" value="1000">
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">导水系数 T</span><span class="val" id="tVal">200 m²/d</span></div>
+          <input type="range" id="tRange" min="50" max="500" step="10" value="200">
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">抽水时间 t</span><span class="val" id="t2Val">1.0 d</span></div>
+          <input type="range" id="t2Range" min="0.01" max="100" step="0.01" value="1">
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">观测井距离 r</span><span class="val" id="rVal">50 m</span></div>
+          <input type="range" id="rRange" min="10" max="200" step="5" value="50">
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>实验结论 · 降深与漏斗</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">m（观测井降深 s）</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">改工况再算</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · 降深是"含水层欠账"</div><div class="d">抽水即消耗含水层储水，漏斗随时间向远处扩（S 越小、扩展越快）。长期超采→区域水位持续下降，是承压含水层枯竭的前奏。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · 参数不能"一次定终身"</div><div class="d">泰斯公式假设均质无限含水层，实际 T、S 随空间变。抽水试验资料要用配线法/直线图解法反演 T、S——测不准，基坑降水井数量全算错。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · 影响半径是"近似"不是"边界"</div><div class="d">R=1.5√(Tt/S) 是经验近似，实际没有硬边界。相邻井间距小于 2R 就互相干扰——多井降水必须叠加计算降深。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">泰斯公式（承压完整井，恒定抽水）：
+  s = (Q / 4πT)·W(u)，u = r²·S / (4·T·t)
+井函数（级数展开）：
+  W(u) = −γ − ln u + u − u²/4 + u³/18 − …  （γ=0.5772）
+演示参数：Q=1000 m³/d、T=200 m²/d、S=1e-4、r=50m、t=1d
+  u=2500×1e-4/(4×200×1)=3.125e-4 → W(u)≈7.49
+  s=1000/(4π×200)×7.49≈2.98 m
+影响半径（经验近似）：R≈1.5·√(T·t/S)
+  t=1d → R≈2121m（漏斗远大于想象）
+反演方法：s-lg t 直线段斜率 → T；截距 → S（配线/直线法）</div>
+    <p>演示模型按泰斯非稳定流井流公式简化设定（承压完整井、均质无限含水层）；实测按《供水水文地质勘察规范》做抽水试验并用配线法/直线法反演参数。教学演示用，不作为降水设计依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性） ============ */
+let P = { Q: 1000, T: 200, S: 1e-4, t: 1, r: 50 };
+const $ = id => document.getElementById(id);
+const GAMMA_E = 0.5772156649;
+function wellFun(u){
+  if (u >= 1) return 0.01; // u 过大时井函数很小，近似
+  let sum = -GAMMA_E - Math.log(u);
+  let term = u;
+  for (let n = 1; n <= 20; n++){
+    sum += (n % 2 === 1 ? 1 : -1) * term / n;
+    term *= u / (n + 1);
+  }
+  return Math.max(sum, 0);
+}
+function calc(){
+  const u = P.r * P.r * P.S / (4 * P.T * P.t);
+  const Wu = wellFun(u);
+  const s = P.Q / (4 * Math.PI * P.T) * Wu;
+  const R = 1.5 * Math.sqrt(P.T * P.t / P.S);
+  return { u, Wu, s, R };
+}
+function sAt(tx){
+  const u = P.r * P.r * P.S / (4 * P.T * tx);
+  return P.Q / (4 * Math.PI * P.T) * wellFun(u);
+}
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  { t: "水文地质参数", s: "定含水层 T、S，选抽水量 Q，布观测井 r。", bench: "准备：\n① 勘探定含水层厚度与性质\n② 洗井试抽，确定稳定抽水量 Q\n③ 布观测井（1~2 个距离）\n④ 准备水位计，连续记录" },
+  { t: "开泵计时", s: "恒定流量抽水，t=0 起记水位。", bench: "" },
+  { t: "读降深", s: "观测井 s 随 t 增大（漏斗加深扩展）。", bench: "" },
+  { t: "套泰斯公式", s: "u=r²S/4Tt → W(u) 级数 → s=Q·W(u)/4πT。", bench: "" },
+  { t: "画 s-lg t", s: "s-lg t 半对数曲线：直线段斜率反演 T。", bench: "" },
+  { t: "报告", s: "报 s、T/S 反演、影响半径、降水建议。", bench: "" }
+];
+let step = 0;
+
+function renderSeg(){
+  const el = $("stepSeg");
+  el.innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" class="${i < step ? "done" : i === step ? "on" : ""}">${i + 1} · ${s.t}<small>${i < step ? "已通过" : i === step ? "进行中" : "待执行"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { if(+b.dataset.i <= step){ step = +b.dataset.i; renderSeg(); narrate(); } });
+  $("sceneTitle").textContent = `${step + 1} · ${STEPS[step].t}`;
+  $("actBtn").textContent = step >= 5 ? "完成" : "下一步";
+}
+function narrate(){
+  const n = $("narrate");
+  const c = calc();
+  if (step <= 1) n.innerHTML = STEPS[step].s;
+  else if (step === 2) n.innerHTML = `开泵：Q=<b>${P.Q} m³/d</b> 恒定抽水，t=0 起记录。`;
+  else if (step === 3) n.innerHTML = `t=${P.t}d、r=${P.r}m 观测井降深 <b>s=${c.s.toFixed(2)} m</b>——漏斗还在长大。`;
+  else if (step === 4) n.innerHTML = `u=r²S/4Tt=<b>${c.u.toExponential(2)}</b> → W(u)=<b>${c.Wu.toFixed(2)}</b> → s=Q·W(u)/4πT=<b>${c.s.toFixed(2)} m</b>。`;
+  else if (step === 5) n.innerHTML = `s-lg t 曲线直线段斜率=2.303Q/4πT → T≈${P.T}m²/d；影响半径 R≈1.5√(Tt/S)=<b>${c.R.toFixed(0)} m</b>。`;
+  else n.innerHTML = `报告：r=${P.r}m、t=${P.t}d → s=${c.s.toFixed(2)}m；T=${P.T}、S=1e-4；R≈${c.R.toFixed(0)}m。`;
+}
+function flash(id){
+  const el = $(id); if(!el) return;
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+function refreshMetrics(){
+  const c = calc();
+  $("mS").textContent = c.s.toFixed(2);
+  $("mSSub").textContent = `r=${P.r}m · t=${P.t}d`;
+  $("mW").textContent = c.Wu.toFixed(2);
+  $("mT").textContent = P.T;
+  $("mR").textContent = c.R.toFixed(0);
+  $("mRSub").textContent = "1.5√(Tt/S)";
+  flash("mS"); flash("mW"); flash("mT"); flash("mR");
+}
+
+/* ============ Canvas ============ */
+const W_ = 820, H_ = 420;
+const cv = $("wellCanvas"), ctx = cv.getContext("2d");
+function drawCanvas(){
+  ctx.clearRect(0, 0, W_, H_);
+  const c = calc();
+  // 左：s-lg t 曲线（半对数）
+  const l = { l: 70, r: 460, t: 30, b: 44 };
+  const tmin = 0.01, tmax = 100;
+  const X = t => l.l + (Math.log10(t) - Math.log10(tmin)) / (Math.log10(tmax) - Math.log10(tmin)) * (l.r - l.l);
+  const smax = Math.max(10, sAt(100) * 1.15);
+  const Y = s => H_ - l.b - s / smax * (H_ - l.t - l.b);
+  ctx.font = "10px ui-monospace,monospace"; ctx.fillStyle = "#5b6572"; ctx.strokeStyle = "#232b38";
+  for (let i = 0; i <= 4; i++){
+    const s = i * smax / 4, y = Y(s);
+    ctx.beginPath(); ctx.moveTo(l.l, y); ctx.lineTo(l.r, y); ctx.stroke();
+    ctx.fillText(s.toFixed(1), l.l - 26, y + 4);
+  }
+  [0.01, 0.1, 1, 10, 100].forEach(t => {
+    const x = X(t);
+    ctx.beginPath(); ctx.moveTo(x, l.t); ctx.lineTo(x, H_ - l.b); ctx.stroke();
+    ctx.fillText(String(t), x - 12, H_ - l.b + 16);
+  });
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("降深 s (m)", 8, 40);
+  ctx.fillText("s-lg t 曲线（半对数）", l.l, l.t - 8);
+  // 曲线
+  ctx.strokeStyle = "#59d6ff"; ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  for (let i = 0; i <= 80; i++){
+    const t = tmin * Math.pow(tmax / tmin, i / 80);
+    const s = sAt(t);
+    i ? ctx.lineTo(X(t), Y(s)) : ctx.moveTo(X(t), Y(s));
+  }
+  ctx.stroke();
+  // 当前点
+  const xc = X(P.t), yc = Y(c.s);
+  ctx.fillStyle = "#ff5252";
+  ctx.beginPath(); ctx.arc(xc, yc, 6, 0, 7); ctx.fill();
+  ctx.fillStyle = "#ff5252"; ctx.font = "11px ui-monospace,monospace";
+  ctx.fillText(`t=${P.t}d s=${c.s.toFixed(2)}m`, xc + 8, yc + 14);
+
+  // 右：降深漏斗（俯视示意 → 剖面）
+  const rx = 500;
+  ctx.fillStyle = "#8b95a3"; ctx.font = "13px -apple-system,Microsoft YaHei";
+  ctx.fillText("降深漏斗剖面 s(r)", rx, 36);
+  const x0 = rx, y0 = 60, w = 250, h2 = 200;
+  ctx.strokeStyle = "#232b38"; ctx.strokeRect(x0, y0, w, h2);
+  // 含水层顶板线
+  ctx.setLineDash([4, 4]); ctx.strokeStyle = "#5b6572";
+  ctx.beginPath(); ctx.moveTo(x0, y0 + h2 * 0.62); ctx.lineTo(x0 + w, y0 + h2 * 0.62); ctx.stroke();
+  ctx.setLineDash([]);
+  // 漏斗：s(r) 在 r=1~R
+  const smax2 = Math.max(c.s * 3, 10);
+  const X2 = r => x0 + Math.log10(Math.max(r, 1)) / 4.3 * w * 0.94;
+  const Y2 = s => y0 + h2 * 0.62 + s / smax2 * (h2 * 0.8);
+  ctx.strokeStyle = "#ffb020"; ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  for (let i = 0; i <= 60; i++){
+    const r = 1 + i / 60 * 20000;
+    const u = r * r * P.S / (4 * P.T * P.t);
+    const s = P.Q / (4 * Math.PI * P.T) * wellFun(u);
+    const xx = Math.min(X2(r), x0 + w - 4), yy = Math.min(Y2(s), y0 + h2 - 4);
+    i ? ctx.lineTo(xx, yy) : ctx.moveTo(xx, yy);
+  }
+  ctx.stroke();
+  // 井
+  ctx.fillStyle = "#ff5252";
+  ctx.fillRect(x0 + 2, Y2(sAt(1)) - 4, 4, 10);
+  ctx.fillStyle = "#ffb020"; ctx.font = "10px ui-monospace,monospace";
+  ctx.fillText("井", x0 + 8, Y2(sAt(1)) + 4);
+  ctx.fillStyle = "#5b6572"; ctx.font = "10px ui-monospace,monospace";
+  ctx.fillText("R≈" + c.R.toFixed(0) + "m", x0 + w - 74, y0 + h2 - 8);
+  ctx.fillStyle = "#5b6572"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("r 对数轴 · 漏斗越抽越深越广", rx, H_ - 40);
+}
+
+/* ============ 动作 ============ */
+$("actBtn").onclick = () => {
+  if (step < 5) step++;
+  if (step === 4){ renderConclusion(); }
+  renderSeg(); narrate();
+};
+$("resetBtn").onclick = resetAll;
+function resetAll(){
+  P = { Q: 1000, T: 200, S: 1e-4, t: 1, r: 50 };
+  step = 0;
+  $("qRange").value = 1000; $("tRange").value = 200; $("t2Range").value = 1; $("rRange").value = 50;
+  $("conclusionCard").style.display = "none";
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+}
+$("qRange").oninput = e => { P.Q = +e.target.value; $("qVal").textContent = P.Q + " m³/d"; refreshMetrics(); narrate(); drawCanvas(); };
+$("tRange").oninput = e => { P.T = +e.target.value; $("tVal").textContent = P.T + " m²/d"; refreshMetrics(); narrate(); drawCanvas(); };
+$("t2Range").oninput = e => { P.t = +e.target.value; $("t2Val").textContent = P.t.toFixed(2) + " d"; refreshMetrics(); narrate(); drawCanvas(); };
+$("rRange").oninput = e => { P.r = +e.target.value; $("rVal").textContent = P.r + " m"; refreshMetrics(); narrate(); drawCanvas(); };
+function renderConclusion(){
+  const c = calc();
+  $("conclusionCard").style.display = "";
+  $("resBig").textContent = c.s.toFixed(2);
+  $("resState").textContent = `Q=${P.Q} · T=${P.T} · r=${P.r}m · t=${P.t}d`;
+  $("concText").innerHTML = `r=${P.r}m 观测井 t=${P.t}d 时降深 <b>s=${c.s.toFixed(2)} m</b>（u=${c.u.toExponential(2)}、W(u)=${c.Wu.toFixed(2)}），影响半径约 <b>${c.R.toFixed(0)} m</b>。<br><span class='good'>规律：Q↑→s 线性涨；T↑→s 反比降；t 越长、r 越小→s 越大。</span><br>工程要点：基坑降水按"设计水位降深"反算井数与间距；S 小（储水少）漏斗扩得快、水位掉得急；多井必须算叠加干扰，井距 <2R 就打架。`;
+}
+
+/* ============ 初始化 ============ */
+window.addEventListener("load", () => {
+  setTimeout(() => $("loader").classList.add("done"), 700);
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+});
+</script>
+</body>
+</html>

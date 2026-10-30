@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>混凝土配合比设计实验室</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 5h10v6H7zM7 15h10v4H7z' fill='none' stroke='%2359d6ff' stroke-width='1.6'/%3E%3Cpath d='M5 8h14M5 18h14' stroke='%23ffb020' stroke-width='1.4'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes drum{0%,100%{transform:rotate(0)}50%{transform:rotate(24deg)}}
+.drum{animation:drum 2.2s ease-in-out infinite;transform-origin:70px 60px}
+@keyframes pour{0%{transform:translateY(0);opacity:.7}100%{transform:translateY(60px);opacity:0}}
+.pour{animation:pour 2s linear infinite}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px;cursor:crosshair}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.spec-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+.spec-table th{font-size:11px;color:var(--faint);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);letter-spacing:.1em}
+.spec-table td{padding:9px 10px;border-bottom:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:13px}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader,#rp{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在进场材料…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">CIVIL · VIRTUAL LAB 01</div>
+    <div class="kicker">土木工程 · 混凝土结构 · 配合比设计</div>
+    <h1 class="title">混凝土配合比<span class="thin">设计实验室</span></h1>
+    <div class="sub">MIX PROPORTION · WATER-CEMENT RATIO · COMPRESSIVE STRENGTH</div>
+    <p class="oneliner"><b>"C30" 不是喊出来的：先按 1.645σ 把配制强度抬上去，再用水灰比定律定 C/W，一路算到每方 2400kg 里有多少水泥砂石。</b><br>fcu,0=fcu,k+1.645σ · 保罗米公式 fcu=αa·fb·(C/W−αb) · 容重法校核。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 原材料进场</span></h3>
+      <svg class="scene" id="rig" viewBox="0 0 420 190" role="img" aria-label="搅拌机投料示意">
+        <g class="drum">
+          <path d="M40 40 L100 40 L95 80 L45 80 Z" fill="#14202e" stroke="#59d6ff" stroke-width="1.8"/>
+          <path d="M55 34 L85 34" stroke="#59d6ff" stroke-width="3"/>
+          <text x="70" y="64" text-anchor="middle" fill="#59d6ff" font-size="9" font-family="inherit">搅拌机</text>
+        </g>
+        <g class="pour">
+          <circle cx="70" cy="92" r="3" fill="#ffb020"/>
+        </g>
+        <text x="70" y="140" text-anchor="middle" fill="#8b95a3" font-size="9" font-family="inherit">水泥 + 砂 + 石 + 水 → 搅拌 → 坍落度试验 → 成型试块</text>
+        <text x="70" y="156" text-anchor="middle" fill="#5b6572" font-size="9" font-family="inherit">每方用量按容重法：C+W+S+G ≈ 2400 kg/m³</text>
+      </svg>
+      <canvas id="mixCanvas" width="820" height="420" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">重置</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">配制强度 fcu,0</div><div class="v" id="mF">–<small>MPa</small></div><div class="sub2">fcu,k+1.645σ</div></div>
+          <div class="metric" id="mSc"><div class="k">水灰比 W/C</div><div class="v" id="mW">–<small>–</small></div><div class="sub2">保罗米公式反解</div></div>
+          <div class="metric"><div class="k">水泥用量 C</div><div class="v" id="mC">–<small>kg/m³</small></div><div class="sub2">W×(C/W)</div></div>
+          <div class="metric" id="mPc"><div class="k">砂率 Sp</div><div class="v" id="mSp">–<small>%</small></div><div class="sub2" id="mSpSub">–</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">强度等级</span><span class="val" id="gradeVal">C30（fcu,k=30）</span></div>
+          <div class="seg" id="gradeSeg"></div>
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">水泥强度等级</span><span class="val" id="cemVal">42.5（fb=42.5）</span></div>
+          <div class="seg" id="cemSeg"></div>
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">坍落度（碎石 Dmax=20）</span><span class="val" id="slVal">30~50mm · W=195</span></div>
+          <div class="seg" id="slSeg"></div>
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>实验结论 · 基准配合比</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">kg/m³（水泥用量 C）</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <table class="spec-table">
+      <tr><th>材料</th><th>水泥 C</th><th>水 W</th><th>砂 S</th><th>石 G</th><th>合计</th></tr>
+      <tr><td id="tblT">用量 (kg/m³)</td><td id="tblC">–</td><td id="tblW">–</td><td id="tblS">–</td><td id="tblG">–</td><td id="tblSum">–</td></tr>
+    </table>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">换条件再配</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · 配制强度永远比等级高</div><div class="d">fcu,0=fcu,k+1.645σ——σ 是施工管理水平，管理水平差 σ 大、配得更"肥"。试配强度不是拍脑袋加 10%，是按统计保证率（95%）算出来的。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · 水灰比是强度的命门</div><div class="d">保罗米公式 fcu=αa·fb·(C/W−αb)：水灰比越小强度越高，但和易性变差；水灰比超标=强度不达标，泌水离析也是它。现场严禁私自加水。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · 配合比是试配出来的</div><div class="d">基准配合比 → 试拌调坍落度 → 强度试配 3 组 → 校正系数修正。理论算的是起点，实验室拌出来、试块 28d 压出来才算数——不用现场实拌结果验证的配合比都是纸上谈兵。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">配制强度：fcu,0 = fcu,k + 1.645·σ   （σ=5.0 MPa，演示固定）
+保罗米公式（碎石 αa=0.53、αb=0.20）：
+  fcu = αa·fb·(C/W − αb) → C/W = fcu,0/(αa·fb) + αb
+用水量（碎石 Dmax=20mm，查表简化）：
+  坍落度 30~50mm → W=195；50~70mm → 205；70~90mm → 215 kg/m³
+砂率（查表简化，随 W/C 与 Dmax）：W/C≈0.5 → 34%；0.6 → 38% 线性插值
+容重法：C + W + S + G ≈ 2400 kg/m³；S = (2400−C−W)×Sp；G = 2400−C−W−S
+本页为确定性演示，σ、用水量、砂率按常用经验值简化，实际按 JGJ 55 试配确定。</div>
+    <p>演示模型按 JGJ 55《普通混凝土配合比设计规程》保罗米公式与查表法简化设定；实际配合比必须经试拌、强度试配与校正系数修正。教学演示用，不作为工程配合比依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性） ============ */
+const GRADES = { "C20": 20, "C25": 25, "C30": 30, "C35": 35, "C40": 40 };
+const CEMS = { "32.5": 32.5, "42.5": 42.5, "52.5": 52.5 };
+const SLUMPS = [
+  ["30~50mm", 195], ["50~70mm", 205], ["70~90mm", 215]
+];
+let P = { grade: "C30", cem: 42.5, slump: 0 };
+const $ = id => document.getElementById(id);
+const SIGMA = 5.0, AA = 0.53, AB = 0.20;
+const f0 = () => GRADES[P.grade] + 1.645 * SIGMA;
+const cw = () => f0() / (AA * P.cem) + AB;
+const wc = () => 1 / cw();
+const W = () => SLUMPS[P.slump][1];
+const C = () => W() * cw();
+const Sp = () => {
+  const wcV = wc();
+  const sp = 34 + (wcV - 0.5) / 0.1 * 4;
+  return Math.min(38, Math.max(34, sp));
+};
+const S = () => (2400 - C() - W()) * Sp() / 100;
+const G = () => 2400 - C() - W() - S();
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  { t: "原材料进场", s: "水泥、砂、石、水进场检验；砂石含水率测定（配合比要用饱和面干基准）。", bench: "准备：\n① 水泥强度等级 fb\n② 碎石 Dmax=20mm，砂石含水率\n③ 确定强度等级与坍落度要求\n④ σ（施工管理水平）" },
+  { t: "算配制强度", s: "fcu,0=fcu,k+1.645σ——保证率 95%。", bench: "" },
+  { t: "定水灰比", s: "保罗米公式反解 C/W，得 W/C。", bench: "" },
+  { t: "定用水量", s: "按坍落度与骨料查表定 W，再算水泥用量 C=W×C/W。", bench: "" },
+  { t: "砂率与砂石", s: "按 W/C 定砂率，容重法分砂石，凑足 2400 kg/m³。", bench: "" },
+  { t: "试配校核", s: "试拌测坍落度，成型 3 组试块 28d 抗压校核。", bench: "" }
+];
+let step = 0;
+
+function renderSeg(){
+  const el = $("stepSeg");
+  el.innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" class="${i < step ? "done" : i === step ? "on" : ""}">${i + 1} · ${s.t}<small>${i < step ? "已通过" : i === step ? "进行中" : "待执行"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { if(+b.dataset.i <= step){ step = +b.dataset.i; renderSeg(); narrate(); } });
+  $("sceneTitle").textContent = `${step + 1} · ${STEPS[step].t}`;
+  $("actBtn").textContent = step >= 5 ? "完成" : "下一步";
+}
+function renderGradeSeg(){
+  const el = $("gradeSeg");
+  el.innerHTML = Object.keys(GRADES).map(g =>
+    `<button data-g="${g}" class="${g === P.grade ? "on" : ""}">${g}<small>fcu,k=${GRADES[g]}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { P.grade = b.dataset.g; renderGradeSeg(); $("gradeVal").textContent = `${P.grade}（fcu,k=${GRADES[P.grade]}）`; refreshMetrics(); narrate(); drawCanvas(); });
+}
+function renderCemSeg(){
+  const el = $("cemSeg");
+  el.innerHTML = Object.keys(CEMS).map(c =>
+    `<button data-c="${c}" class="${P.cem === CEMS[c] ? "on" : ""}">${c}<small>fb=${CEMS[c]}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { P.cem = +b.dataset.c; renderCemSeg(); $("cemVal").textContent = `${P.cem}（fb=${P.cem}）`; refreshMetrics(); narrate(); drawCanvas(); });
+}
+function renderSlSeg(){
+  const el = $("slSeg");
+  el.innerHTML = SLUMPS.map((s, i) =>
+    `<button data-i="${i}" class="${i === P.slump ? "on" : ""}">${s[0]}<small>W=${s[1]}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { P.slump = +b.dataset.i; renderSlSeg(); $("slVal").textContent = `${SLUMPS[P.slump][0]} · W=${W()}`; refreshMetrics(); narrate(); drawCanvas(); });
+}
+function narrate(){
+  const n = $("narrate");
+  if (step <= 1) n.innerHTML = STEPS[step].s;
+  else if (step === 2) n.innerHTML = `fcu,0=${GRADES[P.grade]}+1.645×5=<b>${f0().toFixed(1)} MPa</b>——比等级高 ${(f0() - GRADES[P.grade]).toFixed(1)} MPa，这是 95% 保证率的要求。`;
+  else if (step === 3) n.innerHTML = `C/W=fcu,0/(αa·fb)+αb=<b>${cw().toFixed(3)}</b> → W/C=<b>${wc().toFixed(3)}</b>。`;
+  else if (step === 4) n.innerHTML = `W=${W()} kg/m³（查表），C=W×C/W=<b>${C().toFixed(0)} kg/m³</b>。`;
+  else if (step === 5) n.innerHTML = `砂率 Sp=<b>${Sp().toFixed(1)}%</b>（随 W/C=${wc().toFixed(2)}），S=${S().toFixed(0)}、G=${G().toFixed(0)}，合计 ${(C() + W() + S() + G()).toFixed(0)} kg/m³。`;
+  else n.innerHTML = `试配：拌制基准配合比 → 坍落度校核 → 3 组试块 28d 抗压 ≥${f0().toFixed(1)} MPa 通过。`;
+}
+function flash(id){
+  const el = $(id); if(!el) return;
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+function refreshMetrics(){
+  $("mF").textContent = f0().toFixed(1);
+  $("mW").textContent = wc().toFixed(3);
+  $("mC").textContent = C().toFixed(0);
+  $("mSp").textContent = Sp().toFixed(1);
+  $("mSpSub").textContent = `W/C=${wc().toFixed(2)} · W=${W()}`;
+  flash("mF"); flash("mW"); flash("mC"); flash("mSp");
+}
+
+/* ============ Canvas 每方用量条形 ============ */
+const W_ = 820, H_ = 420;
+const cv = $("mixCanvas"), ctx = cv.getContext("2d");
+function drawCanvas(){
+  ctx.clearRect(0, 0, W_, H_);
+  const c = C(), w = W(), s = S(), g = G();
+  const items = [
+    ["水泥 C", c, "#ffb020"],
+    ["水 W", w, "#59d6ff"],
+    ["砂 S", s, "#b48cff"],
+    ["石 G", g, "#3ddc84"]
+  ];
+  // 左：条形
+  const maxV = Math.max(c, w, s, g) * 1.15;
+  const l = { l: 56, r: 430, t: 24, b: 42 };
+  const X = v => l.l + v / maxV * (l.r - l.l);
+  items.forEach((it, i) => {
+    const y = l.t + 28 + i * 78;
+    ctx.fillStyle = "#11151d";
+    ctx.fillRect(l.l, y, l.r - l.l, 56);
+    ctx.fillStyle = it[2];
+    ctx.fillRect(l.l, y, X(it[1]) - l.l, 56);
+    ctx.fillStyle = "#e8eef4"; ctx.font = "bold 16px -apple-system,Microsoft YaHei";
+    ctx.fillText(it[0] + " " + it[1].toFixed(0) + " kg", l.l + 8, y + 36);
+    ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+    ctx.fillText("2400", l.r - 20, y + 20);
+  });
+  // 轴
+  ctx.strokeStyle = "#232b38";
+  ctx.beginPath(); ctx.moveTo(l.l, l.t + 8); ctx.lineTo(l.l, l.t + 8 + 4 * 78); ctx.stroke();
+  // 右：流程
+  const rx = 470;
+  ctx.fillStyle = "#8b95a3"; ctx.font = "13px -apple-system,Microsoft YaHei";
+  ctx.fillText("设计流程与关键数", rx, 36);
+  const flow = [
+    `fcu,0 = ${GRADES[P.grade]} + 1.645×5 = ${f0().toFixed(1)} MPa`,
+    `C/W = ${f0().toFixed(1)}/(0.53×${P.cem}) + 0.20 = ${cw().toFixed(3)}`,
+    `W/C = ${wc().toFixed(3)}`,
+    `W = ${W()} kg/m³（查表）`,
+    `C = ${W()}×${cw().toFixed(2)} = ${c.toFixed(0)} kg/m³`,
+    `Sp = ${Sp().toFixed(1)}%（W/C=${wc().toFixed(2)}）`,
+    `S = ${s.toFixed(0)}，G = ${g.toFixed(0)} kg/m³`,
+    `合计 ${(c + w + s + g).toFixed(0)} kg/m³ ≈ 2400`
+  ];
+  flow.forEach((f, i) => {
+    ctx.fillStyle = i === flow.length - 1 ? "#ffb020" : "#e8eef4";
+    ctx.font = i === flow.length - 1 ? "bold 12.5px ui-monospace,monospace" : "12px ui-monospace,monospace";
+    ctx.fillText(f, rx, 66 + i * 30);
+  });
+  ctx.fillStyle = "#5b6572"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("基准配合比 → 试拌调坍落度 → 3 组试块 28d 校核", rx, H_ - 60);
+}
+
+/* ============ 动作 ============ */
+$("actBtn").onclick = () => {
+  if (step < 5) step++;
+  if (step === 4){ renderConclusion(); }
+  renderSeg(); narrate();
+};
+$("resetBtn").onclick = resetAll;
+function resetAll(){
+  P = { grade: "C30", cem: 42.5, slump: 0 };
+  step = 0;
+  $("conclusionCard").style.display = "none";
+  renderSeg(); renderGradeSeg(); renderCemSeg(); renderSlSeg(); refreshMetrics(); narrate(); drawCanvas();
+}
+function renderConclusion(){
+  const c = C(), w = W(), s = S(), g = G();
+  $("conclusionCard").style.display = "";
+  $("resBig").textContent = c.toFixed(0);
+  $("resState").textContent = `${P.grade} · 42.5水泥 · 坍落度${SLUMPS[P.slump][0]} · W/C=${wc().toFixed(3)}`;
+  $("tblC").textContent = c.toFixed(0);
+  $("tblW").textContent = w.toFixed(0);
+  $("tblS").textContent = s.toFixed(0);
+  $("tblG").textContent = g.toFixed(0);
+  $("tblSum").textContent = (c + w + s + g).toFixed(0);
+  $("concText").innerHTML = `${P.grade} 基准配合比：<b>C=${c.toFixed(0)} / W=${w.toFixed(0)} / S=${s.toFixed(0)} / G=${g.toFixed(0)} kg/m³</b>（W/C=${wc().toFixed(3)}、砂率 ${Sp().toFixed(1)}%、合计 ${(c + w + s + g).toFixed(0)} kg/m³）。<br>配制强度 fcu,0=<b>${f0().toFixed(1)} MPa</b>（比 fcu,k 高 ${(f0() - GRADES[P.grade]).toFixed(1)}，95% 保证率）。<br><span class='good'>下一步：试拌测坍落度 → 3 组试块 28d 抗压 ≥ ${f0().toFixed(1)} MPa → 校正系数修正用量——理论到实践这一步不能省。</span>`;
+}
+
+/* ============ 初始化 ============ */
+window.addEventListener("load", () => {
+  setTimeout(() => $("loader").classList.add("done"), 700);
+  renderSeg(); renderGradeSeg(); renderCemSeg(); renderSlSeg(); refreshMetrics(); narrate(); drawCanvas();
+});
+</script>
+</body>
+</html>

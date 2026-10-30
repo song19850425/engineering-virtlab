@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>岩石力学·单轴抗压实验室</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='4' y='5' width='16' height='14' rx='2' fill='none' stroke='%2359d6ff' stroke-width='1.6'/%3E%3Cpath d='M12 5v14M4 12h16' stroke='%23ffb020' stroke-width='1.4'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes press{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.press{animation:press 1.8s ease-in-out infinite}
+@keyframes crack{0%,100%{opacity:.25}50%{opacity:.9}}
+.crack{animation:crack .9s ease-in-out infinite}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px;cursor:crosshair}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader,#rp{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在加工岩样…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">MINING · VIRTUAL LAB 02</div>
+    <div class="kicker">采矿工程 · 岩石力学 · 地压计算</div>
+    <h1 class="title">岩石力学<span class="thin">·单轴抗压实验室</span></h1>
+    <div class="sub">UNIAXIAL COMPRESSIVE STRENGTH · SOFTENING · IN-SITU STRESS</div>
+    <p class="oneliner"><b>同一种岩，干燥 60 MPa、泡了水只有 45——软化系数把"雨季巷道冒顶"解释得明明白白；再除以深度带来的原岩应力，安全系数一眼见底。</b><br>σv=γ·H · UCS · 软化系数 η=σsat/σdry · K=UCS/σv。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 取芯</span></h3>
+      <svg class="scene" id="rig" viewBox="0 0 420 190" role="img" aria-label="单轴压缩试验示意">
+        <g class="press">
+          <rect x="150" y="20" width="120" height="16" rx="3" fill="#3d4656"/>
+          <path d="M170 36 L170 52 M230 36 L230 52" stroke="#3d4656" stroke-width="5"/>
+        </g>
+        <rect x="160" y="56" width="60" height="78" rx="3" fill="#141a24" stroke="#59d6ff" stroke-width="1.6"/>
+        <g class="crack" opacity=".6">
+          <path d="M175 70 L190 110 L205 130" stroke="#ff5252" stroke-width="2" fill="none"/>
+          <path d="M205 60 L195 100 L210 130" stroke="#ff5252" stroke-width="1.5" fill="none"/>
+        </g>
+        <text x="190" y="156" text-anchor="middle" fill="#8b95a3" font-size="9" font-family="inherit">岩样 φ50×H100（高径比 2:1）</text>
+        <text x="190" y="172" text-anchor="middle" fill="#5b6572" font-size="9" font-family="inherit">轴向加载 → 应力-应变曲线 → 峰值即 UCS，峰后脆性跌落</text>
+      </svg>
+      <canvas id="rockCanvas" width="820" height="420" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">重置</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">岩样 UCS（当前状态）</div><div class="v" id="mU">–<small>MPa</small></div><div class="sub2" id="mUSub">–</div></div>
+          <div class="metric" id="mSc"><div class="k">原岩应力 σv</div><div class="v" id="mS">–<small>MPa</small></div><div class="sub2">γ·H 自重应力</div></div>
+          <div class="metric"><div class="k">安全系数 K</div><div class="v" id="mK">–<small>×</small></div><div class="sub2">UCS/σv</div></div>
+          <div class="metric" id="mPc"><div class="k">稳定性判定</div><div class="v" id="mPh">–</div><div class="sub2" id="mPhSub">–</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">岩性</span><span class="val" id="rockVal">砂岩</span></div>
+          <div class="seg" id="rockSeg"></div>
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">含水状态</span><span class="val" id="wetVal">饱和</span></div>
+          <div class="seg" id="wetSeg"></div>
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">埋深 H</span><span class="val" id="hVal">500 m</span></div>
+          <input type="range" id="hRange" min="100" max="2000" step="50" value="500">
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>实验结论 · 强度与地压安全</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">MPa（单轴抗压强度 UCS）</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">换岩性再测</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · UCS 不是"岩石有多硬"</div><div class="d">UCS 是标准试件（φ50×H100，高径比 2:1）在实验室条件下的值：端面平整度、加载速率、含水率全影响它。工程上还要折减（岩体质量 RMR/Q 分级），别拿室内值直接当岩体强度。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · 软化系数是水的账</div><div class="d">软化系数 η=饱和强度/干燥强度，页岩、泥岩遇水能掉一半强度——巷道遇水软化、淋水区顶板离层都是它。设计时永远用饱和强度，不用干燥强度撑场面。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · 深度每加 40m 自重应力涨 1MPa</div><div class="d">σv=γH，γ≈25 kN/m³，即约 40m/MPa。深部软岩（煤、页岩）在 1000m 以下 σv=25 MPa，K 跌破 1——不是强度不够，是埋深把"地压"两个字写实了。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">单轴抗压强度 UCS（MPa）：试件破坏峰值应力 σ = F/A
+软化系数：η = σ_饱和 / σ_干燥（砂岩 0.75、页岩 0.50、煤 0.55、灰岩 0.80、花岗岩 0.95）
+自重应力（地压计算）：σv = γ·H，γ≈25 kN/m³ → 每 40m 约 +1 MPa
+安全系数：K = UCS_有效 / σv；K&lt;1 失稳、1~1.5 临界、&gt;1.5 安全（教学简化）
+应力-应变（演示）：弹性段 σ=E·ε → 强化段到 UCS → 峰后脆性跌落
+本页为确定性演示，岩性 UCS/E 取教材常用代表值，实际以试验为准。</div>
+    <p>演示模型按岩石力学单轴压缩试验与自重应力地压计算设定；岩体工程还要叠加 RMR/Q 岩体分级折减、构造应力与侧压系数。教学演示用，不作为岩体工程设计依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性） ============ */
+const ROCKS = {
+  "煤":   { ucs: 20,  E: 5,  eta: 0.55, col: "#5b6572", d: "软岩·易软化" },
+  "页岩": { ucs: 40,  E: 15, eta: 0.50, col: "#b48cff", d: "遇水软化明显" },
+  "砂岩": { ucs: 60,  E: 20, eta: 0.75, col: "#ffb020", d: "中硬·软化中等" },
+  "灰岩": { ucs: 100, E: 40, eta: 0.80, col: "#59d6ff", d: "硬岩·较抗水" },
+  "花岗岩":{ ucs: 150, E: 60, eta: 0.95, col: "#3ddc84", d: "坚硬·基本不软化" }
+};
+let P = { rock: "砂岩", wet: true, H: 500 };
+const $ = id => document.getElementById(id);
+const ucsEff = () => {
+  const r = ROCKS[P.rock];
+  return P.wet ? r.ucs * r.eta : r.ucs;
+};
+const sigmaV = () => 0.025 * P.H;
+const K = () => ucsEff() / sigmaV();
+function judge(){
+  const k = K();
+  if (k < 1) return ["失稳", "K<1，支护不足即冒顶/片帮", "#ff5252"];
+  if (k < 1.5) return ["临界", "1≤K<1.5，需加强支护监测", "#ffb020"];
+  return ["安全", "K≥1.5，强度储备足够", "#3ddc84"];
+}
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  { t: "取芯", s: "钻取岩芯，标注层位与产状，封存防失水。", bench: "准备：\n① 岩芯钻取（选岩性）\n② 加工 φ50×H100 标准试件，两端磨平\n③ 含水状态：干燥/饱和（浸水）\n④ 记录岩性、层位" },
+  { t: "装样", s: "试件对中装进压力机，安装应变片与位移计。", bench: "" },
+  { t: "加载", s: "以恒速率轴向加载，采集应力-应变全过程曲线。", bench: "" },
+  { t: "记录破坏", s: "峰值应力即 UCS；观察破坏模式（劈裂/剪切滑移）。", bench: "" },
+  { t: "算地压", s: "按埋深算自重应力 σv=γH，求安全系数 K=UCS/σv。", bench: "" },
+  { t: "报告", s: "报 UCS（注明含水状态）、软化系数、K 与支护建议。", bench: "" }
+];
+let step = 0;
+
+function renderSeg(){
+  const el = $("stepSeg");
+  el.innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" class="${i < step ? "done" : i === step ? "on" : ""}">${i + 1} · ${s.t}<small>${i < step ? "已通过" : i === step ? "进行中" : "待执行"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { if(+b.dataset.i <= step){ step = +b.dataset.i; renderSeg(); narrate(); } });
+  $("sceneTitle").textContent = `${step + 1} · ${STEPS[step].t}`;
+  $("actBtn").textContent = step >= 5 ? "完成" : "下一步";
+}
+function renderRockSeg(){
+  const el = $("rockSeg");
+  el.innerHTML = Object.keys(ROCKS).map((r, i) =>
+    `<button data-r="${r}" class="${r === P.rock ? "on" : ""}">${r}<small>${ROCKS[r].d}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { P.rock = b.dataset.r; renderRockSeg(); $("rockVal").textContent = P.rock; refreshMetrics(); narrate(); drawCanvas(); });
+}
+function renderWetSeg(){
+  const el = $("wetSeg");
+  const opts = [["true", "饱和（浸水）", "软化系数生效"], ["false", "干燥", "室内原样强度"]];
+  el.innerHTML = opts.map(o =>
+    `<button data-w="${o[0]}" class="${String(P.wet) === o[0] ? "on" : ""}">${o[1]}<small>${o[2]}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { P.wet = b.dataset.w === "true"; renderWetSeg(); $("wetVal").textContent = P.wet ? "饱和" : "干燥"; refreshMetrics(); narrate(); drawCanvas(); });
+}
+function narrate(){
+  const n = $("narrate");
+  const u = ucsEff(), sv = sigmaV(), k = K(), j = judge(), r = ROCKS[P.rock];
+  if (step <= 1) n.innerHTML = STEPS[step].s;
+  else if (step === 2) n.innerHTML = `${P.rock}试件（φ50×H100）对中装样完成。`;
+  else if (step === 3) n.innerHTML = `加载：σ=E·ε 线性段 → 强化段 → 峰值 <b>UCS=${u.toFixed(0)} MPa</b>（${P.wet ? "饱和" : "干燥"}，软化系数 ${r.eta}）→ 峰后脆性跌落。`;
+  else if (step === 4) n.innerHTML = `破坏模式：${P.rock}单轴压缩呈劈裂/剪切滑移，脆性跌落明显。${P.wet && r.eta < 0.7 ? "<span class='warn'>软化显著：遇水强度损失 " + ((1 - r.eta) * 100).toFixed(0) + "%</span>" : ""}`;
+  else if (step === 5) n.innerHTML = `地压：σv=γH=<b>${sv.toFixed(1)} MPa</b>（H=${P.H}m），K=UCS/σv=<b>${k.toFixed(2)}</b> → <b style="color:${j[2]}">${j[0]}</b>：${j[1]}。`;
+  else n.innerHTML = `报告：${P.rock}（${P.wet ? "饱和" : "干燥"}）UCS=${u.toFixed(0)} MPa、软化系数 ${r.eta}、H=${P.H}m → K=${k.toFixed(2)} ${j[0]}。`;
+}
+function flash(id){
+  const el = $(id); if(!el) return;
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+function refreshMetrics(){
+  const u = ucsEff(), sv = sigmaV(), k = K(), j = judge(), r = ROCKS[P.rock];
+  $("mU").textContent = u.toFixed(0);
+  $("mUSub").textContent = `${P.wet ? "饱和 η=" + r.eta : "干燥"} · ${P.rock}`;
+  $("mS").textContent = sv.toFixed(1);
+  $("mK").textContent = k.toFixed(2);
+  $("mPh").textContent = j[0];
+  $("mPhSub").textContent = j[1];
+  $("mPh").style.color = j[2];
+  flash("mU"); flash("mS"); flash("mK"); flash("mPh");
+}
+
+/* ============ Canvas 应力-应变曲线 ============ */
+const W_ = 820, H_ = 420;
+const cv = $("rockCanvas"), ctx = cv.getContext("2d");
+function drawCanvas(){
+  ctx.clearRect(0, 0, W_, H_);
+  const u = ucsEff(), E = ROCKS[P.rock].E, r = ROCKS[P.rock];
+  // 左：σ-ε 曲线
+  const l = { l: 56, r: 430, t: 24, b: 42 };
+  const emax = Math.max(0.01, u / E * 1.35);
+  const smax = Math.max(1, u * 1.15);
+  const X = e => l.l + e / emax * (l.r - l.l);
+  const Y = s => H_ - l.b - s / smax * (H_ - l.t - l.b);
+  ctx.font = "10px ui-monospace,monospace"; ctx.fillStyle = "#5b6572"; ctx.strokeStyle = "#232b38";
+  for (let i = 0; i <= 5; i++){ const e = i * emax / 5, x = X(e); ctx.beginPath(); ctx.moveTo(x, l.t); ctx.lineTo(x, H_ - l.b); ctx.stroke(); ctx.fillText((e * 1000).toFixed(0), x - 8, H_ - l.b + 16); }
+  for (let i = 0; i <= 5; i++){ const s = i * smax / 5, y = Y(s); ctx.beginPath(); ctx.moveTo(l.l, y); ctx.lineTo(l.r, y); ctx.stroke(); ctx.fillText(s.toFixed(0), 6, y + 4); }
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("应变 ε (×10⁻³)", l.l + 100, H_ - 8);
+  ctx.save(); ctx.translate(14, H_ / 2 + 4); ctx.rotate(-Math.PI / 2); ctx.fillText("应力 σ (MPa)", -30, 0); ctx.restore();
+  ctx.fillText("单轴压缩应力-应变曲线", l.l + 8, l.t - 6);
+  // 曲线：弹性→强化→峰后
+  const ef = u / E;
+  ctx.strokeStyle = r.col; ctx.lineWidth = 2.6;
+  ctx.beginPath();
+  for (let e = 0; e <= ef * 1.5; e += ef / 60){
+    let s;
+    if (e <= ef * 0.7) s = E * e;
+    else if (e <= ef) s = u * (1 - Math.pow((ef - e) / (ef * 0.3), 2) * 0.06);
+    else s = Math.max(0, u * (1 - (e - ef) / (ef * 0.5) * 0.85));
+    const x = X(e), y = Y(s);
+    e === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  // UCS 峰值标记
+  ctx.fillStyle = "#ff5252";
+  ctx.beginPath(); ctx.arc(X(ef), Y(u), 5, 0, 7); ctx.fill();
+  ctx.fillStyle = "#ff5252"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText(`UCS=${u.toFixed(0)} MPa（${P.wet ? "饱和" : "干燥"}）`, X(ef) + 6, Y(u) - 8);
+  // 右：地压与安全
+  const rx = 470;
+  const sv = sigmaV(), k = K(), j = judge();
+  ctx.fillStyle = "#8b95a3"; ctx.font = "13px -apple-system,Microsoft YaHei";
+  ctx.fillText("地压计算与安全判定", rx, 36);
+  ctx.fillStyle = "#e8eef4"; ctx.font = "12px ui-monospace,monospace";
+  ctx.fillText("σv = γ·H = 0.025 × " + P.H + " = " + sv.toFixed(1) + " MPa", rx, 60);
+  ctx.fillText("K = UCS/σv = " + u.toFixed(0) + "/" + sv.toFixed(1) + " = " + k.toFixed(2), rx, 82);
+  ctx.fillStyle = j[2]; ctx.font = "bold 26px ui-monospace,monospace";
+  ctx.fillText(j[0], rx, 118);
+  ctx.fillStyle = "#8b95a3"; ctx.font = "12px -apple-system,Microsoft YaHei";
+  ctx.fillText(j[1], rx, 142);
+  // 深度标尺
+  ctx.fillStyle = "#8b95a3"; ctx.font = "12px -apple-system,Microsoft YaHei";
+  ctx.fillText("埋深-应力标尺（γ≈25 kN/m³）：", rx, 180);
+  [[200, "200m → 5.0 MPa"], [500, "500m → 12.5 MPa"], [1000, "1000m → 25.0 MPa"], [1500, "1500m → 37.5 MPa"]].forEach((d, i) => {
+    ctx.fillStyle = d[0] === P.H ? "#ffb020" : "#5b6572";
+    ctx.font = "11px ui-monospace,monospace";
+    ctx.fillText(d[0] + "：" + d[1], rx, 206 + i * 22);
+  });
+  ctx.fillStyle = "#5b6572"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("软化：η=" + r.eta + " → 饱和 UCS=" + (r.ucs * r.eta).toFixed(0) + " MPa", rx, 300);
+}
+
+/* ============ 动作 ============ */
+$("actBtn").onclick = () => {
+  if (step < 5) step++;
+  if (step === 4){ renderConclusion(); }
+  renderSeg(); narrate();
+};
+$("resetBtn").onclick = resetAll;
+function resetAll(){
+  P = { rock: "砂岩", wet: true, H: 500 };
+  step = 0;
+  $("hRange").value = 500;
+  $("conclusionCard").style.display = "none";
+  renderSeg(); renderRockSeg(); renderWetSeg(); refreshMetrics(); narrate(); drawCanvas();
+}
+$("hRange").oninput = e => {
+  P.H = +e.target.value;
+  $("hVal").textContent = P.H + " m";
+  refreshMetrics(); narrate(); drawCanvas();
+};
+function renderConclusion(){
+  const u = ucsEff(), sv = sigmaV(), k = K(), j = judge(), r = ROCKS[P.rock];
+  $("conclusionCard").style.display = "";
+  $("resBig").textContent = u.toFixed(0);
+  $("resState").textContent = `${P.rock} · ${P.wet ? "饱和" : "干燥"} · H=${P.H}m · K=${k.toFixed(2)}`;
+  $("concText").innerHTML = `${P.rock}单轴抗压强度 <b>UCS=${u.toFixed(0)} MPa</b>（${P.wet ? "饱和，软化系数 η=" + r.eta : "干燥"}）。<br>自重应力 σv=γH=<b>${sv.toFixed(1)} MPa</b>，安全系数 <b>K=${k.toFixed(2)}</b> → <b style="color:${j[2]}">${j[0]}</b>：${j[1]}。<br><span class='good'>工程要点：按饱和强度设计；岩体强度还要按 RMR/Q 分级折减；深部软岩 K&lt;1 时必须卸压/支护先行。</span>`;
+}
+
+/* ============ 初始化 ============ */
+window.addEventListener("load", () => {
+  setTimeout(() => $("loader").classList.add("done"), 700);
+  renderSeg(); renderRockSeg(); renderWetSeg(); refreshMetrics(); narrate(); drawCanvas();
+});
+</script>
+</body>
+</html>

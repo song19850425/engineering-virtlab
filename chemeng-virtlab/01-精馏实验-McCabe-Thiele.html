@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>精馏实验室 · McCabe-Thiele</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='9' y='2' width='6' height='20' fill='%2311151d' stroke='%23ffb020'/%3E%3Cpath d='M9 6h6M9 12h6' stroke='%2359d6ff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes dashFlow{to{stroke-dashoffset:-20}}
+.flowline{stroke-dasharray:7 5;animation:dashFlow 1.1s linear infinite}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px;cursor:crosshair}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric.warn .v{color:var(--danger)}
+.metric.good .v{color:var(--ok)}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+.metric.flash{animation:mflash .9s ease}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+kbd.kbd{font-family:var(--mono);font-size:10px;color:var(--faint);border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:1px 5px;margin-left:6px;background:#0d1117;white-space:nowrap}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.kv-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media (max-width:600px){.kv-grid{grid-template-columns:1fr}}
+.kv{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.kv .k{font-size:11px;color:var(--faint)}
+.kv .v{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--txt);margin-top:2px}
+.kv .v em{font-style:normal;color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.spec-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+.spec-table th{font-size:11px;color:var(--faint);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);letter-spacing:.1em}
+.spec-table td{padding:9px 10px;border-bottom:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:13px}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader,#rp{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在建立平衡线…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">CHEME · VIRTUAL LAB 01</div>
+    <div class="kicker">化工原理 · 质量传递 · 板式精馏</div>
+    <h1 class="title">精馏<span class="thin">实验室</span></h1>
+    <div class="sub">DISTILLATION LAB · McCABE-THIELE</div>
+    <p class="oneliner"><b>回流比调小了，塔还能分开吗？</b>McCabe-Thiele 图解，理论板数怎么变一眼看完。<br>苯-甲苯体系 · 常压精馏 · 泡点进料。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 预热</span></h3>
+      <svg class="scene" id="towerSvg" viewBox="0 0 420 170" role="img" aria-label="精馏塔示意">
+        <defs><linearGradient id="steam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff5252" stop-opacity=".5"/><stop offset="1" stop-color="#ff5252" stop-opacity="0"/></linearGradient></defs>
+        <rect x="150" y="10" width="120" height="110" rx="6" fill="#151b25" stroke="#59d6ff" stroke-width="2"/>
+        <text x="210" y="26" text-anchor="middle" fill="#59d6ff" font-size="11" font-family="inherit">精馏塔</text>
+        <g id="trays"></g>
+        <rect x="140" y="120" width="140" height="34" rx="6" fill="#151b25" stroke="#ff5252" stroke-width="2"/>
+        <text x="210" y="140" text-anchor="middle" fill="#ff5252" font-size="11" font-family="inherit">再沸器</text>
+        <text x="210" y="156" text-anchor="middle" fill="#8b95a3" font-size="9" font-family="inherit">~110℃</text>
+        <rect x="130" y="2" width="160" height="18" rx="5" fill="#151b25" stroke="#b48cff" stroke-width="2"/>
+        <text x="210" y="14" text-anchor="middle" fill="#b48cff" font-size="10" font-family="inherit">全凝器 → 回流 + 馏出液</text>
+        <path d="M270 40 L310 40 L310 120 L280 120" fill="none" stroke="#ffb020" stroke-width="2" stroke-dasharray="4 3"/>
+        <text x="316" y="80" fill="#ffb020" font-size="10" font-family="inherit">回流 R</text>
+        <path d="M180 120 L180 137" stroke="#5b6572" stroke-width="2"/>
+        <text x="96" y="90" fill="#8b95a3" font-size="10" font-family="inherit">进料 F·xF</text>
+        <line x1="150" y1="60" x2="96" y2="60" stroke="#3ddc84" stroke-width="2"/>
+        <circle cx="96" cy="60" r="4" fill="#3ddc84"/>
+        <g>
+          <circle cx="196" cy="150" r="3" fill="#ffb020"><animate attributeName="cy" values="150;116" dur="1.6s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;.8;0" dur="1.6s" repeatCount="indefinite"/></circle>
+          <circle cx="212" cy="150" r="4" fill="#ffb020"><animate attributeName="cy" values="150;116" dur="2s" begin=".45s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;.8;0" dur="2s" begin=".45s" repeatCount="indefinite"/></circle>
+          <circle cx="228" cy="150" r="3" fill="#ffb020"><animate attributeName="cy" values="150;116" dur="1.8s" begin=".9s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;.8;0" dur="1.8s" begin=".9s" repeatCount="indefinite"/></circle>
+          <circle cx="210" cy="42" r="2.5" fill="#59d6ff"><animate attributeName="cy" values="32;50" dur="1.3s" begin=".3s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;.9;0" dur="1.3s" begin=".3s" repeatCount="indefinite"/></circle>
+          <path d="M270 40 L310 40 L310 120 L280 120" fill="none" stroke="#ffb020" stroke-width="2.5" class="flowline"/>
+        </g>
+      </svg>
+      <canvas id="mtCanvas" width="820" height="420" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">重新作图</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">回流比 R</div><div class="v" id="mR">–</div><div class="sub2">精馏段操作线斜率</div></div>
+          <div class="metric" id="mNm"><div class="k">理论板数 N</div><div class="v" id="mN">–<small>块</small></div><div class="sub2">含再沸器</div></div>
+          <div class="metric"><div class="k">最小回流比</div><div class="v" id="mRmin">–</div><div class="sub2">Rmin = (xD−yq)/(yq−xF)</div></div>
+          <div class="metric" id="mFm"><div class="k">进料板位置</div><div class="v" id="mFplate">–<small>第 n 块</small></div><div class="sub2">阶梯跨 q 线处</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">回流比 R</span><span class="val" id="rVal">2.00</span></div>
+          <input type="range" id="rRange" min="0.5" max="4.0" step="0.05" value="2.0">
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">进料组成 xF</span><span class="val" id="xfVal">0.50</span></div>
+          <input type="range" id="xfRange" min="0.30" max="0.70" step="0.01" value="0.50">
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">相对挥发度 α</span><span class="val" id="aVal">2.46（苯-甲苯）</span></div>
+          <div class="seg" id="alphaSeg">
+            <button data-v="2.0">2.00<small>难分离</small></button>
+            <button data-v="2.46" class="on">2.46<small>苯-甲苯</small></button>
+            <button data-v="3.0">3.00<small>易分离</small></button>
+          </div>
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>分离结论 · 苯-甲苯常压精馏（泡点进料）</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u">块理论板（含再沸器）</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">换条件再试</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · 最小回流比</div><div class="d">R 低于 Rmin，操作线碰平衡线，理论板数无穷大——塔永远达不到分离要求。R 越接近 Rmin，塔越省能耗，但板数飙升。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · 再沸器干烧</div><div class="d">塔釜液面过低还继续加热，再沸器干烧、结焦、烧穿换热管。停车时先停热再停进料。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · 进料热状况</div><div class="d">泡点进料（q=1）q 线竖直；冷液进料 q&gt;1、汽液进料 0&lt;q&lt;1、过热蒸汽 q&lt;0——q 线位置变了，所需板数全变。本实验固定泡点进料。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">平衡线：y = αx / [1 + (α−1)x]
+精馏段操作线：y = (R/(R+1))·x + xD/(R+1)
+提馏段操作线：y = (L̄/(L̄−W))·x − (W·xB)/(L̄−W)，  L̄ = R·D + q·F
+物料衡算：F·xF = D·xD + W·xB   （F=100 kmol/h，xD=0.95，xB=0.05，q=1）
+最小回流比：q 线与平衡线交点 (xq, yq)，Rmin = (xD−yq)/(yq−xq)
+理论板数：从 (xD,xD) 交替水平到操作线、垂直到平衡线，直到 x ≤ xB
+本页为确定性图解，α、xF、R 全部可调；结果与手工图解一致。</div>
+    <p>演示模型按板式精馏 McCabe-Thiele 法设定，苯-甲苯体系相对挥发度取常压平均值。教学演示用，不作为工程依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性） ============ */
+const XD = 0.95, XB = 0.05, F = 100;
+let P = { alpha: 2.46, xF: 0.50, R: 2.00 };
+const yeq = x => P.alpha * x / (1 + (P.alpha - 1) * x);
+const yeqInv = y => y / (P.alpha - (P.alpha - 1) * y);
+const D = () => F * (P.xF - XB) / (XD - XB);
+const W = () => F - D();
+const Lbar = () => P.R * D() + F;          // q=1 泡点进料
+const opRect = x => (P.R / (P.R + 1)) * x + XD / (P.R + 1);          // 精馏段
+const opStrip = x => (Lbar() / (Lbar() - W())) * x - (W() * XB) / (Lbar() - W()); // 提馏段
+const opLine = x => x >= P.xF ? opRect(x) : opStrip(x);
+const xq = () => P.xF;
+const yq = () => yeq(P.xF);
+const Rmin = () => (XD - yq()) / (yq() - P.xF);
+
+function stepsCount(){
+  // McCabe-Thiele 阶梯：从 (xD,xD) 出发，水平到平衡线求板上组成，垂直落到操作线，交替直到 x ≤ xB
+  let x = XD, y = XD, n = 0, plate = -1;
+  const eps = 1e-9, maxIter = 400;
+  for(let i=0;i<maxIter;i++){
+    const x1 = yeqInv(y);            // 水平：y 恒定，与平衡线交点
+    if (x1 <= XB + eps) return { n: n + 1, plate: plate < 0 ? n + 1 : plate };
+    if (plate < 0 && x >= P.xF && x1 < P.xF) plate = n + 1;   // 跨过 q 线
+    n++;
+    y = opLine(x1);                  // 垂直：落到操作线
+    x = x1;
+  }
+  return { n, plate };
+}
+
+/* ============ 绘图（Canvas McCabe-Thiele） ============ */
+const W_ = 820, H_ = 420, pad = { l: 46, r: 14, t: 14, b: 34 };
+const cv = document.getElementById("mtCanvas"), ctx = cv.getContext("2d");
+let stairs = [];          // 阶梯折点序列 [{x,y}]
+let anim = null;
+
+function sx(v){ return pad.l + v * (W_ - pad.l - pad.r); }
+function sy(v){ return H_ - pad.b - v * (H_ - pad.t - pad.b); }
+
+function drawGrid(){
+  ctx.clearRect(0,0,W_,H_);
+  ctx.font = "11px ui-monospace,monospace";
+  ctx.strokeStyle = "#232b38"; ctx.fillStyle = "#5b6572";
+  for(let i=0;i<=10;i++){
+    const v = i/10;
+    ctx.beginPath(); ctx.moveTo(sx(v),sy(0)); ctx.lineTo(sx(v),sy(1)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(sx(0),sy(v)); ctx.lineTo(sx(1),sy(v)); ctx.stroke();
+    ctx.fillText(v.toFixed(1), sx(v)-8, H_-pad.b+16);
+    ctx.fillText(v.toFixed(1), 8, sy(v)+4);
+  }
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("液相组成 x（苯摩尔分率）", W_/2-90, H_-6);
+  ctx.save(); ctx.translate(14, H_/2+6); ctx.rotate(-Math.PI/2);
+  ctx.fillText("汽相组成 y（苯摩尔分率）", -40, 0); ctx.restore();
+}
+function drawLines(){
+  // 对角线
+  ctx.strokeStyle = "#5b6572"; ctx.lineWidth = 1; ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.moveTo(sx(0),sy(0)); ctx.lineTo(sx(1),sy(1)); ctx.stroke();
+  ctx.setLineDash([]);
+  // 平衡线
+  ctx.strokeStyle = "#ffb020"; ctx.lineWidth = 2;
+  ctx.beginPath();
+  for(let i=0;i<=120;i++){ const x=i/120; ctx.lineTo(sx(x), sy(yeq(x))); }
+  ctx.stroke();
+  ctx.fillStyle = "#ffb020"; ctx.font = "12px -apple-system,Microsoft YaHei";
+  ctx.fillText("平衡线 y=f(x)", sx(0.72), sy(0.86));
+  // q 线（泡点进料 → x=xF 竖线）
+  ctx.strokeStyle = "#59d6ff"; ctx.lineWidth = 1.5; ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(sx(P.xF), sy(0)); ctx.lineTo(sx(P.xF), sy(1)); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = "#59d6ff";
+  ctx.fillText("q 线 (xF=" + P.xF.toFixed(2) + ")", sx(P.xF)+6, sy(0.12));
+  // 操作线
+  ctx.strokeStyle = "#3ddc84"; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(sx(XD), sy(XD));
+  // 精馏段从 (xD,xD) 到 q 线交点，再提馏段到 (xB,xB)
+  const xI = P.xF, yI = opRect(P.xF);
+  ctx.lineTo(sx(xI), sy(yI));
+  const xB2 = XB;
+  // 提馏段：从交点延伸到 (xB,xB)
+  ctx.lineTo(sx(xB2), sy(opStrip(xB2)));
+  ctx.stroke();
+  ctx.fillStyle = "#3ddc84"; ctx.font = "12px -apple-system,Microsoft YaHei";
+  ctx.fillText("操作线", sx(0.82), sy(opRect(0.82))+16);
+  // 目标点标记
+  ctx.fillStyle = "#b48cff";
+  ctx.fillRect(sx(XD)-2, sy(XD)-2, 4, 4);
+  ctx.fillText("xD=0.95", sx(XD)+6, sy(XD)-6);
+  ctx.fillText("xB=0.05", sx(XB)+6, sy(XB)+14);
+}
+function drawStairs(){
+  if(!stairs.length) return;
+  ctx.strokeStyle = "#b48cff"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(sx(stairs[0].x), sy(stairs[0].y));
+  for(let i=1;i<stairs.length;i++) ctx.lineTo(sx(stairs[i].x), sy(stairs[i].y));
+  ctx.stroke();
+  ctx.fillStyle = "#b48cff";
+  stairs.forEach((pt,i)=>{ ctx.fillRect(sx(pt.x)-1.5, sy(pt.y)-1.5, 3, 3); });
+}
+function computeStairs(){
+  stairs = []; let x = XD, y = XD;
+  const maxIter = 400;
+  for(let i=0;i<maxIter;i++){
+    const x1 = yeqInv(y);
+    stairs.push({x, y});           // 当前点
+    stairs.push({x: x1, y});       // 水平到平衡线
+    if (x1 <= XB) break;
+    y = opLine(x1);                // 垂直落到操作线（下一轮起点）
+    x = x1;
+  }
+}
+function drawAll(){
+  drawGrid(); drawLines(); drawStairs();
+  const st = stepsCount();
+  $("mN").innerHTML = st.n + "<small>块</small>";
+  $("mNm").className = "metric" + (P.R < Rmin() ? " warn" : " good");
+  $("mFplate").textContent = st.plate > 0 ? st.plate : "—";
+  $("mFm").className = "metric" + (st.plate > 0 ? " good" : "");
+}
+function animateStairs(){
+  if(anim){ cancelAnimationFrame(anim); anim = null; }
+  computeStairs();
+  const copy = stairs.slice();
+  stairs = [];
+  let i = 0;
+  (function stepAnim(){
+    if(i >= copy.length){ stairs = copy; drawAll(); anim = null; return; }
+    stairs.push(copy[i]); i++;
+    drawGrid(); drawLines(); drawStairs();
+    anim = requestAnimationFrame(stepAnim);
+  })();
+}
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  {n:"① 预热"},{n:"② 进料"},{n:"③ 全回流"},{n:"④ 调回流比"},{n:"⑤ 取样分析"},{n:"⑥ 图解阶梯"},{n:"⑦ 报告"}
+];
+const ACTLBL = ["开始加热 → 进料","进料完成 → 全回流","全回流稳定 → 调回流比","设定 R → 取样","取样完成 → 图解","开始作图 → 查看报告",""];
+const BENCH = [
+  `<div class="kv-grid">
+     <div class="kv"><div class="k">体系</div><div class="v">苯-甲苯 <em>常压</em></div></div>
+     <div class="kv"><div class="k">塔釜温度</div><div class="v">≈110℃</div></div>
+     <div class="kv"><div class="k">进料量</div><div class="v"><em>100</em> kmol/h</div></div>
+     <div class="kv"><div class="k">塔顶组成</div><div class="v">xD=<em>0.95</em></div></div>
+   </div>
+   <div class="tipbox"><b>预热：</b>再沸器缓慢加热，先全回流建立塔内浓度分布。<span class="warnline">加热过猛 = 液泛、雾沫夹带，塔顶采出反而变稀。</span></div>`,
+  `<div class="kv-grid">
+     <div class="kv"><div class="k">进料组成</div><div class="v">xF=<em id="bXf">0.50</em></div></div>
+     <div class="kv"><div class="k">进料热状况</div><div class="v">泡点 <em>q=1</em></div></div>
+     <div class="kv"><div class="k">馏出液量</div><div class="v" id="bD">–</div></div>
+     <div class="kv"><div class="k">釜残液量</div><div class="v" id="bW">–</div></div>
+   </div>
+   <div class="tipbox"><b>物料衡算：</b>F·xF = D·xD + W·xB，三股流组成定，D、W 就定死了。<span class="warnline">xF 越低，D 越小——轻组分太少，塔顶采出量跟着缩水。</span></div>`,
+  `<div class="kv-grid">
+     <div class="kv"><div class="k">状态</div><div class="v"><em>全回流</em></div></div>
+     <div class="kv"><div class="k">R</div><div class="v">→∞</div></div>
+     <div class="kv"><div class="k">操作线</div><div class="v">y=x（对角线）</div></div>
+     <div class="kv"><div class="k">理论板数</div><div class="v">最少板 <em>Nmin</em></div></div>
+   </div>
+   <div class="tipbox"><b>全回流</b>时操作线与对角线重合，塔板数最少（Nmin），但不产馏出液——开停车、测塔效率才用。</div>`,
+  `<div class="kv-grid">
+     <div class="kv"><div class="k">回流比</div><div class="v" id="bR">R=2.00</div></div>
+     <div class="kv"><div class="k">最小回流比</div><div class="v" id="bRmin">–</div></div>
+     <div class="kv"><div class="k">R / Rmin</div><div class="v" id="bRatio">–</div></div>
+     <div class="kv"><div class="k">能耗</div><div class="v" id="bEnergy">–</div></div>
+   </div>
+   <div class="tipbox"><b>回流比是精馏的油门：</b>R 大 → 板数少但再沸器能耗大；R 小 → 省能但板数多。<span class="warnline">R&lt;Rmin 直接无法分离，图中的阶梯会撞上平衡线。</span></div>`,
+  `<div class="kv-grid">
+     <div class="kv"><div class="k">塔顶样</div><div class="v">xD=<em>0.95</em>（设计值）</div></div>
+     <div class="kv"><div class="k">塔釜样</div><div class="v">xB=<em>0.05</em>（设计值）</div></div>
+   </div>
+   <div class="tipbox"><b>取样：</b>稳态后取塔顶、塔釜样，用折光率/气相色谱定组成。组成达不到设计值，先回头查回流比和进料状态。</div>`,
+  `<div class="kv-grid">
+     <div class="kv"><div class="k">理论板数 N</div><div class="v" id="bN2">–</div></div>
+     <div class="kv"><div class="k">进料板</div><div class="v" id="bPlate2">–</div></div>
+   </div>
+   <div class="tipbox"><b>图解：</b>从 (xD,xD) 开始，水平到操作线、垂直到平衡线，跨过 q 线换提馏段操作线，直到 x≤xB——水平线数就是理论板数（含再沸器）。</div>`,
+  `<div class="tipbox">7 步走完：预热 → 进料 → 全回流 → 调回流比 → 取样 → 图解 → 报告。<b>回流比 × 进料组成</b>定死了塔的分离能力。</div>`,
+];
+let S = { step:0, max:0 };
+const $ = id => document.getElementById(id);
+
+function syncVals(){
+  const setTxt = (id, v) => { const el = $(id); if(el) el.textContent = v; };
+  const setHtml = (id, v) => { const el = $(id); if(el) el.innerHTML = v; };
+  $("rVal").textContent = P.R.toFixed(2);
+  $("xfVal").textContent = P.xF.toFixed(2);
+  $("aVal").textContent = P.alpha.toFixed(2) + (P.alpha===2.46?"（苯-甲苯）":"");
+  setTxt("bXf", P.xF.toFixed(2));
+  setHtml("bD", D().toFixed(1) + " <em>kmol/h</em>");
+  setHtml("bW", W().toFixed(1) + " <em>kmol/h</em>");
+  setTxt("bR", "R=" + P.R.toFixed(2));
+  setTxt("bRmin", Rmin().toFixed(2));
+  setTxt("bRatio", (P.R/Rmin()).toFixed(2) + "×");
+  setTxt("bEnergy", (P.R*D()).toFixed(1) + " kmol/h");
+  $("mR").textContent = P.R.toFixed(2);
+  $("mRmin").textContent = Rmin().toFixed(2);
+}
+function narrate(){
+  const st = stepsCount();
+  const N = [
+    `再沸器开始加热，塔内建立温度梯度。<b>苯 80.1℃ / 甲苯 110.6℃</b>，苯先汽化、在塔顶富集。`,
+    `进料 <b>xF=${P.xF.toFixed(2)}</b>（泡点 q=1）。物料衡算：D=<b>${D().toFixed(1)}</b>、W=<b>${W().toFixed(1)}</b> kmol/h。`,
+    `全回流稳定，操作线 y=x，此时所需板数最少（<b>Nmin</b>），但无采出。`,
+    `回流比调至 <b>R=${P.R.toFixed(2)}</b>，Rmin=<b>${Rmin().toFixed(2)}</b>，R/Rmin=<b>${(P.R/Rmin()).toFixed(2)}×</b>。${P.R<Rmin()?'<span class="warn">低于最小回流比，无法分离！</span>':'<span class="ok">高于最小回流比，可分离。</span>'}`,
+    `取样送分析：塔顶 xD=0.95、塔釜 xB=0.05，与设计值比对。`,
+    `McCabe-Thiele 图解：理论板数 <b>N=${st.n}</b>（含再沸器），进料板在第 <b>${st.plate}</b> 块附近。${P.R<Rmin()?'<span class="warn">阶梯撞上平衡线，板数发散——R 必须调大。</span>':''}`,
+    `结论：${P.R<Rmin()?'<span class="warn">R&lt;Rmin，该条件达不到分离要求。</span>':'<span class="ok">分离可行。</span>'} 理论板 N=${st.n}，R=${P.R.toFixed(2)}（${(P.R/Rmin()).toFixed(2)}×Rmin）。`,
+  ];
+  $("narrate").innerHTML = N[S.step];
+}
+function flash(id){
+  const m = $(id); if(!m) return;
+  m.classList.remove("flash"); void m.offsetWidth; m.classList.add("flash");
+}
+let lastN = -1;
+function paintTrays(){
+  const g = document.getElementById("trays");
+  const st = stepsCount();
+  const n = Math.max(2, Math.min(st.n, 12));
+  if(n === lastN) return;
+  lastN = n;
+  let html = "";
+  for(let i=0;i<n;i++){
+    const y = 52 + (i+1) * (58 / n);
+    html += `<line x1="158" y1="${y}" x2="262" y2="${y}" stroke="#3a4a63" stroke-width="1.8"/>`;
+    html += `<circle cx="182" cy="${y}" r="2.6" fill="#ffb020"><animate attributeName="cy" values="${y};${y-10}" dur="1.4s" begin="${i*0.12}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;.9;0" dur="1.4s" begin="${i*0.12}s" repeatCount="indefinite"/></circle>`;
+  }
+  g.innerHTML = html;
+}
+function refreshMetrics(){
+  syncVals();
+  drawAll();
+  paintTrays();
+  flash("mNm"); flash("mRmin");
+}
+function buildSeg(){
+  const seg = document.getElementById("stepSeg");
+  STEPS.forEach((s,i)=>{
+    const b = document.createElement("button");
+    b.textContent = s.n; b.onclick = ()=>goStep(i);
+    seg.appendChild(b);
+  });
+}
+function paintSeg(){
+  [...document.getElementById("stepSeg").children].forEach((b,i)=>{
+    b.classList.toggle("on", i===S.step);
+    b.classList.toggle("done", i<S.max || i<S.step);
+  });
+}
+function goStep(n){
+  if(n > S.max+1 || n < 0 || n > 6) return;
+  S.step = n; if(n > S.max) S.max = n;
+  render();
+}
+function render(){
+  $("sceneTitle").textContent = STEPS[S.step].n;
+  $("bench").innerHTML = BENCH[S.step];
+  syncVals();
+  narrate(); refreshMetrics();
+  const ab = $("actBtn");
+  if(S.step === 6){
+    ab.style.display = "none";
+    $("conclusionCard").style.display = "";
+    showConclusion();
+  } else {
+    ab.style.display = "";
+    ab.textContent = ACTLBL[S.step];
+    $("conclusionCard").style.display = "none";
+  }
+  paintSeg();
+}
+function showConclusion(){
+  const st = stepsCount();
+  const bad = P.R < Rmin();
+  $("resBig").textContent = bad ? "∞" : st.n;
+  $("resBig").style.color = bad ? "var(--danger)" : "var(--violet)";
+  $("resState").textContent = bad ? "无法分离 · R < Rmin" : "分离可行 · R = " + P.R.toFixed(2) + "（" + (P.R/Rmin()).toFixed(2) + "×Rmin）";
+  $("concText").innerHTML = bad
+    ? `回流比 <b>R=${P.R.toFixed(2)}</b> 小于最小回流比 <b>Rmin=${Rmin().toFixed(2)}</b>，精馏段操作线与平衡线相切，所需理论板数趋近无穷大——<span class="bad">该条件达不到 xD=0.95 / xB=0.05 的分离要求</span>。请调大 R（建议 ≥1.2×Rmin）或调整进料组成。`
+    : `回流比 <b>R=${P.R.toFixed(2)}</b>（${(P.R/Rmin()).toFixed(2)}×Rmin），泡点进料 xF=${P.xF.toFixed(2)}，α=${P.alpha.toFixed(2)}。McCabe-Thiele 图解得理论板数 <b>N=${st.n}</b>（含再沸器），进料板约在第 <b>${st.plate}</b> 块。<span class="good">分离方案可行。</span> 实际塔板数 = N/塔效率（约 0.5–0.6）。`;
+}
+function resetAll(){
+  S.step = 0; S.max = 0;
+  if(anim){ cancelAnimationFrame(anim); anim = null; }
+  render();
+}
+
+/* ============ 事件 ============ */
+$("rRange").addEventListener("input", e => { P.R = parseFloat(e.target.value); syncVals(); refreshMetrics(); narrate(); });
+$("xfRange").addEventListener("input", e => { P.xF = parseFloat(e.target.value); syncVals(); refreshMetrics(); narrate(); });
+document.getElementById("alphaSeg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  P.alpha = parseFloat(b.dataset.v);
+  [...document.getElementById("alphaSeg").children].forEach(x=>x.classList.toggle("on", x===b));
+  syncVals(); refreshMetrics(); narrate();
+});
+$("resetBtn").addEventListener("click", ()=>{ computeStairs(); drawAll(); });
+$("actBtn").addEventListener("click", ()=>{
+  if(S.step === 5){ animateStairs(); }
+  goStep(S.step+1);
+});
+document.addEventListener("keydown", e=>{
+  if(e.key==="ArrowRight") goStep(S.step+1);
+  if(e.key==="ArrowLeft") goStep(S.step-1);
+  if(e.key===" "){ e.preventDefault(); $("actBtn").click(); }
+});
+
+/* init */
+buildSeg();
+render();
+document.getElementById("loader").classList.add("done");
+</script>
+</body>
+</html>

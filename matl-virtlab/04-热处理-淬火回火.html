@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>热处理实验室</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 16h16M6 16l2-8h8l2 8' stroke='%2359d6ff' stroke-width='1.6' fill='none'/%3E%3Cpath d='M10 5h4M12 3v4' stroke='%23ffb020' stroke-width='1.6'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes flame{0%,100%{opacity:.6}50%{opacity:1}}
+.flame{animation:flame 1.4s ease-in-out infinite}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px;cursor:crosshair}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.spec-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+.spec-table th{font-size:11px;color:var(--faint);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);letter-spacing:.1em}
+.spec-table td{padding:9px 10px;border-bottom:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:13px}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader,#rp{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在装炉加热…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">MATL · VIRTUAL LAB 04</div>
+    <div class="kicker">材料科学与工程 · 热处理 · 相变强化</div>
+    <h1 class="title">热处理<span class="thin">实验室</span></h1>
+    <div class="sub">HEAT TREATMENT · QUENCH &amp; TEMPER · CCT</div>
+    <p class="oneliner"><b>同样 45 钢，水冷出马氏体 HRC55 硬脆，炉冷出珠光体 HRC20 软韧——冷却速度就是钢的"命运开关"；淬火后再回火，硬度与韧性重新配平。</b><br>淬火介质 · C 曲线 · 回火三区间 · 调质处理。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 加热奥氏体化</span></h3>
+      <svg class="scene" id="rig" viewBox="0 0 420 190" role="img" aria-label="淬火冷却与C曲线示意">
+        <rect x="20" y="26" width="380" height="90" fill="none" stroke="#232b38" stroke-width="1.5"/>
+        <text x="210" y="18" text-anchor="middle" fill="#5b6572" font-size="8" font-family="inherit">过冷奥氏体 C 曲线（TTT 示意，对数时间轴）</text>
+        <text x="60" y="50" fill="#8b95a3" font-size="9" font-family="inherit">A=850°C</text>
+        <path d="M40 66 Q200 84 360 66" fill="none" stroke="#ffb020" stroke-width="2" stroke-dasharray="6 4"/>
+        <text x="210" y="80" text-anchor="middle" fill="#ffb020" font-size="8" font-family="inherit">C 曲线鼻部</text>
+        <path d="M40 100 Q120 88 200 84" fill="none" stroke="#ff5252" stroke-width="1.4" stroke-dasharray="4 3"/>
+        <text x="118" y="110" text-anchor="middle" fill="#ff5252" font-size="8" font-family="inherit">Ms</text>
+        <g class="flame">
+          <path d="M30 120 Q36 104 42 120" fill="#ff8c2a"/>
+          <path d="M50 120 Q56 100 62 120" fill="#ffb020"/>
+          <path d="M70 120 Q76 104 82 120" fill="#ff8c2a"/>
+        </g>
+        <text x="210" y="182" text-anchor="middle" fill="#5b6572" font-size="9" font-family="inherit">850°C 奥氏体化 → 不同介质冷却：冷却曲线穿过 C 曲线鼻部 → 组织与硬度分流</text>
+      </svg>
+      <canvas id="htCanvas" width="820" height="420" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">重置</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">冷却后硬度</div><div class="v" id="mH">–<small>HRC</small></div><div class="sub2" id="mHSub">–</div></div>
+          <div class="metric" id="mSc"><div class="k">淬火组织</div><div class="v" id="mOrg">–</div><div class="sub2" id="mOrgSub">–</div></div>
+          <div class="metric"><div class="k">回火后硬度</div><div class="v" id="mT">–<small>HRC</small></div><div class="sub2" id="mTSub">–</div></div>
+          <div class="metric" id="mCc"><div class="k">回火组织</div><div class="v" id="mC2">–</div><div class="sub2" id="mC2Sub">回火温度决定</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">冷却介质</span><span class="val" id="coolVal">水冷</span></div>
+          <div class="seg" id="coolSeg">
+            <button data-v="0">炉冷<small>珠光体</small></button>
+            <button data-v="1">空冷<small>索氏体</small></button>
+            <button data-v="2">油冷<small>屈氏体+M</small></button>
+            <button data-v="3" class="on">水冷<small>马氏体</small></button>
+          </div>
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">回火温度</span><span class="val" id="tVal">不回火</span></div>
+          <input type="range" id="tRange" min="0" max="650" step="10" value="0">
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>实验结论 · 淬火-回火工艺</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">HRC（最终硬度）</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">换工艺再试</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · 淬火快冷是双刃剑</div><div class="d">冷却速度不够→淬不上火（硬度不足）；太快→热应力+组织应力叠加，薄壁/尖角处开裂。45 钢水冷淬火 HRC≈55，但复杂截面工件宁可选油冷+合金钢，别为省成本赌开裂。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · 回火是淬火的一半</div><div class="d">淬火马氏体硬而脆、内应力大，直接使用易崩刃断裂。回火三区间：低温回火（150-250°C）刀具模具；中温回火（350-500°C）弹簧；高温回火（500-650°C）调质，轴类齿轮——"淬火+高温回火=调质"是机械零件最常见的热处理路线。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · 回火脆性不是曲线能救的</div><div class="d">某些钢 250-400°C 出现第一类回火脆性（不可逆）、450-650°C 慢冷出现第二类回火脆性（可逆）——本页简化模型不含此现象，实际工艺必须避开或加钼、快冷抑制。选材与工艺要对着断裂韧性 KIC 一起看。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">45 钢：加热 850°C 奥氏体化 → 不同介质冷却（演示）：
+  炉冷 → 珠光体 HRC≈20｜空冷 → 索氏体 HRC≈28
+  油冷 → 屈氏体+马氏体 HRC≈40｜水冷 → 马氏体 HRC≈55
+回火（对淬火态，演示简化分段线性）：
+  T=150~250°C：回火马氏体（M回），HRC 55→52，刀具/模具/滚动轴承
+  T=350~500°C：回火屈氏体（T回），HRC 52→35，弹簧/发条
+  T=500~650°C：回火索氏体（S回），HRC 35→22，调质件（轴/齿轮/连杆）
+"淬火 + 高温回火" = 调质处理
+本页为确定性演示：介质与回火温度可调，硬度结果可复算（不含回火脆性）。</div>
+    <p>演示模型按 45 钢典型热处理参数设定（硬度为典型区间，非实测曲线）；实际工艺按 GB/T 7232 与材料手册执行。教学演示用，不作为工艺规程依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性） ============ */
+const COOLS = [
+  { t: "炉冷", org: "珠光体（F+P）", hrc: 20, note: "随炉缓冷——最接近平衡组织" },
+  { t: "空冷", org: "索氏体", hrc: 28, note: "正火组织，强度塑性兼有" },
+  { t: "油冷", org: "屈氏体+马氏体", hrc: 40, note: "淬透性不足，混合组织" },
+  { t: "水冷", org: "马氏体", hrc: 55, note: "淬火组织，硬而脆、内应力大" }
+];
+let P = { cool: 3, temper: 0 };
+const $ = id => document.getElementById(id);
+function temperHrc(){
+  if (P.temper === 0) return null;
+  const T = P.temper, h0 = COOLS[P.cool].hrc;
+  let h;
+  if (T <= 250) h = h0 - (T - 150) * 0.02;
+  else if (T <= 500) h = h0 - (100 * 0.02 + (T - 250) * 0.08);
+  else h = h0 - (100 * 0.02 + 250 * 0.08 + (T - 500) * 0.05);
+  return Math.max(10, h);
+}
+function temperOrg(){
+  if (P.temper === 0) return null;
+  const T = P.temper;
+  if (T <= 250) return { t: "回火马氏体 M回", use: "刀具/模具/轴承" };
+  if (T <= 500) return { t: "回火屈氏体 T回", use: "弹簧/发条" };
+  return { t: "回火索氏体 S回", use: "调质件·轴/齿轮/连杆" };
+}
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  { t: "加热奥氏体化", s: "45 钢加热至 850°C 保温，获得均匀奥氏体。加热温度与保温时间决定奥氏体成分均匀度。", bench: "准备：\n① 45 钢试样\n② 电炉加热 850°C\n③ 保温透烧（奥氏体化）\n④ 准备四种冷却介质" },
+  { t: "选择介质", s: "选炉冷/空冷/油冷/水冷——冷却速度决定过冷奥氏体转变产物。", bench: "" },
+  { t: "淬火冷却", s: "观察冷却曲线相对 C 曲线鼻部的位置：快冷穿越鼻部→马氏体；缓冷在鼻部以上→珠光体。", bench: "" },
+  { t: "测淬火硬度", s: "淬火后测 HRC：水冷 55、油冷 40、空冷 28、炉冷 20。", bench: "" },
+  { t: "回火", s: "淬火件回火：低温/中温/高温三区间，硬度下降韧性上升。", bench: "" },
+  { t: "报告", s: "工艺-组织-性能总结：淬火保硬度、回火调韧性。", bench: "" }
+];
+let step = 0;
+
+function renderSeg(){
+  const el = $("stepSeg");
+  el.innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" class="${i < step ? "done" : i === step ? "on" : ""}">${i + 1} · ${s.t}<small>${i < step ? "已通过" : i === step ? "进行中" : "待执行"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { if(+b.dataset.i <= step){ step = +b.dataset.i; renderSeg(); narrate(); } });
+  $("sceneTitle").textContent = `${step + 1} · ${STEPS[step].t}`;
+  $("actBtn").textContent = step >= 5 ? "完成" : "下一步";
+}
+function narrate(){
+  const n = $("narrate");
+  const c = COOLS[P.cool], t = temperHrc(), to = temperOrg();
+  if (step <= 1) n.innerHTML = STEPS[step].s;
+  else if (step === 2) n.innerHTML = `${c.t}：冷却速度${P.cool === 0 ? "最慢" : P.cool === 1 ? "较慢" : P.cool === 2 ? "较快" : "最快"}。${c.note}。`;
+  else if (step === 3) n.innerHTML = `冷却曲线${P.cool === 3 ? "陡直穿过鼻部 → <b>马氏体</b>" : P.cool === 2 ? "穿过鼻部下方 → 屈氏体+少量马氏体" : P.cool === 1 ? "在鼻部附近 → 索氏体" : "缓斜完全避过 → 珠光体"}。`;
+  else if (step === 4) n.innerHTML = `淬火组织：<b>${c.org}</b>，HRC=<b>${c.hrc}</b>。水冷马氏体最硬，炉冷珠光体最软——冷却速度是命运开关。`;
+  else if (step === 5){
+    if (t === null) n.innerHTML = `未回火：马氏体硬而脆（HRC ${c.hrc}），内应力大——直接使用易崩刃。`;
+    else n.innerHTML = `回火 ${P.temper}°C → <b>${to.t}</b>（${to.use}），HRC=${t.toFixed(0)}。回火温度越高，硬度越低、韧性越高。`;
+  }
+  else n.innerHTML = `报告：${c.t}淬火 ${c.org}/HRC${c.hrc}${t !== null ? `，回火 ${P.temper}°C → ${to.t}/HRC${t.toFixed(0)}` : "，未回火"}。淬火保硬度、回火调韧性。`;
+}
+function flash(id){
+  const el = $(id); if(!el) return;
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+function refreshMetrics(){
+  const c = COOLS[P.cool], t = temperHrc(), to = temperOrg();
+  $("mH").textContent = c.hrc;
+  $("mHSub").textContent = "淬火后";
+  $("mOrg").textContent = c.org;
+  $("mOrgSub").textContent = c.note;
+  $("mT").textContent = t === null ? "—" : t.toFixed(0);
+  $("mTSub").textContent = t === null ? "未回火" : P.temper + "°C";
+  $("mC2").textContent = to ? to.t : "—";
+  $("mC2Sub").textContent = to ? to.use : "先淬火再回火";
+  flash("mH"); flash("mOrg"); flash("mT"); flash("mC2");
+}
+
+/* ============ Canvas 回火曲线 + 冷却对照 ============ */
+const W_ = 820, H_ = 420;
+const cv = $("htCanvas"), ctx = cv.getContext("2d");
+function drawCanvas(){
+  ctx.clearRect(0, 0, W_, H_);
+  // 左：回火硬度曲线
+  const l = { l: 56, r: 430, t: 24, b: 42 };
+  const Tmax = 700, Hmax = 60;
+  const X = t => l.l + t / Tmax * (l.r - l.l);
+  const Y = h => H_ - l.b - h / Hmax * (H_ - l.t - l.b);
+  ctx.font = "10px ui-monospace,monospace"; ctx.fillStyle = "#5b6572"; ctx.strokeStyle = "#232b38";
+  for (let t = 0; t <= 600; t += 100){ const x = X(t); ctx.beginPath(); ctx.moveTo(x, l.t); ctx.lineTo(x, H_ - l.b); ctx.stroke(); ctx.fillText(t, x - 8, H_ - l.b + 16); }
+  for (let h = 0; h <= 60; h += 20){ const y = Y(h); ctx.beginPath(); ctx.moveTo(l.l, y); ctx.lineTo(l.r, y); ctx.stroke(); ctx.fillText(h, 6, y + 4); }
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("回火温度 T (°C)", l.l + 110, H_ - 8);
+  ctx.fillText("淬火后回火：HRC vs T（水冷 55 起算）", l.l + 8, l.t - 6);
+  ctx.save(); ctx.translate(14, H_ / 2 + 6); ctx.rotate(-Math.PI / 2); ctx.fillText("HRC", -30, 0); ctx.restore();
+  // 区间分界
+  ctx.strokeStyle = "#232b38"; ctx.setLineDash([4, 3]);
+  [250, 500].forEach(t => { const x = X(t); ctx.beginPath(); ctx.moveTo(x, l.t); ctx.lineTo(x, H_ - l.b); ctx.stroke(); });
+  ctx.setLineDash([]);
+  ctx.fillStyle = "#5b6572"; ctx.font = "10.5px -apple-system,Microsoft YaHei";
+  ctx.fillText("低温回火", X(120), H_ - l.b - 14);
+  ctx.fillText("中温", X(380), H_ - l.b - 14);
+  ctx.fillText("高温(调质)", X(585), H_ - l.b - 14);
+  // 曲线（淬火 55 起）
+  if (P.cool === 3){
+    ctx.strokeStyle = "#59d6ff"; ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    for (let T = 150; T <= 650; T += 5){
+      let h;
+      if (T <= 250) h = 55 - (T - 150) * 0.02;
+      else if (T <= 500) h = 55 - (100 * 0.02 + (T - 250) * 0.08);
+      else h = 55 - (100 * 0.02 + 250 * 0.08 + (T - 500) * 0.05);
+      const x = X(T), y = Y(Math.max(10, h));
+      T === 150 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  } else {
+    ctx.fillStyle = "#8b95a3"; ctx.font = "12px -apple-system,Microsoft YaHei";
+    ctx.fillText("回火曲线以水冷淬火态为基准", l.l + 20, H_ / 2 - 10);
+  }
+  // 当前回火点
+  if (P.temper > 0 && P.cool === 3){
+    const t = P.temper, h = temperHrc();
+    ctx.fillStyle = "#ff5252";
+    ctx.beginPath(); ctx.arc(X(t), Y(h), 5, 0, 7); ctx.fill();
+    ctx.fillStyle = "#ff5252"; ctx.font = "11px ui-monospace,monospace";
+    ctx.fillText(`(${t}°C, ${h.toFixed(0)} HRC)`, X(t) + 8, Y(h) - 8);
+  }
+  // 右：冷却对照表
+  const rx = 460;
+  ctx.fillStyle = "#8b95a3"; ctx.font = "13px -apple-system,Microsoft YaHei";
+  ctx.fillText("冷却介质 → 组织 → 硬度（45 钢 850°C）", rx, 36);
+  const rows = [
+    ["介质", "组织", "HRC", "用途"],
+    ["炉冷", "珠光体", "20", "退火·软化"],
+    ["空冷", "索氏体", "28", "正火·调质前"],
+    ["油冷", "屈氏体+M", "40", "复杂件淬火"],
+    ["水冷", "马氏体", "55", "淬火·配回火"]
+  ];
+  ctx.font = "11.5px ui-monospace,monospace";
+  rows.forEach((r, ri) => {
+    const y = 56 + ri * 30;
+    ctx.fillStyle = ri === 0 ? "#5b6572" : ri === P.cool + 1 ? "#ffb020" : "#e8eef4";
+    ctx.font = ri === 0 ? "11px -apple-system,Microsoft YaHei" : "12px ui-monospace,monospace";
+    r.forEach((v, ci) => ctx.fillText(v, rx + ci * 92, y));
+  });
+  ctx.fillStyle = "#ff8c2a"; ctx.font = "12px -apple-system,Microsoft YaHei";
+  ctx.fillText("↑ 当前选择", rx, 56 + (P.cool + 1) * 30 - 4);
+  // 回火结论
+  const t = temperHrc(), to = temperOrg();
+  ctx.fillStyle = "#8b95a3"; ctx.font = "13px -apple-system,Microsoft YaHei";
+  ctx.fillText("当前工艺：", rx, 56 + 5 * 30 + 8);
+  ctx.fillStyle = "#ffb020"; ctx.font = "13px -apple-system,Microsoft YaHei";
+  ctx.fillText(`${COOLS[P.cool].t} + ${t === null ? "不回火" : P.temper + "°C 回火"}`, rx, 56 + 6 * 30 + 6);
+  ctx.fillStyle = "#e8eef4"; ctx.font = "12px -apple-system,Microsoft YaHei";
+  ctx.fillText(`淬火组织 ${COOLS[P.cool].org}/HRC${COOLS[P.cool].hrc}` + (to ? ` → ${to.t}/HRC${t.toFixed(0)}（${to.use}）` : ""), rx, 56 + 7 * 30 + 6);
+}
+
+/* ============ 动作 ============ */
+$("actBtn").onclick = () => {
+  if (step < 5) step++;
+  if (step === 4){ renderConclusion(); }
+  renderSeg(); narrate();
+};
+$("resetBtn").onclick = resetAll;
+function resetAll(){
+  P = { cool: 3, temper: 0 };
+  step = 0;
+  [...$("coolSeg").children].forEach((x, i) => x.className = i === 3 ? "on" : "");
+  $("tRange").value = 0;
+  $("conclusionCard").style.display = "none";
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+}
+[...$("coolSeg").children].forEach((b, i) => b.onclick = () => {
+  [...$("coolSeg").children].forEach((x, j) => x.className = j === i ? "on" : "");
+  P.cool = i;
+  $("coolVal").textContent = COOLS[i].t;
+  if (P.temper > 0 && i !== 3) P.temper = 0, $("tRange").value = 0;
+  refreshMetrics(); narrate(); drawCanvas();
+});
+$("tRange").oninput = e => {
+  P.temper = +e.target.value;
+  $("tVal").textContent = P.temper === 0 ? "不回火" : P.temper + " °C";
+  refreshMetrics(); narrate(); drawCanvas();
+};
+function renderConclusion(){
+  const c = COOLS[P.cool], t = temperHrc(), to = temperOrg();
+  $("conclusionCard").style.display = "";
+  $("resBig").textContent = t === null ? c.hrc : t.toFixed(0);
+  $("resUnit").textContent = "HRC（最终硬度）· " + (t === null ? "未回火" : "回火 " + P.temper + "°C");
+  $("resState").textContent = `${c.t} → ${c.org}/HRC${c.hrc}${to ? " → " + to.t : ""}`;
+  $("concText").innerHTML = `${c.t}淬火：<b>${c.org}</b>，HRC=<b>${c.hrc}</b>${t !== null ? `；回火 ${P.temper}°C → <b>${to.t}</b>（${to.use}），HRC=<b>${t.toFixed(0)}</b>` : "；未回火"}。<br><span class='good'>淬火保硬度、回火调韧性——回火温度越高韧性越好、硬度越低。</span><br>工艺对照：水冷+低温回火=刀具模具（HRC≈52）；水冷+中温回火=弹簧（HRC≈40）；水冷+高温回火=<b>调质</b>（HRC≈22~28），轴/齿轮/连杆。<br>注意：冷却不均致内应力→淬火开裂（薄壁尖角尤甚）；本演示不含回火脆性，实际工艺要避开 250-400°C 与 450-650°C 慢冷区间。`;
+}
+
+/* ============ 初始化 ============ */
+window.addEventListener("load", () => {
+  setTimeout(() => $("loader").classList.add("done"), 700);
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+});
+</script>
+</body>
+</html>

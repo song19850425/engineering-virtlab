@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>岩石三轴压缩实验室</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='9' fill='none' stroke='%2359d6ff' stroke-width='1.6'/%3E%3Cpath d='M12 3v9h8' stroke='%23ffb020' stroke-width='1.6'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#0a0d12;--panel:#11151d;--panel2:#151b25;--line:#232b38;--txt:#e8eef4;--dim:#8b95a3;--faint:#5b6572;--amber:#ffb020;--amber-dim:#8a5c10;--cyan:#59d6ff;--danger:#ff5252;--ok:#3ddc84;--violet:#b48cff;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes press{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.press{animation:press 2.2s ease-in-out infinite}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px;cursor:crosshair}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader,#rp{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在封样装压力室…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">GEO · VIRTUAL LAB 01</div>
+    <div class="kicker">地质工程 · 岩体力学 · 强度准则</div>
+    <h1 class="title">岩石三轴压缩<span class="thin">实验室</span></h1>
+    <div class="sub">TRIAXIAL TEST · MOHR CIRCLE · STRENGTH ENVELOPE</div>
+    <p class="oneliner"><b>单轴压是"裸考"，三轴是"带约束考试"——围压一给，强度立刻涨。</b><br>σ1=σ3·Kp+2c·√Kp：一组莫尔圆公切线定 c、φ，这就是莫尔-库仑强度准则。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 试样制备</span></h3>
+      <svg class="scene" id="rig" viewBox="0 0 420 190" role="img" aria-label="三轴压力室示意">
+        <rect x="140" y="60" width="140" height="90" rx="8" fill="none" stroke="#59d6ff" stroke-width="2"/>
+        <g class="press">
+          <rect x="190" y="40" width="40" height="26" fill="#3d4656"/>
+          <rect x="185" y="66" width="50" height="80" rx="4" fill="#14202e" stroke="#8b95a3"/>
+        </g>
+        <path d="M150 150 L140 170 M290 150 L280 170" stroke="#ffb020" stroke-width="3"/>
+        <text x="210" y="180" text-anchor="middle" fill="#8b95a3" font-size="9" font-family="inherit">压力室：围压 σ3（液压）＋轴向 σ1（柱塞）→ 破坏</text>
+      </svg>
+      <canvas id="triCanvas" width="820" height="420" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">重置</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">围压 σ3</div><div class="v" id="mS3">–<small>MPa</small></div><div class="sub2">压力室液压</div></div>
+          <div class="metric" id="mSc"><div class="k">破坏时 σ1</div><div class="v" id="mS1">–<small>MPa</small></div><div class="sub2">σ3·Kp+2c√Kp</div></div>
+          <div class="metric"><div class="k">黏聚力 c</div><div class="v" id="mC">–<small>MPa</small></div><div class="sub2">包线截距</div></div>
+          <div class="metric" id="mPc"><div class="k">内摩擦角 φ</div><div class="v" id="mP">–<small>°</small></div><div class="sub2" id="mPSub">包线斜率</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">岩性</span><span class="val" id="rockVal">砂岩</span></div>
+          <div class="seg" id="rockSeg"></div>
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">围压 σ3</span><span class="val" id="s3Val">10 MPa</span></div>
+          <input type="range" id="s3Range" min="0" max="30" step="1" value="10">
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>实验结论 · 强度参数</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">MPa（破坏 σ1）</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">换围压再测</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · σ1 不是测出来的"常数"</div><div class="d">σ1 随 σ3 变：围压 0 的 σ1 是单轴抗压强度，围压 10MPa 的 σ1 能翻倍。报告强度必须写清围压条件，裸报一个数没意义。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · 破坏面角度有讲究</div><div class="d">莫尔-库仑给出破坏面与主应力面夹角 45°+φ/2——φ=35° 的岩体破坏面约 62.5°。看到坡面沿缓倾角滑移，说明控制的是结构面不是岩块强度。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · 莫尔圆画在"有效应力"坐标</div><div class="d">孔隙水压力让有效应力掉、圆往左移、包线一碰就破。库区蓄水诱发滑坡，机理就是水把莫尔圆推上了包线。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">莫尔-库仑强度准则：
+  τf = c + σn·tanφ
+  Kp = tan²(45° + φ/2)（被动土压力系数）
+  σ1 = σ3·Kp + 2c·√Kp
+莫尔圆：圆心 (σ1+σ3)/2、半径 (σ1−σ3)/2
+强度参数（教学代表值）：
+  花岗岩 c=20MPa、φ=45°；砂岩 c=10、φ=35°；页岩 c=5、φ=25°
+演示：砂岩 σ3=10MPa → Kp=tan²62.5°=3.69
+  σ1=10×3.69+2×10×1.921=75.3MPa
+破坏面角：45°+φ/2（砂岩 62.5°）</div>
+    <p>演示模型按莫尔-库仑强度准则简化设定；实测需按《工程岩体试验方法标准》GB/T 50266 做多级围压试验并统计取值。教学演示用，不作为岩土设计依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性） ============ */
+const ROCKS = {
+  "页岩": { c: 5, phi: 25 },
+  "砂岩": { c: 10, phi: 35 },
+  "花岗岩": { c: 20, phi: 45 }
+};
+let P = { rock: "砂岩", s3: 10 };
+const $ = id => document.getElementById(id);
+function s1(){
+  const r = ROCKS[P.rock];
+  const Kp = Math.pow(Math.tan((45 + r.phi / 2) * Math.PI / 180), 2);
+  return { Kp, v: P.s3 * Kp + 2 * r.c * Math.sqrt(Kp) };
+}
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  { t: "试样制备", s: "钻芯取样、磨平端面、封防水膜，装压力室。", bench: "准备：\n① 钻芯取标准试件（直径×高=50×100mm）\n② 端面磨平、测尺寸密度\n③ 套防水膜、装压力室\n④ 预加围压检查密封" },
+  { t: "加围压", s: "液压泵施加 σ3，等固结稳定。", bench: "" },
+  { t: "轴向加载", s: "柱塞加压 σ1 至破坏，记录峰值。", bench: "" },
+  { t: "多级试验", s: "σ3=0/5/10/20/30 各做一组，画莫尔圆。", bench: "" },
+  { t: "画包线", s: "各圆公切线：截距 c、斜率 tanφ。", bench: "" },
+  { t: "报告", s: "报 c、φ、Kp、破坏面角。", bench: "" }
+];
+let step = 0;
+
+function renderSeg(){
+  const el = $("stepSeg");
+  el.innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" class="${i < step ? "done" : i === step ? "on" : ""}">${i + 1} · ${s.t}<small>${i < step ? "已通过" : i === step ? "进行中" : "待执行"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { if(+b.dataset.i <= step){ step = +b.dataset.i; renderSeg(); narrate(); } });
+  $("sceneTitle").textContent = `${step + 1} · ${STEPS[step].t}`;
+  $("actBtn").textContent = step >= 5 ? "完成" : "下一步";
+}
+function renderRockSeg(){
+  const el = $("rockSeg");
+  el.innerHTML = Object.keys(ROCKS).map(k =>
+    `<button data-r="${k}" class="${k === P.rock ? "on" : ""}">${k}<small>c=${ROCKS[k].c} φ=${ROCKS[k].phi}°</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { P.rock = b.dataset.r; renderRockSeg(); $("rockVal").textContent = P.rock; refreshMetrics(); narrate(); drawCanvas(); });
+}
+function narrate(){
+  const n = $("narrate");
+  const r = ROCKS[P.rock], s = s1();
+  if (step <= 1) n.innerHTML = STEPS[step].s;
+  else if (step === 2) n.innerHTML = `围压 σ3=<b>${P.s3} MPa</b>施加完毕，试样固结稳定。`;
+  else if (step === 3) n.innerHTML = `轴向加压至破坏：σ1=<b>${s.v.toFixed(1)} MPa</b>（σ3=${P.s3}）。`;
+  else if (step === 4) n.innerHTML = `多级围压 0/5/10/20/30 MPa 分别得 σ1=${[0, 5, 10, 20, 30].map(x => (x * s.Kp + 2 * r.c * Math.sqrt(s.Kp)).toFixed(0)).join("/")} MPa——画莫尔圆。`;
+  else if (step === 5) n.innerHTML = `包线：c=<b>${r.c} MPa</b>、tanφ=<b>${Math.tan(r.phi * Math.PI / 180).toFixed(3)}</b>（φ=${r.phi}°），Kp=<b>${s.Kp.toFixed(2)}</b>。`;
+  else n.innerHTML = `报告：${P.rock} σ3=${P.s3}MPa → σ1=${s.v.toFixed(1)}MPa；c=${r.c}MPa、φ=${r.phi}°、破坏面 ${45 + r.phi / 2}°。`;
+}
+function flash(id){
+  const el = $(id); if(!el) return;
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+function refreshMetrics(){
+  const r = ROCKS[P.rock], s = s1();
+  $("mS3").textContent = P.s3;
+  $("mS1").textContent = s.v.toFixed(1);
+  $("mC").textContent = r.c;
+  $("mP").textContent = r.phi;
+  $("mPSub").textContent = `Kp=${s.Kp.toFixed(2)} · 破坏面 ${45 + r.phi / 2}°`;
+  flash("mS3"); flash("mS1"); flash("mC"); flash("mP");
+}
+
+/* ============ Canvas 莫尔圆 ============ */
+const W_ = 820, H_ = 420;
+const cv = $("triCanvas"), ctx = cv.getContext("2d");
+function drawCanvas(){
+  ctx.clearRect(0, 0, W_, H_);
+  const r = ROCKS[P.rock], s = s1();
+  // 左：莫尔圆
+  const l = { l: 70, r: 500, t: 20, b: 44 };
+  const smax = 160, tmax = 80;
+  const X = sv => l.l + sv / smax * (l.r - l.l);
+  const Y = tv => H_ - l.b - tv / tmax * (H_ - l.t - l.b);
+  ctx.font = "10px ui-monospace,monospace"; ctx.fillStyle = "#5b6572"; ctx.strokeStyle = "#232b38";
+  for (let sv = 0; sv <= smax; sv += 40){ const x = X(sv); ctx.beginPath(); ctx.moveTo(x, l.t); ctx.lineTo(x, H_ - l.b); ctx.stroke(); ctx.fillText(sv, x - 10, H_ - l.b + 16); }
+  for (let tv = 0; tv <= tmax; tv += 20){ const y = Y(tv); ctx.beginPath(); ctx.moveTo(l.l, y); ctx.lineTo(l.r, y); ctx.stroke(); ctx.fillText(tv, l.l - 20, y + 4); }
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("σ (MPa)", l.l + 180, H_ - 8);
+  ctx.save(); ctx.translate(12, H_ / 2 + 4); ctx.rotate(-Math.PI / 2); ctx.fillText("τ (MPa)", -24, 0); ctx.restore();
+  // 包线
+  ctx.strokeStyle = "#ffb020"; ctx.lineWidth = 2.6;
+  ctx.beginPath(); ctx.moveTo(X(0), Y(r.c)); ctx.lineTo(X(smax), Y(r.c + smax * Math.tan(r.phi * Math.PI / 180))); ctx.stroke();
+  ctx.fillStyle = "#3ddc84";
+  ctx.beginPath(); ctx.arc(X(0), Y(r.c), 5, 0, 7); ctx.fill();
+  ctx.fillStyle = "#3ddc84"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText(`c=${r.c}MPa`, X(0) + 8, Y(r.c) - 8);
+  // 系列莫尔圆（0/5/10/20/30）
+  const seq = [0, 5, 10, 20, 30];
+  seq.forEach(s3x => {
+    const s1x = s3x * s.Kp + 2 * r.c * Math.sqrt(s.Kp);
+    const cx = (s1x + s3x) / 2, rad = (s1x - s3x) / 2;
+    ctx.strokeStyle = s3x === P.s3 ? "#59d6ff" : "#3a4a5e";
+    ctx.lineWidth = s3x === P.s3 ? 2.4 : 1.4;
+    ctx.beginPath(); ctx.arc(X(cx), Y(0), (rad / smax) * (l.r - l.l), 0, 7); ctx.stroke();
+  });
+  // 当前圆标注
+  const s1v = s.v;
+  ctx.fillStyle = "#59d6ff"; ctx.font = "11px ui-monospace,monospace";
+  ctx.fillText(`σ3=${P.s3} σ1=${s1v.toFixed(0)}`, X((s1v + P.s3) / 2) + 8, Y(6) + 8);
+
+  // 右：强度表
+  const rx = 520;
+  ctx.fillStyle = "#8b95a3"; ctx.font = "13px -apple-system,Microsoft YaHei";
+  ctx.fillText(`${P.rock} 强度参数`, rx, 36);
+  const rows = [
+    ["σ1 = " + s1v.toFixed(1) + " MPa", `σ3=${P.s3} 破坏值`],
+    ["c = " + r.c + " MPa", "包线截距"],
+    ["φ = " + r.phi + "°", "包线倾角"],
+    ["Kp = " + s.Kp.toFixed(2), "tan²(45°+φ/2)"],
+    ["破坏面 " + (45 + r.phi / 2) + "°", "与主应力面夹角"]
+  ];
+  rows.forEach((r2, i) => {
+    ctx.fillStyle = "#e8eef4"; ctx.font = "12px ui-monospace,monospace";
+    ctx.fillText(r2[0], rx, 66 + i * 32);
+    ctx.fillStyle = "#5b6572"; ctx.font = "11px -apple-system,Microsoft YaHei";
+    ctx.fillText(r2[1], rx + 170, 66 + i * 32);
+  });
+  // 岩性对比
+  ctx.fillStyle = "#8b95a3"; ctx.font = "12px -apple-system,Microsoft YaHei";
+  ctx.fillText("岩性对比（σ3=10MPa 时 σ1）", rx, 240);
+  const comp = [["页岩", 5, 25], ["砂岩", 10, 35], ["花岗岩", 20, 45]];
+  comp.forEach((cc, i) => {
+    const Kp = Math.pow(Math.tan((45 + cc[2] / 2) * Math.PI / 180), 2);
+    const v = 10 * Kp + 2 * cc[1] * Math.sqrt(Kp);
+    ctx.fillStyle = i === Object.keys(ROCKS).indexOf(P.rock) ? "#ffb020" : "#e8eef4";
+    ctx.font = "11px ui-monospace,monospace";
+    ctx.fillText(`${cc[0]}  σ1=${v.toFixed(0)}MPa`, rx, 264 + i * 26);
+  });
+  ctx.fillStyle = "#5b6572"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("围压越大莫尔圆越右移——约束效应抬强度", rx, H_ - 40);
+}
+
+/* ============ 动作 ============ */
+$("actBtn").onclick = () => {
+  if (step < 5) step++;
+  if (step === 4){ renderConclusion(); }
+  renderSeg(); narrate();
+};
+$("resetBtn").onclick = resetAll;
+function resetAll(){
+  P = { rock: "砂岩", s3: 10 };
+  step = 0;
+  $("s3Range").value = 10;
+  $("conclusionCard").style.display = "none";
+  renderSeg(); renderRockSeg(); refreshMetrics(); narrate(); drawCanvas();
+}
+$("s3Range").oninput = e => { P.s3 = +e.target.value; $("s3Val").textContent = P.s3 + " MPa"; refreshMetrics(); narrate(); drawCanvas(); };
+function renderConclusion(){
+  const r = ROCKS[P.rock], s = s1();
+  $("conclusionCard").style.display = "";
+  $("resBig").textContent = s.v.toFixed(1);
+  $("resState").textContent = `${P.rock} · σ3=${P.s3}MPa · c=${r.c} · φ=${r.phi}°`;
+  $("concText").innerHTML = `${P.rock} 围压 σ3=<b>${P.s3} MPa</b> → 破坏 σ1=<b>${s.v.toFixed(1)} MPa</b>（Kp=${s.Kp.toFixed(2)}、c=${r.c} MPa、φ=${r.phi}°）。<br><span class='good'>莫尔-库仑包线：τf=c+σn·tanφ，莫尔圆碰到包线即破坏；围压把圆右移，离包线越远越安全。</span><br>工程要点：参数必须绑定围压/排水条件上报；库区蓄水、降雨使孔隙水压力↑、有效应力↓——莫尔圆左移上包线，滑坡就来了。`;
+}
+
+/* ============ 初始化 ============ */
+window.addEventListener("load", () => {
+  setTimeout(() => $("loader").classList.add("done"), 700);
+  renderSeg(); renderRockSeg(); refreshMetrics(); narrate(); drawCanvas();
+});
+</script>
+</body>
+</html>

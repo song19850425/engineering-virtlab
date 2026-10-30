@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>HAZOP 风险矩阵实验室</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='3' width='18' height='18' rx='3' fill='none' stroke='%23ffb020' stroke-width='1.6'/%3E%3Ccircle cx='12' cy='12' r='3' fill='%23ff5252'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes dotPulse{0%{transform:scale(1)}60%{transform:scale(1.6)}100%{transform:scale(1)}}
+.dotpulse{transform-origin:center;transform-box:fill-box;animation:dotPulse 1s ease}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric.warn .v{color:var(--danger)}
+.metric.good .v{color:var(--ok)}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.spec-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+.spec-table th{font-size:11px;color:var(--faint);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);letter-spacing:.1em}
+.spec-table td{padding:9px 10px;border-bottom:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:13px}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader,#rp{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在加载节点偏差库…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">SAFETY · VIRTUAL LAB 04</div>
+    <div class="kicker">安全工程 · 过程安全 · 风险评价</div>
+    <h1 class="title">HAZOP 风险<span class="thin">矩阵实验室</span></h1>
+    <div class="sub">HAZOP LAB · RISK MATRIX R = L × S</div>
+    <p class="oneliner"><b>风险 = 后果严重度 × 发生可能性——</b>措施上了，残余风险要重评。走一遍 HAZOP 节点分析。<br>节点：精馏塔再沸器 · 5 类偏差 · 5×5 风险矩阵。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 选节点</span></h3>
+      <svg class="scene" id="rig" viewBox="0 0 420 190" role="img" aria-label="风险矩阵">
+        <defs>
+          <linearGradient id="matG" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#1e4d33"/>
+            <stop offset=".42" stop-color="#3d6e33"/>
+            <stop offset=".45" stop-color="#8a5c10"/>
+            <stop offset=".62" stop-color="#8a5c10"/>
+            <stop offset=".65" stop-color="#6e1f14"/>
+            <stop offset="1" stop-color="#6e1f14"/>
+          </linearGradient>
+        </defs>
+        <rect x="30" y="20" width="150" height="150" rx="6" fill="none" stroke="#232b38" stroke-width="1"/>
+        <g id="matCells"></g>
+        <g id="dotLayer"></g>
+        <text x="105" y="188" text-anchor="middle" fill="#5b6572" font-size="9" font-family="inherit">严重度 S →（后果）</text>
+        <text x="12" y="96" text-anchor="middle" fill="#5b6572" font-size="9" font-family="inherit" transform="rotate(-90 12 96)">可能性 L ↑（频率）</text>
+        <rect x="200" y="20" width="200" height="150" rx="8" fill="#151b25" stroke="#232b38"/>
+        <text x="210" y="40" fill="#8b95a3" font-size="10" font-family="inherit">节点 · 精馏塔再沸器</text>
+        <text x="210" y="58" fill="#5b6572" font-size="9" font-family="inherit">偏差：</text>
+        <text x="210" y="74" fill="#ffb020" font-size="11" font-family="inherit" id="devName">—</text>
+        <text x="210" y="92" fill="#5b6572" font-size="9" font-family="inherit">可能原因：</text>
+        <text x="210" y="108" fill="#e8eef4" font-size="9.5" font-family="inherit" id="devWhy">—</text>
+        <text x="210" y="128" fill="#5b6572" font-size="9" font-family="inherit">可能后果：</text>
+        <text x="210" y="144" fill="#ff8a8a" font-size="9.5" font-family="inherit" id="devCons">—</text>
+        <text x="210" y="162" fill="#5b6572" font-size="9" font-family="inherit">风险分级：</text>
+        <text x="210" y="176" fill="#b48cff" font-size="12" font-weight="700" font-family="inherit" id="devGrade">—</text>
+      </svg>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">重新分析</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">严重度 S</div><div class="v" id="mS">–</div><div class="sub2" id="mSSub">1 无影响 · 5 灾难</div></div>
+          <div class="metric"><div class="k">可能性 L</div><div class="v" id="mL">–</div><div class="sub2" id="mLSub">1 极少 · 5 经常</div></div>
+          <div class="metric" id="mRc"><div class="k">风险值 R=L×S</div><div class="v" id="mR">–</div><div class="sub2" id="mRSub">–</div></div>
+          <div class="metric"><div class="k">措施后残余风险</div><div class="v" id="mR2">–</div><div class="sub2" id="mR2Sub">每条措施 L−1</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">节点偏差</span><span class="val" id="devVal">—</span></div>
+          <div class="seg" id="devSeg"></div>
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">可能原因</span><span class="val" id="whyVal">—</span></div>
+          <div class="seg" id="whySeg"></div>
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">严重度 S</span><span class="val" id="sVal">未评</span></div>
+          <div class="seg" id="sSeg">
+            <button data-v="1">1<small>无影响</small></button>
+            <button data-v="2">2<small>轻微</small></button>
+            <button data-v="3">3<small>中等</small></button>
+            <button data-v="4">4<small>严重</small></button>
+            <button data-v="5">5<small>灾难</small></button>
+          </div>
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">可能性 L</span><span class="val" id="lVal">未评</span></div>
+          <div class="seg" id="lSeg">
+            <button data-v="1">1<small>&gt;30年/次</small></button>
+            <button data-v="2">2<small>10–30年</small></button>
+            <button data-v="3">3<small>3–10年</small></button>
+            <button data-v="4">4<small>1–3年</small></button>
+            <button data-v="5">5<small>&lt;1年</small></button>
+          </div>
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">控制措施（多选）</span><span class="val" id="meaVal">0 项</span></div>
+          <div class="seg" id="meaSeg"></div>
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>分析结论 · 节点：精馏塔再沸器</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">残余风险 R'</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">换偏差再评</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看分级标准</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · 按最坏可信后果评</div><div class="d">HAZOP 的严重度按"最坏可信后果"评估，不是平均后果、更不是最好场景——再沸器干烧要按"可燃气泄漏遇火源爆燃"评，而不是按"还能救回来"评。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · 措施后必须复评</div><div class="d">不加措施的风险分析是纸面功夫。每项措施视为一道独立保护层（IPL，LOPA 思路），实施后重评残余风险 R'——仍不可接受的必须继续降级或上定量 QRA。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · 矩阵只是筛选器</div><div class="d">5×5 矩阵是半定量筛选工具：R≥16 必须治理，但"可接受"≠"零风险"。高风险项要落到 QRA（事件树/后果模拟）做定量确认，矩阵不能替代定量分析。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（教学演示，执行按企业标准）</summary>
+    <div class="f">风险 = 可能性 × 严重度：R = L × S     （L、S 均取 1–5）
+分级（本页演示用，企业可有自己的矩阵）：
+  R ≤ 8        → 可接受（绿）
+  9 ≤ R ≤ 15   → 需控制（橙）
+  R ≥ 16       → 不可接受（红）→ 必须采取措施或停止作业
+措施降级（LOPA 简化演示）：
+  每项独立保护措施使 L −1（最低为 1）→ 残余 R' = (L − n) × S
+严重度定义（演示参考）：
+  1 无影响 · 2 轻微（装置内小损失）· 3 中等（单设备损坏/轻伤）
+  4 严重（重大损失/重伤）· 5 灾难（死亡/全厂损失/环境事件）
+可能性定义（演示参考）：1 极少(&gt;30年) · 2 罕见(10–30年) · 3 偶尔(3–10年)
+  4 可能(1–3年) · 5 经常(&lt;1年)
+正式 HAZOP 术语：节点→偏差（引导词+参数）→原因→后果→现有保护→建议措施→行动跟踪。</div>
+    <p>演示矩阵分级与降级规则为企业通用做法的教学简化；正式 HAZOP/LOPA 按企业内部标准与 GB/T 35320《危险与可操作性分析（HAZOP 分析）应用指南》执行。教学演示用，不作为决策依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 数据（确定性） ============ */
+const DEVS = [
+  { id: "flowHi", t: "流量过高", why: ["进料阀开度过大", "上游装置波动窜量", "液位控制回路失效"], cons: "塔内气速超限 → 液泛、雾沫夹带 → 塔顶产品不合格，严重时冲塔带液", sug: 3 },
+  { id: "flowLo", t: "流量过低", why: ["进料泵跳车", "管线堵塞", "计量阀误关"], cons: "塔釜液位下降 → 再沸器干烧 → 换热管结焦烧穿，可燃气泄漏", sug: 4 },
+  { id: "pressHi", t: "压力过高", why: ["冷却水中断", "不凝气积聚", "安全阀失效"], cons: "塔压超设计 → 设备超压 → 焊缝/法兰泄漏，可燃气遇火源爆燃", sug: 4 },
+  { id: "tempHi", t: "温度过高", why: ["加热蒸汽阀失控", "再沸器结垢传热恶化", "温控失效"], cons: "重组分过度汽化 → 塔内结焦/爆沸，超温破坏设备材质", sug: 3 },
+  { id: "levelHi", t: "液位过高", why: ["出料泵故障", "液位计假液位", "调节阀卡开"], cons: "塔釜满液 → 溢流至塔顶 → 冲塔带液，蒸汽管线水击", sug: 3 }
+];
+const MEASURES = [
+  { id: "ESD", t: "紧急切断阀 ESD", d: "L−1" },
+  { id: "LAL", t: "高液位联锁 LAL", d: "L−1" },
+  { id: "PSV", t: "安全阀 + 泄压", d: "L−1" },
+  { id: "TAL", t: "温度报警联锁", d: "L−1" },
+  { id: "RED", t: "双表冗余 + 校验", d: "L−1" }
+];
+let P = { dev: 0, why: 0, S: 0, L: 0, meas: [] };
+const $ = id => document.getElementById(id);
+
+/* ============ 计算 ============ */
+function R(){ return P.S * P.L; }
+function grade(r){
+  if (r >= 16) return { g: "不可接受", c: "#ff5252", cls: "bad" };
+  if (r >= 9)  return { g: "需控制", c: "#ffb020", cls: "warnline" };
+  return { g: "可接受", c: "#3ddc84", cls: "ok" };
+}
+function residual(){
+  const L2 = Math.max(1, P.L - P.meas.length);
+  return { L2, R2: L2 * P.S };
+}
+
+/* ============ SVG 矩阵 ============ */
+function cellColor(s, l){
+  const r = l * s;
+  if (r >= 16) return "#6e1f14";
+  if (r >= 9)  return "#8a5c10";
+  return "#1e4d33";
+}
+function paintMatrix(){
+  const g = $("matCells");
+  let html = "";
+  for (let l = 5; l >= 1; l--){
+    for (let s = 1; s <= 5; s++){
+      html += `<rect x="${30 + (s-1)*30}" y="${20 + (5-l)*30}" width="30" height="30" fill="${cellColor(s,l)}" stroke="#0a0d12" stroke-width="1.5" opacity=".92"><title>S=${s} L=${l} R=${s*l}</title></rect>`;
+    }
+  }
+  g.innerHTML = html;
+  // 轴标
+  let ax = "";
+  for (let s = 1; s <= 5; s++) ax += `<text x="${45 + (s-1)*30}" y="${184}" text-anchor="middle" fill="#5b6572" font-size="9" font-family="inherit">${s}</text>`;
+  for (let l = 1; l <= 5; l++) ax += `<text x="24" y="${160 - (l-1)*30}" text-anchor="end" fill="#5b6572" font-size="9" font-family="inherit">${l}</text>`;
+  g.insertAdjacentHTML("beforeend", ax);
+}
+function paintDot(){
+  const g = $("dotLayer");
+  if (!P.S || !P.L){ g.innerHTML = ""; return; }
+  const x = 45 + (P.S - 1) * 30, y = 160 - (P.L - 1) * 30;
+  g.innerHTML = `<circle cx="${x}" cy="${y}" r="7" fill="none" stroke="#fff" stroke-width="2.5" class="dotpulse"></circle>
+    <circle cx="${x}" cy="${y}" r="3.5" fill="#fff"></circle>
+    <text x="${x + 11}" y="${y + 4}" fill="#e8eef4" font-size="10" font-weight="700" font-family="inherit">R=${R()}</text>`;
+}
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  { t: "选节点", s: "节点固定为精馏塔再沸器。节点是 HAZOP 分析的基本单元——一次只分析一个设备/管线段的参数偏差。", bench: "" },
+  { t: "选偏差", s: "从偏差库选一个（引导词 × 参数）：流量过高/过低、压力过高、温度过高、液位过高。", bench: "" },
+  { t: "找原因", s: "列可能原因——原因要落到可查证的故障模式，不能写「可能出问题」这种空话。", bench: "" },
+  { t: "评严重度", s: "按最坏可信后果评 S（1–5）。", bench: "" },
+  { t: "评可能性", s: "按发生频率评 L（1–5）。", bench: "" },
+  { t: "落点分级", s: "R = L × S 落点矩阵，判定分级。", bench: "" },
+  { t: "加措施", s: "从措施库选保护层，每条使 L−1。", bench: "" },
+  { t: "残余复评", s: "复评残余风险 R'，确认降到可接受。", bench: "" },
+  { t: "报告", s: "输出分析记录：偏差/原因/后果/S/L/R/措施/残余 R'。", bench: "" }
+];
+let step = 0;
+
+function renderSeg(){
+  const el = $("stepSeg");
+  el.innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" class="${i < step ? "done" : i === step ? "on" : ""}">${i + 1} · ${s.t}<small>${i < step ? "已通过" : i === step ? "进行中" : "待执行"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { if(+b.dataset.i <= step){ step = +b.dataset.i; renderSeg(); narrate(); } });
+  $("sceneTitle").textContent = `${step + 1} · ${STEPS[step].t}`;
+  $("actBtn").textContent = step >= 8 ? "完成" : "下一步";
+}
+function renderDev(){
+  const d = DEVS[P.dev];
+  $("devVal").textContent = d.t;
+  $("devName").textContent = d.t;
+  $("devWhy").textContent = d.why.join(" / ");
+  $("devCons").textContent = d.cons;
+  $("whySeg").innerHTML = d.why.map((w, i) =>
+    `<button data-v="${i}" class="${i === P.why ? "on" : ""}">${i + 1}<small>${w}</small></button>`
+  ).join("");
+  [...$("whySeg").children].forEach(b => b.onclick = () => {
+    [...$("whySeg").children].forEach(x => x.className = "");
+    b.className = "on"; P.why = +b.dataset.v; $("whyVal").textContent = d.why[P.why];
+    narrate();
+  });
+  [...$("devSeg").children].forEach((b, i) => b.onclick = () => pickDev(i));
+  $("meaSeg").innerHTML = MEASURES.map((m, i) =>
+    `<button data-v="${i}" class="${P.meas.includes(i) ? "on" : ""}">${m.t}<small>${m.d}</small></button>`
+  ).join("");
+  [...$("meaSeg").children].forEach(b => b.onclick = () => {
+    const i = +b.dataset.v;
+    if (P.meas.includes(i)){ P.meas = P.meas.filter(x => x !== i); b.classList.remove("on"); }
+    else { P.meas.push(i); b.classList.add("on"); }
+    $("meaVal").textContent = P.meas.length + " 项";
+    narrate(); refreshMetrics(); paintDot();
+  });
+}
+function narrate(){
+  const d = DEVS[P.dev], g = P.S ? grade(R()) : null;
+  const n = $("narrate");
+  const st = STEPS[step].s;
+  if (step === 0 || step === 1) n.innerHTML = st;
+  else if (step === 2) n.innerHTML = `已选偏差 <b>${d.t}</b>。候选原因：${d.why.join("；")}。原因必须具体到可查证的故障模式。`;
+  else if (step === 3) n.innerHTML = `按最坏可信后果评 S。本例后果：${d.cons}。<span class="warnline">建议 S=${d.sug}</span>——参考但不强制。`;
+  else if (step === 4) n.innerHTML = `按发生频率评 L（1 极少–5 经常）。${P.L ? `已选 <b>L=${P.L}</b>。` : ""}`;
+  else if (step === 5) n.innerHTML = P.S && P.L ? `R = L × S = <b>${P.L} × ${P.S} = ${R()}</b> → <span class="${g.cls}">${g.g}</span>（${g.c}）。${R() >= 16 ? "<span class='warn'>不可接受：必须上措施。</span>" : R() >= 9 ? "需控制：评估现有保护是否足够。" : "可接受：可进入跟踪。"}` : "先完成 S 与 L 评价再落点。";
+  else if (step === 6) n.innerHTML = `措施库多选（LOPA 保护层思路）：${MEASURES.map(m => m.t).join(" / ")}。每项措施使 <b>L−1</b>（最低 1）。${P.meas.length ? `已选 <b>${P.meas.length}</b> 项。` : ""}`;
+  else if (step === 7){ const r = residual(); n.innerHTML = `措施后 L：<b>${P.L} → ${r.L2}</b>，残余风险 <b>R' = ${r.R2}</b> → <span class="${grade(r.R2).cls}">${grade(r.R2).g}</span>。${r.R2 >= 16 ? "<span class='warn'>仍不可接受——继续叠加措施或重新设计。</span>" : r.R2 >= 9 ? "仍需跟踪管理。" : "已降至可接受区。"}`; }
+  else n.innerHTML = `分析记录：偏差 ${d.t}｜原因 ${d.why[P.why]}｜后果 ${d.cons}｜S=${P.S} L=${P.L} R=${R()}｜措施 ${P.meas.length} 项｜残余 R'=${residual().R2}。可写入 HAZOP 工作表。`;
+}
+function flash(id){
+  const m = $(id); if(!m) return;
+  m.classList.remove("flash"); void m.offsetWidth; m.classList.add("flash");
+}
+function refreshMetrics(){
+  $("mS").textContent = P.S || "–";
+  $("mSSub").textContent = P.S ? ["", "无影响", "轻微", "中等", "严重", "灾难"][P.S] : "1 无影响 · 5 灾难";
+  $("mL").textContent = P.L || "–";
+  $("mLSub").textContent = P.L ? ["", "极少(>30年)", "罕见(10–30年)", "偶尔(3–10年)", "可能(1–3年)", "经常(<1年)"][P.L] : "1 极少 · 5 经常";
+  if (P.S && P.L){
+    const g = grade(R());
+    $("mR").textContent = R();
+    $("mR").className = "v " + g.cls;
+    $("mRSub").textContent = g.g;
+    $("mRc").className = "metric flash";
+    const r = residual();
+    $("mR2").textContent = r.R2;
+    $("mR2").className = "v " + grade(r.R2).cls;
+    $("mR2Sub").textContent = `L ${P.L}→${r.L2} · ${grade(r.R2).g}`;
+    $("devGrade").textContent = `${g.g} · R=${R()}`;
+    $("devGrade").style.color = g.c;
+  } else {
+    $("mR").textContent = "–"; $("mR2").textContent = "–";
+  }
+  flash("mR"); flash("mR2");
+}
+
+/* ============ 动作 ============ */
+$("devSeg").onclick = e => {
+  const b = e.target.closest("button"); if(!b) return;
+  [...$("devSeg").children].forEach(x => x.className = "");
+  b.className = "on";
+  P.dev = +b.dataset.v; P.why = 0; P.S = 0; P.L = 0; P.meas = [];
+  $("sVal").textContent = "未评"; $("lVal").textContent = "未评"; $("meaVal").textContent = "0 项";
+  [...$("sSeg").children].forEach(x => x.className = "");
+  [...$("lSeg").children].forEach(x => x.className = "");
+  renderDev(); refreshMetrics(); paintDot(); narrate();
+};
+function pickS(i){
+  [...$("sSeg").children].forEach((x, j) => x.className = j === i ? "on" : "");
+  P.S = +$("sSeg").children[i].dataset.v; $("sVal").textContent = P.S;
+  refreshMetrics(); paintDot(); narrate();
+}
+function pickL(i){
+  [...$("lSeg").children].forEach((x, j) => x.className = j === i ? "on" : "");
+  P.L = +$("lSeg").children[i].dataset.v; $("lVal").textContent = P.L;
+  refreshMetrics(); paintDot(); narrate();
+}
+function pickDev(i){
+  [...$("devSeg").children].forEach((x, j) => x.className = j === i ? "on" : "");
+  P.dev = i; P.why = 0; P.S = 0; P.L = 0; P.meas = [];
+  $("sVal").textContent = "未评"; $("lVal").textContent = "未评"; $("meaVal").textContent = "0 项";
+  [...$("sSeg").children].forEach(x => x.className = "");
+  [...$("lSeg").children].forEach(x => x.className = "");
+  renderDev(); refreshMetrics(); paintDot(); narrate();
+}
+[...$("sSeg").children].forEach((b, i) => b.onclick = () => pickS(i));
+[...$("lSeg").children].forEach((b, i) => b.onclick = () => pickL(i));
+$("actBtn").onclick = () => {
+  if (step < 8) step++;
+  if (step === 7){ renderConclusion(); }
+  renderSeg(); narrate();
+};
+$("resetBtn").onclick = resetAll;
+function resetAll(){
+  P = { dev: 0, why: 0, S: 0, L: 0, meas: [] };
+  step = 0;
+  [...$("devSeg").children].forEach((x, i) => x.className = i === 0 ? "on" : "");
+  renderDev();
+  [...$("sSeg").children].forEach(x => x.className = "");
+  [...$("lSeg").children].forEach(x => x.className = "");
+  $("sVal").textContent = "未评"; $("lVal").textContent = "未评"; $("meaVal").textContent = "0 项";
+  $("devGrade").textContent = "—"; $("devGrade").style.color = "";
+  $("conclusionCard").style.display = "none";
+  paintMatrix(); paintDot(); renderSeg(); refreshMetrics(); narrate();
+}
+function renderConclusion(){
+  const d = DEVS[P.dev], r = residual(), g0 = grade(R()), g1 = grade(r.R2);
+  $("conclusionCard").style.display = "";
+  $("resBig").textContent = r.R2;
+  $("resUnit").textContent = `残余风险 R'（原 R=${R()}，${g0.g}）`;
+  $("resState").textContent = `${g1.g} · L ${P.L}→${r.L2}`;
+  $("concText").innerHTML = `节点：精馏塔再沸器 ｜ 偏差：<b>${d.t}</b><br>原因：${d.why[P.why]} ｜ 后果：${d.cons}<br>评价：S=<b>${P.S}</b>，L=<b>${P.L}</b>，R=<b>${R()}</b> → <span class="${g0.cls}">${g0.g}</span><br>措施（${P.meas.length} 项）：${P.meas.length ? MEASURES.filter((_, i) => P.meas.includes(i)).map(m => m.t).join(" / ") : "未选"}<br>复评：L → <b>${r.L2}</b>，残余 R'=<b>${r.R2}</b> → <span class="${g1.cls}">${g1.g}</span><br>${r.R2 >= 16 ? "<span class='bad'>残余风险仍不可接受——按红线一/二，继续加保护层或停产整改，不得带病运行。</span>" : r.R2 >= 9 ? "<span class='warnline'>残余风险需控制：纳入日常巡检与定期复评。</span>" : "<span class='good'>已降至可接受区：措施纳入变更管理，异常事件回馈更新频率。</span>"}`;
+}
+
+/* ============ 初始化 ============ */
+window.addEventListener("load", () => {
+  setTimeout(() => $("loader").classList.add("done"), 700);
+  $("devSeg").innerHTML = DEVS.map((d, i) => `<button data-v="${i}" class="${i === 0 ? "on" : ""}">${d.t}<small>${i + 1}</small></button>`).join("");
+  renderDev(); paintMatrix(); paintDot(); renderSeg(); refreshMetrics(); narrate();
+});
+</script>
+</body>
+</html>

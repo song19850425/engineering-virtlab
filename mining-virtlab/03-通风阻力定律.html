@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>通风阻力定律实验室</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='6' fill='none' stroke='%2359d6ff' stroke-width='1.6'/%3E%3Cpath d='M12 9l1.2 3.5 3.5 1.2-3.5 1.2-1.2 3.5-1.2-3.5-3.5-1.2 3.5-1.2z' fill='%23ffb020'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes fan2{0%,100%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+.fan2{animation:fan2 1.4s linear infinite;transform-origin:380px 42px}
+@keyframes flow{0%{transform:translateX(0);opacity:.55}100%{transform:translateX(-90px);opacity:0}}
+.flow{animation:flow 1.6s linear infinite}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px;cursor:crosshair}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader,#rp{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在测风速…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">MINING · VIRTUAL LAB 03</div>
+    <div class="kicker">采矿工程 · 矿山通风与安全 · 通风网络</div>
+    <h1 class="title">通风阻力定律<span class="thin">实验室</span></h1>
+    <div class="sub">VENTILATION RESISTANCE · h=RQ² · NETWORK ALLOCATION</div>
+    <p class="oneliner"><b>h=R·Q²——风量翻一倍，阻力翻四倍。断面积开大一点、α 换好支护，阻力掉得比想象快；并联巷道风量自动按阻力反比分配。</b><br>摩擦阻力 R=αLP/A³ · 局部阻力 hξ=ξ·ρv²/2 · 并联 Q1:Q2=√(R2:R1)。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 断面测量</span></h3>
+      <svg class="scene" id="rig" viewBox="0 0 420 190" role="img" aria-label="巷道通风示意">
+        <rect x="20" y="70" width="380" height="70" rx="5" fill="#10141c" stroke="#232b38" stroke-width="1.5"/>
+        <g class="flow">
+          <circle cx="320" cy="105" r="2.6" fill="#59d6ff"/>
+          <circle cx="280" cy="95" r="2.2" fill="#59d6ff"/>
+          <circle cx="240" cy="108" r="2" fill="#59d6ff"/>
+        </g>
+        <g class="fan2">
+          <path d="M380 42 L372 32 M380 42 L388 32 M380 42 L380 28" stroke="#59d6ff" stroke-width="2.5"/>
+          <circle cx="380" cy="42" r="4" fill="#59d6ff"/>
+        </g>
+        <text x="380" y="60" text-anchor="middle" fill="#59d6ff" font-size="9" font-family="inherit">主扇</text>
+        <text x="210" y="162" text-anchor="middle" fill="#8b95a3" font-size="9" font-family="inherit">断面测点：测风站（断面几何 + 风速分布）→ 风量 Q=v·A</text>
+        <text x="210" y="180" text-anchor="middle" fill="#5b6572" font-size="9" font-family="inherit">摩擦阻力系数 α 与支护方式强相关：砌碹&lt;锚喷&lt;裸巷</text>
+      </svg>
+      <canvas id="ventCanvas" width="820" height="420" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">重置</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">巷道阻力 h</div><div class="v" id="mH">–<small>Pa</small></div><div class="sub2" id="mHSub">R·Q²</div></div>
+          <div class="metric" id="mSc"><div class="k">风速 v</div><div class="v" id="mV">–<small>m/s</small></div><div class="sub2">Q/A · 限值 8</div></div>
+          <div class="metric"><div class="k">摩擦阻力系数 R</div><div class="v" id="mR">–<small>N·s²/m⁸</small></div><div class="sub2">αLP/A³</div></div>
+          <div class="metric" id="mPc"><div class="k">风速判定</div><div class="v" id="mPh">–</div><div class="sub2" id="mPhSub">–</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">支护方式（α）</span><span class="val" id="alphaVal">锚喷 0.006</span></div>
+          <div class="seg" id="alphaSeg"></div>
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">巷长 L</span><span class="val" id="lVal">500 m</span></div>
+          <input type="range" id="lRange" min="100" max="2000" step="50" value="500">
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">断面积 A（方形）</span><span class="val" id="aVal">9.0 m²</span></div>
+          <input type="range" id="aRange" min="4" max="16" step="1" value="9">
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">风量 Q</span><span class="val" id="qVal">30 m³/s</span></div>
+          <input type="range" id="qRange" min="10" max="80" step="5" value="30">
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>实验结论 · 通风阻力与分配</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">Pa（巷道摩擦阻力 h）</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">换工况再测</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · Q 翻倍，h 翻四倍</div><div class="d">h=RQ² 是二次的：想多送一倍风，主扇要提供四倍压头——所以深井增风绝不是"加台风机"的事，先算网络阻力。总阻力大=通风电费大，每 Pa 都是钱。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · 断面开大一点最划算</div><div class="d">R∝1/A³：断面积从 9→10 m² 阻力掉约 27%。降阻的顺序永远是：扩断面＞换支护（降 α）＞缩长度＞加风机——风机是最后手段。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · 并联自动分风，串联不能加风</div><div class="d">并联巷道按 1/√R 分配风量，阻力小者分得多；串联巷道风量相同、阻力累加。串联里加一段高阻段，整条线一起遭殃——网络结构比风机选型更根本。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">通风阻力定律：h = R·Q²   [Pa]，R=摩擦阻力系数 N·s²/m⁸
+摩擦阻力：R = α·L·P/A³（α 摩擦阻力系数，L 巷长 m，P 断面周长 m，A 断面积 m²）
+方形断面周长：P = 4√A
+局部阻力：hξ = ξ·ρ·v²/2（ξ 弯头 0.5 / 风门 2.5 / 变径 0.3，ρ=1.2 kg/m³）
+串联：Q 相同，h_total = Σh；并联：h 相同，Q1:Q2 = √(R2:R1)
+风速判定（演示）：v=Q/A，煤矿主要进回风巷限值 8 m/s
+本页为确定性演示，α 取支护方式代表值，限值按规程简化。</div>
+    <p>演示模型按矿井通风学 h=RQ² 阻力定律设定；实际矿井网络解算用 Hardy-Cross 等迭代算法，α 由现场实测。教学演示用，不作为通风设计依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性） ============ */
+const ALPHAS = {
+  "砌碹": { a: 0.003, d: "光滑，阻力小" },
+  "锚喷": { a: 0.006, d: "常用支护" },
+  "喷浆": { a: 0.004, d: "介于两者间" },
+  "裸巷": { a: 0.010, d: "粗糙，阻力大" }
+};
+let P = { alpha: "锚喷", L: 500, A: 9, Q: 30 };
+const $ = id => document.getElementById(id);
+const P_ = () => 4 * Math.sqrt(P.A);
+const R = () => ALPHAS[P.alpha].a * P.L * P_() / Math.pow(P.A, 3);
+const h = () => R() * P.Q * P.Q;
+const v = () => P.Q / P.A;
+function judge(){
+  const vv = v();
+  if (vv > 8) return ["超限", "v>8 m/s，规程不允许，需扩断面", "#ff5252"];
+  if (vv > 6) return ["偏大", "6~8 m/s，接近上限", "#ffb020"];
+  return ["合规", "v≤6 m/s，风速正常", "#3ddc84"];
+}
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  { t: "断面测量", s: "测风站测断面几何（宽×高）与风速分布，算风量 Q=v·A。", bench: "准备：\n① 选支护方式（α）\n② 测断面 A 与周长 P\n③ 测风速，算风量 Q\n④ 记录巷长 L" },
+  { t: "算风量", s: "风量 Q=v·A，核对测风站读数一致性。", bench: "" },
+  { t: "摩擦阻力", s: "R=αLP/A³，h=RQ²——摩擦阻力主项。", bench: "" },
+  { t: "局部阻力", s: "弯头/风门/变径：hξ=ξ·ρv²/2，叠加进总阻力。", bench: "" },
+  { t: "网络分配", s: "串并联推演：串联 h 累加，并联按 √(R2/R1) 分风。", bench: "" },
+  { t: "报告", s: "报 h、R、v，对照风速限值，给降阻建议。", bench: "" }
+];
+let step = 0;
+
+function renderSeg(){
+  const el = $("stepSeg");
+  el.innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" class="${i < step ? "done" : i === step ? "on" : ""}">${i + 1} · ${s.t}<small>${i < step ? "已通过" : i === step ? "进行中" : "待执行"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { if(+b.dataset.i <= step){ step = +b.dataset.i; renderSeg(); narrate(); } });
+  $("sceneTitle").textContent = `${step + 1} · ${STEPS[step].t}`;
+  $("actBtn").textContent = step >= 5 ? "完成" : "下一步";
+}
+function renderAlphaSeg(){
+  const el = $("alphaSeg");
+  el.innerHTML = Object.keys(ALPHAS).map(a =>
+    `<button data-a="${a}" class="${a === P.alpha ? "on" : ""}">${a}<small>α=${ALPHAS[a].a}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { P.alpha = b.dataset.a; renderAlphaSeg(); $("alphaVal").textContent = `${P.alpha} ${ALPHAS[P.alpha].a}`; refreshMetrics(); narrate(); drawCanvas(); });
+}
+function narrate(){
+  const n = $("narrate");
+  const rr = R(), hh = h(), vv = v(), j = judge();
+  if (step <= 1) n.innerHTML = STEPS[step].s;
+  else if (step === 2) n.innerHTML = `风量 Q=v·A=<b>${P.Q.toFixed(0)} m³/s</b>，风速 v=Q/A=<b>${vv.toFixed(2)} m/s</b> → <b style="color:${j[2]}">${j[0]}</b>。`;
+  else if (step === 3) n.innerHTML = `R=αLP/A³=<b>${rr.toFixed(4)} N·s²/m⁸</b>，h=RQ²=<b>${hh.toFixed(1)} Pa</b>。`;
+  else if (step === 4) n.innerHTML = `局部阻力：风门 ξ=2.5 → h=ξ·ρv²/2=<b>${(2.5 * 1.2 * vv * vv / 2).toFixed(1)} Pa</b>；弯头 ξ=0.5 → ${(0.5 * 1.2 * vv * vv / 2).toFixed(1)} Pa。`;
+  else if (step === 5) n.innerHTML = `并联推演：R₁=0.05、R₂=0.20 → Q₁:Q₂=√(R₂:R₁)=<b>2:1</b>（总 30 → 20/10）。串联：Q 相同、h 累加。`;
+  else n.innerHTML = `报告：R=${rr.toFixed(4)}、h=${hh.toFixed(1)} Pa、v=${vv.toFixed(2)} m/s（限 8）→ ${j[0]}。降阻：扩断面最优先（R∝1/A³）。`;
+}
+function flash(id){
+  const el = $(id); if(!el) return;
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+function refreshMetrics(){
+  const rr = R(), hh = h(), vv = v(), j = judge();
+  $("mH").textContent = hh.toFixed(1);
+  $("mHSub").textContent = `R=${rr.toFixed(4)} · Q=${P.Q}`;
+  $("mV").textContent = vv.toFixed(2);
+  $("mR").textContent = rr.toFixed(4);
+  $("mPh").textContent = j[0];
+  $("mPhSub").textContent = j[1];
+  $("mPh").style.color = j[2];
+  flash("mH"); flash("mV"); flash("mR"); flash("mPh");
+}
+
+/* ============ Canvas h-Q 曲线 + 网络 ============ */
+const W_ = 820, H_ = 420;
+const cv = $("ventCanvas"), ctx = cv.getContext("2d");
+function drawCanvas(){
+  ctx.clearRect(0, 0, W_, H_);
+  const rr = R();
+  // 左：h vs Q 二次曲线
+  const l = { l: 56, r: 430, t: 24, b: 42 };
+  const qmax = 90, hmax = Math.max(1, rr * qmax * qmax * 1.05);
+  const X = q => l.l + q / qmax * (l.r - l.l);
+  const Y = hh => H_ - l.b - hh / hmax * (H_ - l.t - l.b);
+  ctx.font = "10px ui-monospace,monospace"; ctx.fillStyle = "#5b6572"; ctx.strokeStyle = "#232b38";
+  for (let q = 0; q <= 90; q += 15){ const x = X(q); ctx.beginPath(); ctx.moveTo(x, l.t); ctx.lineTo(x, H_ - l.b); ctx.stroke(); ctx.fillText(q, x - 7, H_ - l.b + 16); }
+  for (let i = 0; i <= 4; i++){ const hh = i * hmax / 4, y = Y(hh); ctx.beginPath(); ctx.moveTo(l.l, y); ctx.lineTo(l.r, y); ctx.stroke(); ctx.fillText(hh.toFixed(0), 6, y + 4); }
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("风量 Q (m³/s)", l.l + 110, H_ - 8);
+  ctx.save(); ctx.translate(14, H_ / 2 + 4); ctx.rotate(-Math.PI / 2); ctx.fillText("阻力 h (Pa)", -30, 0); ctx.restore();
+  ctx.fillText("阻力特性曲线 h=RQ²", l.l + 8, l.t - 6);
+  ctx.strokeStyle = "#ffb020"; ctx.lineWidth = 2.6;
+  ctx.beginPath();
+  for (let q = 0; q <= qmax; q += 2){
+    const hh = rr * q * q;
+    const x = X(q), y = Y(hh);
+    q === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  const hh = h();
+  ctx.fillStyle = "#ff5252";
+  ctx.beginPath(); ctx.arc(X(P.Q), Y(hh), 6, 0, 7); ctx.fill();
+  ctx.fillStyle = "#ff5252"; ctx.font = "11px ui-monospace,monospace";
+  ctx.fillText(`Q=${P.Q} h=${hh.toFixed(1)}`, X(P.Q) + 8, Y(hh) - 10);
+
+  // 右：网络分配
+  const rx = 470;
+  ctx.fillStyle = "#8b95a3"; ctx.font = "13px -apple-system,Microsoft YaHei";
+  ctx.fillText("串并联网络分配（演示）", rx, 36);
+  ctx.fillStyle = "#e8eef4"; ctx.font = "12px -apple-system,Microsoft YaHei";
+  ctx.fillText("并联：R₁=0.05，R₂=0.20（4 倍）", rx, 60);
+  ctx.fillStyle = "#ffb020"; ctx.font = "bold 20px ui-monospace,monospace";
+  ctx.fillText("Q₁:Q₂ = √(R₂:R₁) = 2:1", rx, 88);
+  ctx.fillStyle = "#e8eef4"; ctx.font = "12px ui-monospace,monospace";
+  ctx.fillText("总 Q=30 → Q₁=20、Q₂=10 m³/s", rx, 112);
+  ctx.fillStyle = "#8b95a3"; ctx.font = "12px -apple-system,Microsoft YaHei";
+  ctx.fillText("串联：Q 相同，h 累加 Σh", rx, 136);
+  // 局部阻力表
+  ctx.fillStyle = "#8b95a3"; ctx.font = "13px -apple-system,Microsoft YaHei";
+  ctx.fillText("局部阻力 hξ=ξ·ρv²/2", rx, 176);
+  const vv = v();
+  const loc = [["弯头 ξ=0.5", 0.5], ["风门 ξ=2.5", 2.5], ["变径 ξ=0.3", 0.3]];
+  loc.forEach((x, i) => {
+    ctx.fillStyle = "#59d6ff"; ctx.font = "12px ui-monospace,monospace";
+    ctx.fillText(x[0] + " → " + (x[1] * 1.2 * vv * vv / 2).toFixed(1) + " Pa", rx, 202 + i * 24);
+  });
+  ctx.fillStyle = "#5b6572"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("当前 v=" + vv.toFixed(2) + " m/s（限 8）", rx, 286);
+  ctx.fillStyle = "#5b6572"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("R∝1/A³：A 9→10 m² 时阻力降约 27%", rx, H_ - 40);
+}
+
+/* ============ 动作 ============ */
+$("actBtn").onclick = () => {
+  if (step < 5) step++;
+  if (step === 4){ renderConclusion(); }
+  renderSeg(); narrate();
+};
+$("resetBtn").onclick = resetAll;
+function resetAll(){
+  P = { alpha: "锚喷", L: 500, A: 9, Q: 30 };
+  step = 0;
+  $("lRange").value = 500; $("aRange").value = 9; $("qRange").value = 30;
+  $("conclusionCard").style.display = "none";
+  renderSeg(); renderAlphaSeg(); refreshMetrics(); narrate(); drawCanvas();
+}
+$("lRange").oninput = e => {
+  P.L = +e.target.value;
+  $("lVal").textContent = P.L + " m";
+  refreshMetrics(); narrate(); drawCanvas();
+};
+$("aRange").oninput = e => {
+  P.A = +e.target.value;
+  $("aVal").textContent = P.A.toFixed(1) + " m²";
+  refreshMetrics(); narrate(); drawCanvas();
+};
+$("qRange").oninput = e => {
+  P.Q = +e.target.value;
+  $("qVal").textContent = P.Q + " m³/s";
+  refreshMetrics(); narrate(); drawCanvas();
+};
+function renderConclusion(){
+  const rr = R(), hh = h(), vv = v(), j = judge();
+  $("conclusionCard").style.display = "";
+  $("resBig").textContent = hh.toFixed(1);
+  $("resState").textContent = `${P.alpha} · L=${P.L}m · A=${P.A}m² · Q=${P.Q}m³/s`;
+  $("concText").innerHTML = `巷道摩擦阻力 <b>h=RQ²=${hh.toFixed(1)} Pa</b>（R=${rr.toFixed(4)} N·s²/m⁸）。<br>风速 v=Q/A=<b>${vv.toFixed(2)} m/s</b> → <b style="color:${j[2]}">${j[0]}</b>：${j[1]}。<br><span class='good'>降阻顺序：扩断面（R∝1/A³，A 9→10 m² 阻力 −27%）＞换支护（α 降）＞缩短路径＞加风机；并联按 √(R₂/R₁) 自动分风，串联 h 累加。</span>`;
+}
+
+/* ============ 初始化 ============ */
+window.addEventListener("load", () => {
+  setTimeout(() => $("loader").classList.add("done"), 700);
+  renderSeg(); renderAlphaSeg(); refreshMetrics(); narrate(); drawCanvas();
+});
+</script>
+</body>
+</html>

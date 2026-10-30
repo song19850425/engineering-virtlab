@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>土的渗透试验实验室</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 12c2-4 5-4 7 0s5 4 7 0v4H4z' fill='%2359d6ff'/%3E%3Cpath d='M8 5h8l-4 7z' fill='none' stroke='%23ffb020' stroke-width='1.6'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#0a0d12;--panel:#11151d;--panel2:#151b25;--line:#232b38;--txt:#e8eef4;--dim:#8b95a3;--faint:#5b6572;--amber:#ffb020;--amber-dim:#8a5c10;--cyan:#59d6ff;--danger:#ff5252;--ok:#3ddc84;--violet:#b48cff;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes drip{from{transform:translateY(-10px);opacity:.85}to{transform:translateY(30px);opacity:0}}
+.drip{animation:drip 1.4s linear infinite}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px;cursor:crosshair}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader,#rp{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在饱和试样…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">GEO · VIRTUAL LAB 02</div>
+    <div class="kicker">地质工程 · 土力学 · 渗透性</div>
+    <h1 class="title">土的渗透试验<span class="thin">实验室</span></h1>
+    <div class="sub">PERMEABILITY TEST · DARCY LAW · HEAD TYPES</div>
+    <p class="oneliner"><b>土的渗透系数 k 相差 10 万倍：砂土哗哗漏、黏土涓滴难。</b><br>常水头测粗粒土、变水头测细粒土——达西定律 q=k·i·A 是所有渗流计算的起点。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 方法选型</span></h3>
+      <svg class="scene" id="rig" viewBox="0 0 420 190" role="img" aria-label="渗透仪示意">
+        <rect x="150" y="40" width="30" height="120" rx="3" fill="none" stroke="#59d6ff" stroke-width="1.6"/>
+        <rect x="140" y="130" width="140" height="26" fill="#14202e" stroke="#8b95a3"/>
+        <g class="drip">
+          <circle cx="164" cy="162" r="3" fill="#59d6ff"/>
+        </g>
+        <rect x="90" y="70" width="8" height="50" fill="none" stroke="#ffb020" stroke-width="1.4"/>
+        <path d="M94 120 L94 130" stroke="#ffb020" stroke-width="1.4"/>
+        <text x="210" y="178" text-anchor="middle" fill="#8b95a3" font-size="9" font-family="inherit">左：变水头测压管；右：常水头供水；土样在中段</text>
+      </svg>
+      <canvas id="permCanvas" width="820" height="420" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">重置</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">渗透系数 k</div><div class="v" id="mK">–<small>cm/s</small></div><div class="sub2" id="mKSub">试验测定</div></div>
+          <div class="metric" id="mSc"><div class="k">水力坡降 i</div><div class="v" id="mI">–</div><div class="sub2">Δh/L</div></div>
+          <div class="metric"><div class="k">渗透流量 q</div><div class="v" id="mQ">–<small>cm³/s</small></div><div class="sub2">k·i·A</div></div>
+          <div class="metric" id="mPc"><div class="k">透水性分级</div><div class="v" id="mCl">–</div><div class="sub2" id="mClSub">k 量级对照</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">土样</span><span class="val" id="soilVal">砂土</span></div>
+          <div class="seg" id="soilSeg"></div>
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">试验方法</span><span class="val" id="methVal">常水头</span></div>
+          <div class="seg" id="methSeg"></div>
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">水头差 Δh</span><span class="val" id="dhVal">20 cm</span></div>
+          <input type="range" id="dhRange" min="5" max="60" step="5" value="20">
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>实验结论 · 渗透系数</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">cm/s（渗透系数 k）</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">换土样再测</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · 方法选错结果全废</div><div class="d">砂砾类渗水量大用常水头（好测）；黏性土渗水量极小必须用变水头（测水位下降，累积效应放大读数）。方法不对，k 差好几个量级。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · 达西定律有适用范围</div><div class="d">只适用层流（土中 Re≈1~10 以内）。粗砾、堆石体、高坡降下水流转紊流，v=ki 线性关系失效——碎石垫层算渗漏要修正。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · k 是"孔隙"的函数</div><div class="d">干密度、饱和度、温度都改 k：试样压实差一点，k 差 10 倍。试验必须按标准密度制样并饱和，现场原位抽水试验才是最终依据。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">达西定律：q = k·i·A，i = Δh/L
+常水头：k = Q·L / (A·Δh·t)
+变水头：k = 2.303·(a·L/(A·t))·lg(h1/h2)
+渗透系数量级（教学代表值）：
+  砂土 k≈1e-2 cm/s；粉质黏土≈1e-5；黏土≈1e-7（差 10^5 倍）
+演示装置：土样 L=10cm、A=30cm²、变水头管 a=1cm²
+  常水头（砂，Δh=20cm，t=5min 集 Q=300cm³）→ k≈1.7e-2 cm/s
+  变水头（黏土，h1=50→h2=40cm，t=10min）→ k≈2.7e-6 cm/s
+分级：k&gt;1e-2 强透水；1e-2~1e-4 弱透水；&lt;1e-5 不透水</div>
+    <p>演示模型按土工渗透试验原理（达西定律）简化设定；实测按《土工试验方法标准》GB/T 50123 执行并控制水温修正。教学演示用，不作为防渗设计依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性） ============ */
+const SOILS = {
+  "砂土":     { k: 1.7e-2, cl: "强透水" },
+  "粉质黏土": { k: 2.7e-5, cl: "弱透水" },
+  "黏土":     { k: 2.7e-7, cl: "不透水" }
+};
+let P = { soil: "砂土", meth: "const", dh: 20 };
+const $ = id => document.getElementById(id);
+const L = 10, A = 30;
+function calc(){
+  const k = SOILS[P.soil].k;
+  const i = P.dh / L;
+  const q = k * i * A;
+  return { k, i, q };
+}
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  { t: "方法选型", s: "粗粒土（砂）→常水头；细粒土（黏性）→变水头。", bench: "准备：\n① 按土类选方法（砂→常水头、黏性土→变水头）\n② 制样：标准干密度、排气饱和\n③ 装渗透仪，检查无气泡短路\n④ 记录 L、A、水头" },
+  { t: "施加水头", s: "常水头：Δh 恒定；变水头：h1 起读。", bench: "" },
+  { t: "计量", s: "常水头集水量 Q；变水头记水位下降至 h2。", bench: "" },
+  { t: "算 k", s: "k=Q·L/(A·Δh·t) 或 k=2.303·(aL/At)·lg(h1/h2)。", bench: "" },
+  { t: "分级", s: "k 对照透水性分级表。", bench: "" },
+  { t: "报告", s: "报 k（注明温度）、q、分级与工程意义。", bench: "" }
+];
+let step = 0;
+
+function renderSeg(){
+  const el = $("stepSeg");
+  el.innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" class="${i < step ? "done" : i === step ? "on" : ""}">${i + 1} · ${s.t}<small>${i < step ? "已通过" : i === step ? "进行中" : "待执行"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { if(+b.dataset.i <= step){ step = +b.dataset.i; renderSeg(); narrate(); } });
+  $("sceneTitle").textContent = `${step + 1} · ${STEPS[step].t}`;
+  $("actBtn").textContent = step >= 5 ? "完成" : "下一步";
+}
+function renderSoilSeg(){
+  const el = $("soilSeg");
+  el.innerHTML = Object.keys(SOILS).map(s =>
+    `<button data-s="${s}" class="${s === P.soil ? "on" : ""}">${s}<small>k≈${SOILS[s].k.toExponential(0)}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { P.soil = b.dataset.s; renderSoilSeg(); $("soilVal").textContent = P.soil; refreshMetrics(); narrate(); drawCanvas(); });
+}
+function renderMethSeg(){
+  const el = $("methSeg");
+  const m = [["const", "常水头", "粗粒土"], ["fall", "变水头", "细粒土"]];
+  el.innerHTML = m.map(t2 =>
+    `<button data-m="${t2[0]}" class="${P.meth === t2[0] ? "on" : ""}">${t2[1]}<small>${t2[2]}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { P.meth = b.dataset.m; renderMethSeg(); $("methVal").textContent = P.meth === "const" ? "常水头" : "变水头"; refreshMetrics(); narrate(); drawCanvas(); });
+}
+function narrate(){
+  const n = $("narrate");
+  const c = calc();
+  if (step <= 1) n.innerHTML = STEPS[step].s;
+  else if (step === 2) n.innerHTML = `${P.meth === "const" ? "常水头 Δh=" + P.dh + "cm（恒定）" : "变水头 h1=50cm 起读，水头随时间下降"}。`;
+  else if (step === 3) n.innerHTML = `${P.meth === "const" ? "5min 集水 Q=300cm³（砂土渗得快）" : "10min 水位 50→40cm（黏土渗得慢，靠累积放大读数）"}。`;
+  else if (step === 4) n.innerHTML = `k=<b>${c.k.toExponential(2)} cm/s</b>（${P.meth === "const" ? "k=Q·L/(A·Δh·t)" : "k=2.303·(aL/At)·lg(h1/h2)"}）。`;
+  else if (step === 5) n.innerHTML = `透水性分级：<b style="color:${P.soil === "砂土" ? "#ffb020" : "#59d6ff"}">${SOILS[P.soil].cl}</b>（k=${c.k.toExponential(0)} cm/s）。`;
+  else n.innerHTML = `报告：${P.soil} k=${c.k.toExponential(2)} cm/s、i=${c.i.toFixed(1)}、q=${c.q.toExponential(2)} cm³/s；${SOILS[P.soil].cl}。`;
+}
+function flash(id){
+  const el = $(id); if(!el) return;
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+function refreshMetrics(){
+  const c = calc();
+  $("mK").textContent = c.k.toExponential(2);
+  $("mKSub").textContent = `${P.meth === "const" ? "常水头法" : "变水头法"}测定`;
+  $("mI").textContent = c.i.toFixed(1);
+  $("mQ").textContent = c.q.toExponential(2);
+  $("mCl").textContent = SOILS[P.soil].cl;
+  $("mClSub").textContent = "k>1e-2 强透 / 1e-2~1e-4 弱透 / <1e-5 不透";
+  flash("mK"); flash("mI"); flash("mQ"); flash("mCl");
+}
+
+/* ============ Canvas ============ */
+const W_ = 820, H_ = 420;
+const cv = $("permCanvas"), ctx = cv.getContext("2d");
+function drawCanvas(){
+  ctx.clearRect(0, 0, W_, H_);
+  const c = calc();
+  const cx = 250, soilY = 180, soilH = 150;
+  ctx.fillStyle = P.soil === "砂土" ? "#8a5c10" : "#4a3b2a";
+  ctx.fillRect(cx - 50, soilY, 100, soilH);
+  ctx.strokeStyle = "#59d6ff"; ctx.strokeRect(cx - 50, soilY, 100, soilH);
+  ctx.fillStyle = "#e8eef4"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText(P.soil, cx - 20, soilY + soilH / 2 + 4);
+  ctx.fillText(`L=${L}cm A=${A}cm²`, cx - 36, soilY + soilH / 2 + 22);
+  const dhPx = P.dh * 4;
+  ctx.fillStyle = "rgba(89,214,255,.35)";
+  ctx.fillRect(cx - 50, soilY - dhPx, 100, dhPx);
+  ctx.fillStyle = "#59d6ff"; ctx.font = "11px ui-monospace,monospace";
+  ctx.fillText(`Δh=${P.dh}cm`, cx - 28, soilY - dhPx - 8);
+  ctx.strokeStyle = "#3ddc84"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cx, soilY); ctx.lineTo(cx, soilY + soilH); ctx.stroke();
+  ctx.fillStyle = "#3ddc84";
+  ctx.beginPath(); ctx.moveTo(cx - 6, soilY + soilH - 12); ctx.lineTo(cx + 6, soilY + soilH - 12); ctx.lineTo(cx, soilY + soilH + 2); ctx.fill();
+  if (P.meth === "fall"){
+    ctx.strokeStyle = "#ffb020"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cx + 50, soilY); ctx.lineTo(cx + 92, soilY); ctx.lineTo(cx + 92, soilY - dhPx * 2); ctx.stroke();
+    ctx.fillStyle = "rgba(255,176,32,.3)";
+    ctx.fillRect(cx + 89, soilY - dhPx * 2, 6, dhPx * 2);
+    ctx.fillStyle = "#ffb020"; ctx.font = "11px ui-monospace,monospace";
+    ctx.fillText("h", cx + 98, soilY - dhPx);
+  }
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText(P.meth === "const" ? "常水头：Δh 恒定" : "变水头：水位下降", cx - 40, H_ - 60);
+
+  const rx = 470;
+  ctx.fillStyle = "#8b95a3"; ctx.font = "13px -apple-system,Microsoft YaHei";
+  ctx.fillText("渗透系数量级图（cm/s）", rx, 40);
+  const x0 = rx, y0 = 56, w = 250, h2 = 260;
+  const lgK = Math.log10(c.k);
+  const X = lg => x0 + (lg + 9) / 8 * w;
+  ctx.strokeStyle = "#232b38"; ctx.strokeRect(x0, y0, w, h2);
+  ctx.fillStyle = "rgba(255,82,82,.12)"; ctx.fillRect(x0, y0 + h2 * 0.35, w, h2 * 0.65);
+  ctx.fillStyle = "rgba(89,214,255,.14)"; ctx.fillRect(x0, y0 + h2 * 0.15, w, h2 * 0.2);
+  ctx.fillStyle = "rgba(255,176,32,.15)"; ctx.fillRect(x0, y0, w, h2 * 0.15);
+  ctx.font = "9px ui-monospace,monospace"; ctx.fillStyle = "#5b6572";
+  [1e-8, 1e-6, 1e-4, 1e-2].forEach(v => {
+    const x = X(Math.log10(v));
+    ctx.fillText(v.toExponential(0), x - 24, y0 + h2 + 14);
+  });
+  const marks = [["砂土", 1.7e-2], ["粉质黏土", 2.7e-5], ["黏土", 2.7e-7]];
+  marks.forEach(m2 => {
+    const y = y0 + h2 * 0.5 - 20;
+    ctx.fillStyle = "#8b95a3";
+    ctx.beginPath(); ctx.arc(X(Math.log10(m2[1])), y, 4, 0, 7); ctx.fill();
+    ctx.font = "11px -apple-system,Microsoft YaHei";
+    ctx.fillText(m2[0], X(Math.log10(m2[1])) - 20, y + 18);
+  });
+  ctx.fillStyle = "#ff5252";
+  ctx.beginPath(); ctx.arc(X(lgK), y0 + h2 * 0.85, 6, 0, 7); ctx.fill();
+  ctx.fillStyle = "#ff5252"; ctx.font = "11px ui-monospace,monospace";
+  ctx.fillText(`k=${c.k.toExponential(2)}`, X(lgK) + 10, y0 + h2 * 0.85 + 14);
+  ctx.fillStyle = "#5b6572"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("砂 1e-2 · 粉质黏土 1e-5 · 黏土 1e-7 —— 差 10 万倍", rx, H_ - 40);
+}
+
+/* ============ 动作 ============ */
+$("actBtn").onclick = () => {
+  if (step < 5) step++;
+  if (step === 4){ renderConclusion(); }
+  renderSeg(); narrate();
+};
+$("resetBtn").onclick = resetAll;
+function resetAll(){
+  P = { soil: "砂土", meth: "const", dh: 20 };
+  step = 0;
+  $("dhRange").value = 20;
+  $("conclusionCard").style.display = "none";
+  renderSeg(); renderSoilSeg(); renderMethSeg(); refreshMetrics(); narrate(); drawCanvas();
+}
+$("dhRange").oninput = e => { P.dh = +e.target.value; $("dhVal").textContent = P.dh + " cm"; refreshMetrics(); narrate(); drawCanvas(); };
+function renderConclusion(){
+  const c = calc();
+  $("conclusionCard").style.display = "";
+  $("resBig").textContent = c.k.toExponential(2);
+  $("resState").textContent = `${P.soil} · ${P.meth === "const" ? "常水头" : "变水头"} · Δh=${P.dh}cm`;
+  $("concText").innerHTML = `${P.soil} 渗透系数 <b>k=${c.k.toExponential(2)} cm/s</b>（${P.meth === "const" ? "常水头" : "变水头"}法，i=${c.i.toFixed(1)}、q=${c.q.toExponential(2)} cm³/s）。<br><span class='good'>透水性分级：${SOILS[P.soil].cl}。</span><br>工程要点：k 决定基坑降水方案、坝基渗漏量、固结时间；方法选对＋标准制样，量级不出错，设计才不翻车。`;
+}
+
+/* ============ 初始化 ============ */
+window.addEventListener("load", () => {
+  setTimeout(() => $("loader").classList.add("done"), 700);
+  renderSeg(); renderSoilSeg(); renderMethSeg(); refreshMetrics(); narrate(); drawCanvas();
+});
+</script>
+</body>
+</html>

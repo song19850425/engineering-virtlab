@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>拉伸与晶粒尺寸实验室</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3v7M12 14v7M5 12h7M17 12h7' stroke='%2359d6ff' stroke-width='1.6'/%3E%3Cpath d='M7 8l-3 3 3 3M17 8l3 3-3 3' stroke='%23ffb020' stroke-width='1.6' fill='none'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes grainPulse{0%,100%{opacity:.55}50%{opacity:1}}
+.grain{animation:grainPulse 2.2s ease-in-out infinite}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px;cursor:crosshair}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.spec-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+.spec-table th{font-size:11px;color:var(--faint);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);letter-spacing:.1em}
+.spec-table td{padding:9px 10px;border-bottom:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:13px}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader,#rp{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在制备不同晶粒尺寸试件…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">MATL · VIRTUAL LAB 01</div>
+    <div class="kicker">材料科学与工程 · 力学性能 · 细晶强化</div>
+    <h1 class="title">拉伸与晶粒尺寸<span class="thin">实验室</span></h1>
+    <div class="sub">TENSILE &amp; HALL-PETCH · GRAIN REFINEMENT</div>
+    <p class="oneliner"><b>同一炉钢，晶粒从粗到细，屈服强度一路爬升——"细晶强化"是唯一既提强度又提韧性的强化手段。</b>看 σ-ε 曲线随晶粒尺寸变化。<br>霍尔-佩奇 σy=σ0+kd⁻¹ᐟ² · 晶粒尺寸 · 细晶强化 · 强度-塑性权衡。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 晶粒制备</span></h3>
+      <svg class="scene" id="rig" viewBox="0 0 420 190" role="img" aria-label="晶粒尺寸示意">
+        <g id="grainBox" fill="none" stroke="#59d6ff" stroke-width="1">
+          <rect x="40" y="34" width="150" height="110" fill="#0d1117"/>
+          <line x1="40" y1="34" x2="40" y2="144" stroke="#1b2434"/>
+        </g>
+        <text x="115" y="166" text-anchor="middle" fill="#8b95a3" font-size="9" font-family="inherit" id="grainTxt">晶粒 d=30 μm（正火）</text>
+        <rect x="230" y="34" width="150" height="110" fill="#0d1117"/>
+        <text x="305" y="166" text-anchor="middle" fill="#8b95a3" font-size="9" font-family="inherit">拉伸试件</text>
+        <rect x="300" y="40" width="14" height="98" rx="3" fill="#151b25" stroke="#ff8c2a" stroke-width="2"/>
+        <rect x="286" y="40" width="14" height="98" rx="3" fill="#b48cff"/>
+        <text x="210" y="182" text-anchor="middle" fill="#5b6572" font-size="9" font-family="inherit">热处理控制晶粒尺寸 → 拉伸测 σs/σb/δ → 霍尔-佩奇直线拟合</text>
+      </svg>
+      <canvas id="hpCanvas" width="820" height="420" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">重置</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">屈服强度 σs</div><div class="v" id="mSy">–<small>MPa</small></div><div class="sub2">σ0+kd⁻¹ᐟ²</div></div>
+          <div class="metric" id="mSc"><div class="k">抗拉强度 σb</div><div class="v" id="mSb">–<small>MPa</small></div><div class="sub2">σs+Δσ</div></div>
+          <div class="metric"><div class="k">延伸率 δ</div><div class="v" id="mD">–<small>%</small></div><div class="sub2">晶粒越细越短</div></div>
+          <div class="metric" id="mEc"><div class="k">晶粒尺寸 d</div><div class="v" id="mDv">–<small>μm</small></div><div class="sub2" id="mDSub">–</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">热处理态</span><span class="val" id="htVal">正火 d=30μm</span></div>
+          <div class="seg" id="htSeg">
+            <button data-v="100">退火<small>d=100μm</small></button>
+            <button data-v="30" class="on">正火<small>d=30μm</small></button>
+            <button data-v="10">淬火<small>d=10μm</small></button>
+            <button data-v="0">自定义</button>
+          </div>
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">晶粒尺寸 d（自定义）</span><span class="val" id="dVal">30 μm</span></div>
+          <input type="range" id="dRange" min="2" max="200" step="1" value="30">
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>实验结论 · 细晶强化与霍尔-佩奇</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">MPa（屈服强度 σs）</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">换晶粒再拉</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · 细晶强化：强度与韧性兼得</div><div class="d">晶粒越细，晶界越多，位错滑移被晶界"挡住"越频繁——σs 按 d⁻¹ᐟ² 上升。与固溶/弥散/加工硬化不同，细晶几乎不牺牲韧性，所以它是"最便宜的强化"。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · 强度换塑性</div><div class="d">晶粒从 100μm 细化到 2μm，σs 可翻三倍，但延伸率同步下降——霍尔-佩奇不是免费午餐。极端细化（纳米晶）还可能出现强度"软化"，演示范围外别外推。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · 晶粒靠热加工控制</div><div class="d">退火晶粒粗大、正火较细、淬火急冷最细——但细晶材料高温服役会再结晶长大（晶粒长大定律 d∝t^n），耐热钢反而要粗晶抗蠕变。强化手段要对着服役条件选。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">霍尔-佩奇关系：σy = σ0 + k·d^(−1/2)      [MPa]
+  σ0=100 MPa（位错在晶内运动的摩擦阻力），k=700 MPa·μm^(1/2)（演示钢）
+弹性段：σ = E·ε（E=206 GPa）
+抗拉强度：σb = σs + 180 MPa（演示低碳钢）
+延伸率：δ = 30·(d/100)^0.3   [%]（细晶强化牺牲塑性的演示关系）
+典型热处理态：退火 d≈100μm → σs=170 MPa；正火 d≈30μm → σs≈228 MPa；
+  淬火 d≈10μm → σs≈321 MPa
+本页为确定性演示：晶粒尺寸/热处理态可调，曲线与直线可复算。</div>
+    <p>演示模型按低碳钢典型霍尔-佩奇参数设定；不同钢种 σ0、k 差异大（如高强钢 k≈800~1200）。教学演示用，不作为材料验收依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性） ============ */
+const SIG0 = 100, K_HP = 700, E = 206000, DSIG = 180;
+let P = { d: 30, custom: false };
+const $ = id => document.getElementById(id);
+const sigY = () => SIG0 + K_HP / Math.sqrt(P.d);
+const sigB = () => sigY() + DSIG;
+const delta = () => 30 * Math.pow(P.d / 100, 0.3);
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  { t: "晶粒制备", s: "同炉钢分四批热处理：退火（炉冷粗晶）、正火（空冷中晶）、淬火（急冷细晶）。", bench: "准备：\n① 同成分低碳钢\n② 退火/正火/淬火三批\n③ 金相法测平均晶粒尺寸 d\n④ 拉伸试件标准加工" },
+  { t: "金相测晶粒", s: "金相显微镜测各批平均晶粒尺寸：退火≈100μm、正火≈30μm、淬火≈10μm。", bench: "" },
+  { t: "拉伸", s: "逐批拉断，读 σs、σb、δ——看曲线随晶粒变细如何变化。", bench: "" },
+  { t: "拟合直线", s: "把 σs 对 d^(−1/2) 画点：斜率=k、截距=σ0，验证霍尔-佩奇。", bench: "" },
+  { t: "对比塑性", s: "对比延伸率：晶粒越细 σs 越高但 δ 越低——权衡。", bench: "" },
+  { t: "报告", s: "总结细晶强化规律与适用范围。", bench: "" }
+];
+let step = 0;
+
+function renderSeg(){
+  const el = $("stepSeg");
+  el.innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" class="${i < step ? "done" : i === step ? "on" : ""}">${i + 1} · ${s.t}<small>${i < step ? "已通过" : i === step ? "进行中" : "待执行"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { if(+b.dataset.i <= step){ step = +b.dataset.i; renderSeg(); narrate(); } });
+  $("sceneTitle").textContent = `${step + 1} · ${STEPS[step].t}`;
+  $("actBtn").textContent = step >= 5 ? "完成" : "下一步";
+}
+function narrate(){
+  const n = $("narrate");
+  if (step <= 1) n.innerHTML = STEPS[step].s;
+  else if (step === 2) n.innerHTML = `当前晶粒 d=<b>${P.d} μm</b>${P.custom ? "（自定义）" : "（热处理态）"}。金相测定的平均晶粒尺寸直接进霍尔-佩奇公式。`;
+  else if (step === 3) n.innerHTML = `σ-ε：σs=<b>${sigY().toFixed(0)} MPa</b>、σb=<b>${sigB().toFixed(0)} MPa</b>、δ=<b>${delta().toFixed(1)}%</b>。晶粒细→屈服上升、曲线整体上移、塑性段变短。`;
+  else if (step === 4) n.innerHTML = `霍尔-佩奇点（d^(−1/2)=${(1 / Math.sqrt(P.d)).toFixed(3)}）：σs=${sigY().toFixed(0)} MPa——落在 σ0=100、k=700 的直线上。`;
+  else if (step === 5) n.innerHTML = `权衡：d=100μm → σs=170 MPa/δ=${delta().toFixed(1)}%；d=10μm → σs=321 MPa/δ=${delta().toFixed(1)}%——<span class='warn'>强度翻倍、塑性砍半</span>。`;
+  else n.innerHTML = `报告：细晶强化 σy=σ0+kd⁻¹ᐟ² 成立，强度-塑性权衡明确；细晶唯一同时提强度提韧性，但细晶组织高温服役会再结晶长大失效。`;
+}
+function flash(id){
+  const el = $(id); if(!el) return;
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+function refreshMetrics(){
+  $("mSy").textContent = sigY().toFixed(0);
+  $("mSb").textContent = sigB().toFixed(0);
+  $("mD").textContent = delta().toFixed(1);
+  $("mDv").textContent = P.d;
+  $("mDSub").textContent = P.custom ? "自定义" : P.d === 100 ? "退火态" : P.d === 30 ? "正火态" : P.d === 10 ? "淬火态" : "—";
+  // 晶粒示意：按 d 画颗粒数
+  const g = $("grainBox");
+  g.innerHTML = "";
+  const cols = Math.max(2, Math.round(200 / P.d * 0.6));
+  const rows = Math.max(2, Math.round(110 / P.d * 0.6));
+  const w = 150 / cols, h = 110 / rows;
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++){
+    const x = 40 + c * w, y = 34 + r * h;
+    const poly = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+    poly.setAttribute("points", `${x},${y} ${x + w},${y + 1} ${x + w * .92},${y + h} ${x + w * .08},${y + h * .96}`);
+    poly.setAttribute("fill", "#141a24");
+    poly.setAttribute("stroke", "#59d6ff");
+    poly.setAttribute("stroke-width", "1.1");
+    poly.classList.add("grain");
+    g.appendChild(poly);
+  }
+  $("grainTxt").textContent = `晶粒 d=${P.d} μm（${P.custom ? "自定义" : P.d === 100 ? "退火" : P.d === 30 ? "正火" : P.d === 10 ? "淬火" : "热处理"}）`;
+  flash("mSy"); flash("mSb"); flash("mD");
+}
+
+/* ============ Canvas σ-ε 曲线 + Hall-Petch 直线 ============ */
+const W_ = 820, H_ = 420;
+const cv = $("hpCanvas"), ctx = cv.getContext("2d");
+function curvePts(){
+  const sy = sigY(), sb = sigB();
+  const es = sy / E, eu = delta() / 100;
+  const pts = [];
+  const emax = eu * 1.15;
+  for (let i = 0; i <= 120; i++){
+    const e = i / 120 * emax;
+    let s;
+    if (e <= es) s = E * e;
+    else s = sy + (sb - sy) * (e - es) / Math.max(eu - es, 0.001);
+    pts.push({ e, s: Math.min(s, sb) });
+  }
+  return pts;
+}
+function drawCanvas(){
+  ctx.clearRect(0, 0, W_, H_);
+  const sy = sigY(), sb = sigB();
+  const eu = delta() / 100;
+  // 左：σ-ε
+  const l = { l: 56, r: 430, t: 20, b: 42 };
+  const emax = eu * 1.2, smax = sb * 1.2;
+  const X = e => l.l + e / emax * (l.r - l.l);
+  const Y = s => H_ - l.b - s / smax * (H_ - l.t - l.b);
+  ctx.font = "10px ui-monospace,monospace"; ctx.fillStyle = "#5b6572"; ctx.strokeStyle = "#232b38";
+  for (let i = 0; i <= 4; i++){
+    const e = i * emax / 4;
+    ctx.beginPath(); ctx.moveTo(X(e), l.t); ctx.lineTo(X(e), H_ - l.b); ctx.stroke();
+    ctx.fillText(e.toFixed(2), X(e) - 10, H_ - l.b + 16);
+  }
+  for (let i = 0; i <= 4; i++){
+    const s = i * smax / 4, y = Y(s);
+    ctx.beginPath(); ctx.moveTo(l.l, y); ctx.lineTo(l.r, y); ctx.stroke();
+    ctx.fillText(s.toFixed(0), 6, y + 4);
+  }
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("应变 ε", l.l + 100, H_ - 8);
+  ctx.fillText("σ-ε 曲线（当前晶粒）", l.l + 10, l.t - 6);
+  ctx.save(); ctx.translate(16, H_ / 2 + 6); ctx.rotate(-Math.PI / 2); ctx.fillText("应力 σ (MPa)", -32, 0); ctx.restore();
+  const pts = curvePts();
+  ctx.strokeStyle = "#59d6ff"; ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  pts.forEach((p, i) => i === 0 ? ctx.moveTo(X(p.e), Y(p.s)) : ctx.lineTo(X(p.e), Y(p.s)));
+  ctx.stroke();
+  // 屈服点标注
+  ctx.fillStyle = "#ffb020";
+  ctx.beginPath(); ctx.arc(X(sy / E), Y(sy), 4, 0, 7); ctx.fill();
+  ctx.fillStyle = "#ffb020"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText(`σs=${sy.toFixed(0)}`, X(sy / E) + 8, Y(sy) - 6);
+  ctx.fillStyle = "#ff5252";
+  ctx.beginPath(); ctx.arc(X(eu), Y(sb), 4, 0, 7); ctx.fill();
+  ctx.fillStyle = "#ff5252"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText(`σb=${sb.toFixed(0)}`, X(eu) + 8, Y(sb) - 6);
+  // 右：Hall-Petch 直线
+  const r = { l: 470, r: W_ - 20, t: 20, b: 42 };
+  const dInvMax = 1 / Math.sqrt(1);
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("霍尔-佩奇：σs vs d^(−1/2)", r.l + 10, r.t - 6);
+  ctx.strokeStyle = "#232b38";
+  ctx.beginPath(); ctx.moveTo(r.l, H_ - r.b); ctx.lineTo(r.r, H_ - r.b); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(r.l, r.t); ctx.lineTo(r.l, H_ - r.b); ctx.stroke();
+  const X2 = v => r.l + v / dInvMax * (r.r - r.l);
+  const Y2 = s => H_ - r.b - (s - 0) / (850) * (H_ - r.t - r.b);
+  ctx.fillStyle = "#5b6572"; ctx.font = "10px ui-monospace,monospace";
+  ctx.fillText("0", r.l - 4, H_ - r.b + 14);
+  ctx.fillText("0.5", X2(0.5), H_ - r.b + 14);
+  ctx.fillText("1.0", X2(1.0), H_ - r.b + 14);
+  ctx.fillText("0", 8, Y2(0) + 4);
+  ctx.fillText("400", 8, Y2(400) + 4);
+  ctx.fillText("800", 8, Y2(800) + 4);
+  // 理论直线
+  ctx.strokeStyle = "#ffb020"; ctx.lineWidth = 2.2;
+  ctx.beginPath(); ctx.moveTo(X2(0), Y2(SIG0)); ctx.lineTo(X2(dInvMax), Y2(SIG0 + K_HP * dInvMax)); ctx.stroke();
+  // 三个典型态点
+  [100, 30, 10].forEach(d => {
+    const iv = 1 / Math.sqrt(d), s = SIG0 + K_HP * iv;
+    ctx.fillStyle = "#3ddc84";
+    ctx.beginPath(); ctx.arc(X2(iv), Y2(s), 5, 0, 7); ctx.fill();
+  });
+  ctx.fillStyle = "#3ddc84"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("退火/正火/淬火三点", X2(0.32) + 6, Y2(228) - 8);
+  // 当前点
+  const iv = 1 / Math.sqrt(P.d), s = sigY();
+  ctx.fillStyle = "#ff5252";
+  ctx.beginPath(); ctx.arc(X2(iv), Y2(s), 5, 0, 7); ctx.fill();
+  ctx.fillStyle = "#ff5252"; ctx.font = "12px -apple-system,Microsoft YaHei";
+  ctx.fillText(`d=${P.d}μm (${iv.toFixed(3)}, ${s.toFixed(0)})`, X2(iv) + 8, Y2(s) - 10);
+}
+
+/* ============ 动作 ============ */
+$("actBtn").onclick = () => {
+  if (step < 5) step++;
+  if (step === 4){ renderConclusion(); }
+  renderSeg(); narrate();
+};
+$("resetBtn").onclick = resetAll;
+function resetAll(){
+  P = { d: 30, custom: false };
+  step = 0;
+  [...$("htSeg").children].forEach((x, i) => x.className = i === 1 ? "on" : "");
+  $("dRange").value = 30;
+  $("conclusionCard").style.display = "none";
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+}
+[...$("htSeg").children].forEach((b, i) => b.onclick = () => {
+  [...$("htSeg").children].forEach((x, j) => x.className = j === i ? "on" : "");
+  const v = +b.dataset.v;
+  if (v === 0){
+    P.custom = true;
+    $("dVal").textContent = P.d + " μm";
+    $("htVal").textContent = "自定义 d=" + P.d + "μm";
+  } else {
+    P.d = v; P.custom = false;
+    $("dRange").value = v;
+    $("dVal").textContent = v + " μm";
+    $("htVal").textContent = ["退火 d=100μm", "正火 d=30μm", "淬火 d=10μm"][i] + (i < 3 ? "" : "");
+  }
+  refreshMetrics(); narrate(); drawCanvas();
+});
+$("dRange").oninput = e => {
+  P.d = +e.target.value;
+  $("dVal").textContent = P.d + " μm";
+  if (P.custom) $("htVal").textContent = "自定义 d=" + P.d + "μm";
+  refreshMetrics(); narrate(); drawCanvas();
+};
+function renderConclusion(){
+  $("conclusionCard").style.display = "";
+  $("resBig").textContent = sigY().toFixed(0);
+  $("resUnit").textContent = "MPa（σs）· d=" + P.d + " μm";
+  $("resState").textContent = `σb=${sigB().toFixed(0)} MPa · δ=${delta().toFixed(1)}% · k=${K_HP} σ0=${SIG0}`;
+  $("concText").innerHTML = `晶粒 d=<b>${P.d} μm</b>：σs=σ0+kd⁻¹ᐟ²=<b>${sigY().toFixed(0)} MPa</b>、σb=<b>${sigB().toFixed(0)} MPa</b>、δ=<b>${delta().toFixed(1)}%</b>。<br><span class='good'>细晶强化唯一"强度+韧性"双丰收</span>——但演示也看到 δ 同步下降。<br>对比：退火 d=100μm σs=170；淬火 d=10μm σs=321——<b>晶粒细化 10 倍，强度近翻倍</b>。<br>要点：细晶靠热加工控制，但高温服役再结晶长大；纳米晶可能软化，别在演示范围外外推。`;
+}
+
+/* ============ 初始化 ============ */
+window.addEventListener("load", () => {
+  setTimeout(() => $("loader").classList.add("done"), 700);
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+});
+</script>
+</body>
+</html>

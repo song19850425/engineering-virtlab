@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>梁的弯曲破坏实验室</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 18L12 6l8 12z' fill='none' stroke='%2359d6ff' stroke-width='1.6'/%3E%3Cpath d='M4 18l2-3M20 18l-2-3' stroke='%23ffb020' stroke-width='1.6'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes bend{0%,100%{transform:translateY(0)}50%{transform:translateY(10px)}}
+.bend{animation:bend 2.4s ease-in-out infinite}
+@keyframes crack{0%,100%{opacity:.3}50%{opacity:.95}}
+.crack{animation:crack .8s ease-in-out infinite}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px;cursor:crosshair}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader,#rp{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在绑扎钢筋…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">CIVIL · VIRTUAL LAB 03</div>
+    <div class="kicker">土木工程 · 混凝土结构 · 正截面受弯</div>
+    <h1 class="title">梁的弯曲破坏<span class="thin">实验室</span></h1>
+    <div class="sub">FLEXURAL CAPACITY · REINFORCEMENT RATIO · FAILURE MODE</div>
+    <p class="oneliner"><b>配筋率定命运：配少了"一裂就断"（少筋脆断）、配多了"混凝土先压碎"（超筋脆断）、配得合适才"钢筋先屈服"（适筋延性）。</b><br>Mu=α1·fc·b·x·(h0−x/2) · x=fy·As/(α1·fc·b) · ρmin≤ρ≤ρmax。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 荷载组合</span></h3>
+      <svg class="scene" id="rig" viewBox="0 0 420 190" role="img" aria-label="简支梁加载示意">
+        <g class="bend">
+          <rect x="60" y="70" width="300" height="44" rx="4" fill="#14202e" stroke="#59d6ff" stroke-width="2"/>
+          <path d="M120 70 L120 110 M300 70 L300 110" stroke="#8b95a3" stroke-width="5"/>
+        </g>
+        <rect x="200" y="10" width="20" height="58" rx="3" fill="#3d4656"/>
+        <g class="crack">
+          <path d="M180 114 L176 138" stroke="#ff5252" stroke-width="2"/>
+          <path d="M240 114 L243 136" stroke="#ff5252" stroke-width="1.6"/>
+          <path d="M150 114 L146 132" stroke="#ff5252" stroke-width="1.4"/>
+        </g>
+        <text x="210" y="162" text-anchor="middle" fill="#8b95a3" font-size="9" font-family="inherit">简支梁三分点加载：跨中纯弯段 → 受拉裂缝发展 → 钢筋屈服/压区压碎</text>
+        <text x="210" y="178" text-anchor="middle" fill="#5b6572" font-size="9" font-family="inherit">破坏形态由配筋率 ρ=As/(b·h0) 决定：少筋/适筋/超筋</text>
+      </svg>
+      <canvas id="beamCanvas" width="820" height="420" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">重置</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">配筋率 ρ</div><div class="v" id="mRho">–<small>%</small></div><div class="sub2" id="mRhoSub">As/(b·h0)</div></div>
+          <div class="metric" id="mSc"><div class="k">受压区高度 x</div><div class="v" id="mX">–<small>mm</small></div><div class="sub2">fy·As/(α1fcb)</div></div>
+          <div class="metric"><div class="k">受弯承载力 Mu</div><div class="v" id="mMu">–<small>kN·m</small></div><div class="sub2">α1fcbx(h0−x/2)</div></div>
+          <div class="metric" id="mPc"><div class="k">破坏形态</div><div class="v" id="mPh">–</div><div class="sub2" id="mPhSub">–</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">混凝土强度</span><span class="val" id="concVal">C30（fc=14.3）</span></div>
+          <div class="seg" id="concSeg"></div>
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">钢筋等级</span><span class="val" id="barVal2">HRB400（fy=400）</span></div>
+          <div class="seg" id="barSeg2"></div>
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">配筋 As</span><span class="val" id="asVal">800 mm²</span></div>
+          <input type="range" id="asRange" min="100" max="2400" step="100" value="800">
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>实验结论 · 受弯承载力与破坏形态</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">kN·m（受弯承载力 Mu）</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">换配筋再算</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · 适筋梁才有"预警"</div><div class="d">少筋梁钢筋一断就脆断，超筋梁混凝土先压碎也脆——只有适筋梁钢筋先屈服、裂缝大开、挠度明显，给逃生和检修留时间。设计规范强制配筋率落在 [ρmin, ρmax]。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · ρmax 是受压区高度的上限</div><div class="d">x≤ξb·h0（ξb≈0.52 对 HRB400/C≤C50）等价于 ρ≤ρmax。超筋"多配钢筋不增加承载力"——因为破坏由受压区混凝土控制，钢筋强度白搭还更脆。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · 荷载组合设计值才是对手</div><div class="d">设计弯矩 M 由荷载组合来：恒载×1.3＋活载×1.5（GB 55001 简化）。Mu≥M 才算安全——Mu 是能力，M 是需求，两个都算错一个都不行。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">单筋矩形截面正截面受弯：
+  受压区高度 x = fy·As / (α1·fc·b)   [mm]
+  受弯承载力 Mu = α1·fc·b·x·(h0 − x/2)   [N·mm → kN·m]
+  配筋率 ρ = As/(b·h0)；h0 = h − 40mm（保护层+箍筋，演示）
+界限配筋率（ξb 法，C≤C50 简化）：ξb = 0.8·εcu/(εcu + fy/Es)
+  εcu=0.0033，Es=200000 → HRB400：ξb≈0.52，ρmax = α1·fc·ξb/fy
+最小配筋率 ρmin = max(0.45·ft/fy, 0.2%)（演示取 0.2%）
+判定：ρ&lt;ρmin 少筋脆断；ρmin≤ρ≤ρmax 适筋延性；ρ&gt;ρmax 超筋脆断
+本页为确定性演示，α1=1.0，β1=0.8，参数按规范常用值简化。</div>
+    <p>演示模型按《混凝土结构设计规范》GB 50010 单筋矩形截面受弯承载力公式设定；实际设计需验算挠度、裂缝宽度、斜截面受剪并组合全部荷载工况。教学演示用，不作为结构设计依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性） ============ */
+const CONCS = { "C20": { fc: 9.6, ft: 1.10 }, "C30": { fc: 14.3, ft: 1.43 }, "C40": { fc: 19.1, ft: 1.71 } };
+const BARS2 = { "HRB335": 335, "HRB400": 400, "HRB500": 500 };
+let P = { conc: "C30", bar: 400, As: 800 };
+const $ = id => document.getElementById(id);
+const B = 200, H = 400, H0 = H - 40, ES = 200000, ECU = 0.0033, A1 = 1.0, B1 = 0.8;
+const rho = () => P.As / (B * H0);
+const x = () => P.bar * P.As / (A1 * CONCS[P.conc].fc * B);
+const Mu = () => A1 * CONCS[P.conc].fc * B * x() * (H0 - x() / 2) / 1e6;
+const xiB = () => B1 * ECU / (ECU + P.bar / ES);
+const rhoMax = () => A1 * CONCS[P.conc].fc * xiB() / P.bar;
+const rhoMin = () => 0.002;
+function judge(){
+  const r = rho();
+  if (r < rhoMin()) return ["少筋梁", "ρ<0.2%，钢筋不足，一裂即断（脆性）", "#ff5252"];
+  if (r > rhoMax()) return ["超筋梁", "ρ>ρmax，受压区先压碎（脆性）", "#ff5252"];
+  return ["适筋梁", "钢筋先屈服，延性破坏，Mu 公式成立", "#3ddc84"];
+}
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  { t: "荷载组合", s: "恒载×1.3＋活载×1.5 得设计弯矩 M，确定设计目标。", bench: "准备：\n① 选混凝土强度与钢筋等级\n② 定截面 b×h=200×400\n③ 荷载组合 → 设计弯矩 M\n④ 按 ρ 目标配筋 As" },
+  { t: "配筋", s: "选配钢筋面积 As，算配筋率 ρ=As/(b·h0)。", bench: "" },
+  { t: "算受压区", s: "x=fy·As/(α1·fc·b)——力平衡推出来的。", bench: "" },
+  { t: "算 Mu", s: "Mu=α1·fc·b·x·(h0−x/2)。", bench: "" },
+  { t: "判破坏形态", s: "ρ 对照 ρmin/ρmax：少筋/适筋/超筋。", bench: "" },
+  { t: "报告", s: "Mu vs M、破坏形态、设计调整建议。", bench: "" }
+];
+let step = 0;
+
+function renderSeg(){
+  const el = $("stepSeg");
+  el.innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" class="${i < step ? "done" : i === step ? "on" : ""}">${i + 1} · ${s.t}<small>${i < step ? "已通过" : i === step ? "进行中" : "待执行"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { if(+b.dataset.i <= step){ step = +b.dataset.i; renderSeg(); narrate(); } });
+  $("sceneTitle").textContent = `${step + 1} · ${STEPS[step].t}`;
+  $("actBtn").textContent = step >= 5 ? "完成" : "下一步";
+}
+function renderConcSeg(){
+  const el = $("concSeg");
+  el.innerHTML = Object.keys(CONCS).map(c =>
+    `<button data-c="${c}" class="${c === P.conc ? "on" : ""}">${c}<small>fc=${CONCS[c].fc}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { P.conc = b.dataset.c; renderConcSeg(); $("concVal").textContent = `${P.conc}（fc=${CONCS[P.conc].fc}）`; refreshMetrics(); narrate(); drawCanvas(); });
+}
+function renderBarSeg2(){
+  const el = $("barSeg2");
+  el.innerHTML = Object.keys(BARS2).map(b =>
+    `<button data-b="${b}" class="${P.bar === BARS2[b] ? "on" : ""}">${b}<small>fy=${BARS2[b]}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { P.bar = BARS2[b.dataset.b]; renderBarSeg2(); $("barVal2").textContent = `${b.dataset.b}（fy=${P.bar}）`; refreshMetrics(); narrate(); drawCanvas(); });
+}
+function narrate(){
+  const n = $("narrate");
+  const r = rho(), xx = x(), mu = Mu(), j = judge();
+  if (step <= 1) n.innerHTML = STEPS[step].s;
+  else if (step === 2) n.innerHTML = `ρ=As/(b·h0)=${P.As}/(200×360)=<b>${(r * 100).toFixed(2)}%</b>（ρmin=0.2%、ρmax=${(rhoMax() * 100).toFixed(2)}%）。`;
+  else if (step === 3) n.innerHTML = `x=fy·As/(α1·fc·b)=<b>${xx.toFixed(1)} mm</b>（相对受压区高度 x/h0=${(xx / H0).toFixed(3)}，ξb=${xiB().toFixed(2)}）。`;
+  else if (step === 4) n.innerHTML = `Mu=α1·fc·b·x·(h0−x/2)=<b>${mu.toFixed(1)} kN·m</b>。`;
+  else if (step === 5) n.innerHTML = `破坏形态：<b style="color:${j[2]}">${j[0]}</b>——${j[1]}。`;
+  else n.innerHTML = `报告：ρ=${(r * 100).toFixed(2)}%、x=${xx.toFixed(1)} mm、Mu=${mu.toFixed(1)} kN·m、${j[0]}。`;
+}
+function flash(id){
+  const el = $(id); if(!el) return;
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+function refreshMetrics(){
+  const r = rho(), xx = x(), mu = Mu(), j = judge();
+  $("mRho").textContent = (r * 100).toFixed(2);
+  $("mRhoSub").textContent = `ρmin ${(rhoMin() * 100).toFixed(1)}% · ρmax ${(rhoMax() * 100).toFixed(2)}%`;
+  $("mX").textContent = xx.toFixed(1);
+  $("mMu").textContent = mu.toFixed(1);
+  $("mPh").textContent = j[0];
+  $("mPhSub").textContent = j[1];
+  $("mPh").style.color = j[2];
+  flash("mRho"); flash("mX"); flash("mMu"); flash("mPh");
+}
+
+/* ============ Canvas 截面与区域 ============ */
+const W_ = 820, H_ = 420;
+const cv = $("beamCanvas"), ctx = cv.getContext("2d");
+function drawCanvas(){
+  ctx.clearRect(0, 0, W_, H_);
+  const xx = x(), j = judge(), r = rho();
+  // 左：截面受力图
+  const cx = 240, cy = 130, bw = 150, bh = 300;
+  ctx.fillStyle = "#1c2533";
+  ctx.fillRect(cx - bw / 2, cy, bw, bh);
+  ctx.strokeStyle = "#232b38";
+  ctx.strokeRect(cx - bw / 2, cy, bw, bh);
+  // 受压区
+  const ch = Math.min(bh, xx / H0 * bh);
+  ctx.fillStyle = "rgba(255,176,32,.28)";
+  ctx.fillRect(cx - bw / 2, cy, bw, ch);
+  ctx.fillStyle = "#ffb020"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText(`受压区 x=${xx.toFixed(1)}`, cx + bw / 2 + 10, cy + ch / 2 + 4);
+  // 钢筋
+  ctx.fillStyle = "#59d6ff";
+  ctx.beginPath(); ctx.arc(cx - bw / 2 + 30, cy + bh - 26, 7, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + bw / 2 - 30, cy + bh - 26, 7, 0, 7); ctx.fill();
+  ctx.fillStyle = "#59d6ff"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText(`As=${P.As} mm²`, cx + bw / 2 + 10, cy + bh - 22);
+  // 标注
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText(`b×h=200×400 · h0=360 · ${P.conc} fc=${CONCS[P.conc].fc} · fy=${P.bar}`, cx - bw / 2, cy - 12);
+  ctx.fillText(`${j[0]}：${j[1]}`, cx - bw / 2, cy + bh + 22);
+
+  // 右：破坏形态与配筋率区间
+  const rx = 500;
+  ctx.fillStyle = "#8b95a3"; ctx.font = "13px -apple-system,Microsoft YaHei";
+  ctx.fillText("配筋率区间与破坏形态", rx, 40);
+  const rmin = rhoMin() * 100, rmax = rhoMax() * 100, rr = r * 100;
+  // 标尺 0~rmax*1.4
+  const scaleMax = Math.max(4, rmax * 1.35);
+  const xScale = v => rx + v / scaleMax * 270;
+  ctx.fillStyle = "#11151d";
+  ctx.fillRect(rx, 70, 270, 46);
+  // 区间着色
+  ctx.fillStyle = "#ff5252"; ctx.fillRect(rx, 70, xScale(rmin) - rx, 46);
+  ctx.fillStyle = "rgba(61,220,132,.35)"; ctx.fillRect(xScale(rmin), 70, xScale(rmax) - xScale(rmin), 46);
+  ctx.fillStyle = "#ff5252"; ctx.fillRect(xScale(rmax), 70, 270 - (xScale(rmax) - rx), 46);
+  ctx.strokeStyle = "#232b38"; ctx.strokeRect(rx, 70, 270, 46);
+  // 当前点
+  ctx.fillStyle = "#e8eef4";
+  ctx.fillRect(xScale(Math.min(rr, scaleMax)) - 3, 64, 6, 58);
+  ctx.fillStyle = "#e8eef4"; ctx.font = "bold 15px ui-monospace,monospace";
+  ctx.fillText(rr.toFixed(2) + "%", xScale(Math.min(rr, scaleMax)) + 8, 82);
+  // 刻度
+  ctx.fillStyle = "#5b6572"; ctx.font = "10px ui-monospace,monospace";
+  ctx.fillText("0", rx - 4, 130);
+  ctx.fillText("ρmin 0.2%", xScale(rmin) - 24, 130);
+  ctx.fillText("ρmax " + rmax.toFixed(2) + "%", xScale(rmax) - 30, 130);
+  ctx.fillText("少筋", rx + 6, 78);
+  ctx.fillText("适筋", xScale(rmin) + 14, 78);
+  ctx.fillText("超筋", xScale(rmax) + 10, 78);
+  // 参数表
+  ctx.fillStyle = "#8b95a3"; ctx.font = "13px -apple-system,Microsoft YaHei";
+  ctx.fillText("关键参数", rx, 170);
+  const rows = [
+    ["x = " + xx.toFixed(1) + " mm", "x/h0=" + (xx / H0).toFixed(3)],
+    ["ξb = " + xiB().toFixed(2), "界限受压区高度"],
+    ["Mu = " + Mu().toFixed(1) + " kN·m", "受弯承载力"],
+    ["设计弯矩 M", "荷载组合：恒×1.3＋活×1.5"]
+  ];
+  rows.forEach((r2, i) => {
+    ctx.fillStyle = "#e8eef4"; ctx.font = "12px ui-monospace,monospace";
+    ctx.fillText(r2[0], rx, 198 + i * 26);
+    ctx.fillStyle = "#5b6572"; ctx.font = "11px -apple-system,Microsoft YaHei";
+    ctx.fillText(r2[1], rx + 170, 198 + i * 26);
+  });
+  ctx.fillStyle = "#5b6572"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("Mu≥M 才安全：能力与需求都要算", rx, H_ - 40);
+}
+
+/* ============ 动作 ============ */
+$("actBtn").onclick = () => {
+  if (step < 5) step++;
+  if (step === 4){ renderConclusion(); }
+  renderSeg(); narrate();
+};
+$("resetBtn").onclick = resetAll;
+function resetAll(){
+  P = { conc: "C30", bar: 400, As: 800 };
+  step = 0;
+  $("asRange").value = 800;
+  $("conclusionCard").style.display = "none";
+  renderSeg(); renderConcSeg(); renderBarSeg2(); refreshMetrics(); narrate(); drawCanvas();
+}
+$("asRange").oninput = e => {
+  P.As = +e.target.value;
+  $("asVal").textContent = P.As + " mm²";
+  refreshMetrics(); narrate(); drawCanvas();
+};
+function renderConclusion(){
+  const r = rho(), xx = x(), mu = Mu(), j = judge();
+  $("conclusionCard").style.display = "";
+  $("resBig").textContent = mu.toFixed(1);
+  $("resState").textContent = `${P.conc} · fy=${P.bar} · As=${P.As}mm² · ρ=${(r * 100).toFixed(2)}%`;
+  $("concText").innerHTML = `配筋率 <b>ρ=${(r * 100).toFixed(2)}%</b>（ρmin=0.2%、ρmax=${(rhoMax() * 100).toFixed(2)}%）→ <b style="color:${j[2]}">${j[0]}</b>：${j[1]}。<br>受压区 x=<b>${xx.toFixed(1)} mm</b>（x/h0=${(xx / H0).toFixed(3)} ≤ ξb=${xiB().toFixed(2)}），受弯承载力 <b>Mu=${mu.toFixed(1)} kN·m</b>。<br><span class='good'>设计对账：Mu（能力）≥ M（荷载组合设计值）才安全；适筋梁钢筋先屈服给预警，少筋/超筋都是脆断，规范靠 ρmin/ρmax 双限来卡。</span>`;
+}
+
+/* ============ 初始化 ============ */
+window.addEventListener("load", () => {
+  setTimeout(() => $("loader").classList.add("done"), 700);
+  renderSeg(); renderConcSeg(); renderBarSeg2(); refreshMetrics(); narrate(); drawCanvas();
+});
+</script>
+</body>
+</html>

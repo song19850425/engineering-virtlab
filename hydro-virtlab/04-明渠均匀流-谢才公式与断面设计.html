@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>明渠均匀流实验室</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 8h4l3-4 3 4h8v4H3z' fill='none' stroke='%2359d6ff' stroke-width='1.6'/%3E%3Cpath d='M3 13h18v4H3z' fill='%2359d6ff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#0a0d12;--panel:#11151d;--panel2:#151b25;--line:#232b38;--txt:#e8eef4;--dim:#8b95a3;--faint:#5b6572;--amber:#ffb020;--amber-dim:#8a5c10;--cyan:#59d6ff;--danger:#ff5252;--ok:#3ddc84;--violet:#b48cff;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes drift{from{transform:translateX(0)}to{transform:translateX(60px)}}
+.drift{animation:drift 2s linear infinite}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px;cursor:crosshair}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader,#rp{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在放线开挖渠道…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">HYDRO · VIRTUAL LAB 04</div>
+    <div class="kicker">水利水电工程 · 水力学 · 渠道设计</div>
+    <h1 class="title">明渠均匀流<span class="thin">实验室</span></h1>
+    <div class="sub">CHEZY-MANNING · TRAPEZOIDAL CHANNEL · NON-SCOUR VELOCITY</div>
+    <p class="oneliner"><b>渠道断面不是画出来的，是算出来的：水深、边坡、糙率定过流能力。</b><br>v=C√(Ri)、C=R^(1/6)/n，A=(b+mh)h——过流不够加宽加深，流速太快了还要防冲刷。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 断面拟定</span></h3>
+      <svg class="scene" id="rig" viewBox="0 0 420 190" role="img" aria-label="梯形渠道示意">
+        <path d="M60 60 L120 120 L300 120 L360 60" fill="#14202e" stroke="#59d6ff" stroke-width="1.6"/>
+        <path d="M60 60 L120 120 L300 120 L360 60" fill="rgba(89,214,255,.22)" transform="translate(0,4)"/>
+        <g class="drift">
+          <path d="M100 100 q8 -4 16 0 t16 0 t16 0" stroke="#3ddc84" stroke-width="2" fill="none"/>
+        </g>
+        <text x="210" y="168" text-anchor="middle" fill="#8b95a3" font-size="9" font-family="inherit">梯形断面：A=(b+mh)h、湿周 P=b+2h√(1+m²)</text>
+        <text x="210" y="182" text-anchor="middle" fill="#5b6572" font-size="9" font-family="inherit">底坡 i、糙率 n（衬砌/土渠）→ 均匀流速 v=C√(Ri)</text>
+      </svg>
+      <canvas id="chnCanvas" width="820" height="420" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">重置</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">过流能力 Q</div><div class="v" id="mQ">–<small>m³/s</small></div><div class="sub2">v·A</div></div>
+          <div class="metric" id="mSc"><div class="k">均匀流速 v</div><div class="v" id="mV">–<small>m/s</small></div><div class="sub2">C√(Ri)</div></div>
+          <div class="metric"><div class="k">水力半径 R</div><div class="v" id="mR">–<small>m</small></div><div class="sub2">A/P</div></div>
+          <div class="metric" id="mPc"><div class="k">不冲不淤判定</div><div class="v" id="mSt">–</div><div class="sub2" id="mStSub">vmin~vmax</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">水深 h</span><span class="val" id="hVal">1.00 m</span></div>
+          <input type="range" id="hRange" min="0.30" max="2.00" step="0.05" value="1">
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">渠底宽 b</span><span class="val" id="bVal">2.0 m</span></div>
+          <input type="range" id="bRange" min="0.5" max="5.0" step="0.1" value="2">
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">边坡 m（水平:垂直）</span><span class="val" id="mVal2">1.5</span></div>
+          <input type="range" id="mRange" min="0.0" max="3.0" step="0.5" value="1.5">
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">衬砌/糙率</span><span class="val" id="nVal">浆砌石 n=0.025</span></div>
+          <div class="seg" id="nSeg"></div>
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>实验结论 · 断面过流能力</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">m³/s（过流能力 Q）</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">改断面再算</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · 均匀流要三要素齐全</div><div class="d">底坡、断面、糙率沿程不变才叫均匀流（水面线与渠底平行）。闸前壅水、跌水、弯道都不是均匀流，套谢才公式会错得离谱。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · 流速两头都要管</div><div class="d">流速太低→淤积（泥砂落下来）；太高→冲刷（土渠被掏空）。不冲不淤流速区间是设计硬约束，衬砌能抬高允许流速，代价是造价。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · 糙率是"看不见的税"</div><div class="d">n 从 0.014（光滑混凝土）到 0.03（土渠），同一断面 Q 差一倍。植物、粗糙衬砌、施工质量都会让实际 n 大于设计值——设计留富余。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">明渠均匀流（谢才-曼宁）：
+  v = C·√(R·i)，C = (1/n)·R^(1/6)
+梯形断面：A=(b+m·h)·h；P=b+2h·√(1+m²)；R=A/P
+  Q = v·A
+演示参数：b=2m、m=1.5、h=1.0m、n=0.025（浆砌石）、i=0.001
+  → A=3.5m²、P=5.61m、R=0.62m、C=37.0、v=0.93m/s、Q=3.24m³/s
+不冲不淤判据（教学代表值）：
+  土渠 v 宜 0.3~1.5 m/s；衬砌渠可至 2~4 m/s（浆砌石 ≤3）
+糙率表：光滑混凝土 0.014、浆砌石 0.025、土渠 0.030</div>
+    <p>演示模型按谢才-曼宁公式与梯形断面几何简化设定；实际渠道设计按《灌溉与排水工程设计标准》GB 50288 与《水工设计手册》选糙率、定流速限值并验算稳定。教学演示用，不作为设计依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性） ============ */
+const NS = { "光滑混凝土": 0.014, "浆砌石": 0.025, "土渠": 0.030 };
+let P = { h: 1.0, b: 2.0, m: 1.5, n: 0.025, i: 0.001 };
+const $ = id => document.getElementById(id);
+function geo(){
+  const A = (P.b + P.m * P.h) * P.h;
+  const Pp = P.b + 2 * P.h * Math.sqrt(1 + P.m * P.m);
+  const R = A / Pp;
+  const C = (1 / P.n) * Math.pow(R, 1 / 6);
+  const v = C * Math.sqrt(R * P.i);
+  return { A, P: Pp, R, C, v, Q: v * A };
+}
+function judge(){
+  const v = geo().v;
+  const vmax = P.n <= 0.015 ? 4.0 : (P.n <= 0.026 ? 3.0 : 1.5);
+  if (v < 0.30) return ["流速偏低", "可能淤积（泥沙沉底），加大坡降或缩断面", "#ff5252"];
+  if (v > vmax) return ["流速超标", `可能冲刷（${P.n <= 0.015 ? "衬砌" : "土渠"}限 ${vmax} m/s），衬砌或放缓坡降`, "#ff5252"];
+  return ["不冲不淤", `v∈[0.3, ${vmax}] m/s 安全区`, "#3ddc84"];
+}
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  { t: "断面拟定", s: "拟定梯形断面：底宽 b、边坡 m、水深 h、糙率 n、底坡 i。", bench: "准备：\n① 确定设计流量 Q 目标\n② 选衬砌（糙率 n）与边坡 m\n③ 初定底宽 b、水深 h\n④ 定底坡 i（地形与水位衔接）" },
+  { t: "算几何", s: "A=(b+mh)h、P=b+2h√(1+m²)、R=A/P。", bench: "" },
+  { t: "算流速", s: "C=R^(1/6)/n，v=C√(Ri)。", bench: "" },
+  { t: "算过流", s: "Q=v·A，对照目标流量。", bench: "" },
+  { t: "查流速限", s: "v 对照不冲不淤区间。", bench: "" },
+  { t: "报告", s: "过流能力、流速安全、断面调整建议。", bench: "" }
+];
+let step = 0;
+
+function renderSeg(){
+  const el = $("stepSeg");
+  el.innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" class="${i < step ? "done" : i === step ? "on" : ""}">${i + 1} · ${s.t}<small>${i < step ? "已通过" : i === step ? "进行中" : "待执行"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { if(+b.dataset.i <= step){ step = +b.dataset.i; renderSeg(); narrate(); } });
+  $("sceneTitle").textContent = `${step + 1} · ${STEPS[step].t}`;
+  $("actBtn").textContent = step >= 5 ? "完成" : "下一步";
+}
+function renderNSeg(){
+  const el = $("nSeg");
+  el.innerHTML = Object.keys(NS).map(k =>
+    `<button data-n="${k}" class="${P.n === NS[k] ? "on" : ""}">${k}<small>n=${NS[k]}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { P.n = NS[b.dataset.n]; renderNSeg(); $("nVal").textContent = `${b.dataset.n} n=${P.n}`; refreshMetrics(); narrate(); drawCanvas(); });
+}
+function narrate(){
+  const n = $("narrate");
+  const g = geo(), j = judge();
+  if (step <= 1) n.innerHTML = STEPS[step].s;
+  else if (step === 2) n.innerHTML = `A=(b+mh)h=<b>${g.A.toFixed(2)} m²</b>；P=b+2h√(1+m²)=<b>${g.P.toFixed(2)} m</b>；R=A/P=<b>${g.R.toFixed(3)} m</b>。`;
+  else if (step === 3) n.innerHTML = `C=R^(1/6)/n=<b>${g.C.toFixed(1)}</b>；v=C√(Ri)=<b>${g.v.toFixed(2)} m/s</b>。`;
+  else if (step === 4) n.innerHTML = `Q=v·A=<b>${g.Q.toFixed(2)} m³/s</b>。`;
+  else if (step === 5) n.innerHTML = `流速判定：<b style="color:${j[1].indexOf("安全区") >= 0 ? "#3ddc84" : "#ff5252"}">${j[0]}</b>——${j[1]}。`;
+  else n.innerHTML = `报告：Q=${g.Q.toFixed(2)} m³/s、v=${g.v.toFixed(2)} m/s、R=${g.R.toFixed(2)}m；${j[1]}。`;
+}
+function flash(id){
+  const el = $(id); if(!el) return;
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+function refreshMetrics(){
+  const g = geo(), j = judge();
+  $("mQ").textContent = g.Q.toFixed(2);
+  $("mV").textContent = g.v.toFixed(2);
+  $("mR").textContent = g.R.toFixed(2);
+  $("mSt").textContent = j[0];
+  $("mStSub").textContent = j[1];
+  $("mSt").style.color = j[1].indexOf("安全区") >= 0 ? "#3ddc84" : "#ff5252";
+  flash("mQ"); flash("mV"); flash("mR"); flash("mSt");
+}
+
+/* ============ Canvas 断面 ============ */
+const W_ = 820, H_ = 420;
+const cv = $("chnCanvas"), ctx = cv.getContext("2d");
+function drawCanvas(){
+  ctx.clearRect(0, 0, W_, H_);
+  const g = geo(), j = judge();
+  // 左：断面图
+  const cxc = 250, yw = 140, scale = 72;
+  const hh = P.h * scale, bb = P.b * scale, mm = P.m * hh;
+  ctx.strokeStyle = "#59d6ff"; ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  ctx.moveTo(cxc - bb / 2 - mm, yw - hh);
+  ctx.lineTo(cxc - bb / 2, yw);
+  ctx.lineTo(cxc + bb / 2, yw);
+  ctx.lineTo(cxc + bb / 2 + mm, yw - hh);
+  ctx.stroke();
+  ctx.fillStyle = "rgba(89,214,255,.25)";
+  ctx.fillRect(cxc - bb / 2, yw - hh, bb, hh);
+  // 标注
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText(`b=${P.b.toFixed(1)}m`, cxc - bb / 2 - 4, yw + 20);
+  ctx.fillText(`h=${P.h.toFixed(2)}m`, cxc - bb / 2 + 10, yw - hh / 2);
+  ctx.fillText(`m=${P.m.toFixed(1)}（边坡）`, cxc + bb / 2 + 8, yw - hh / 2);
+  ctx.fillText(`A=${g.A.toFixed(2)}m² · P=${g.P.toFixed(2)}m · R=${g.R.toFixed(2)}m`, cxc - 90, yw + 56);
+  // 水深虚线
+  ctx.setLineDash([4, 4]); ctx.strokeStyle = "#8b95a3";
+  ctx.beginPath(); ctx.moveTo(cxc - bb / 2, yw - hh); ctx.lineTo(cxc + bb / 2, yw - hh); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 右：Q-v 关系与流速带
+  const rx = 480;
+  ctx.fillStyle = "#8b95a3"; ctx.font = "13px -apple-system,Microsoft YaHei";
+  ctx.fillText("参数与流速带", rx, 36);
+  const rows = [
+    ["Q = " + g.Q.toFixed(2) + " m³/s", "过流能力"],
+    ["v = " + g.v.toFixed(2) + " m/s", "均匀流速"],
+    ["C = " + g.C.toFixed(1), "谢才系数"],
+    ["n = " + P.n, "糙率（衬砌决定）"],
+    ["i = 0.001", "底坡"]
+  ];
+  rows.forEach((r2, i) => {
+    ctx.fillStyle = "#e8eef4"; ctx.font = "12px ui-monospace,monospace";
+    ctx.fillText(r2[0], rx, 62 + i * 30);
+    ctx.fillStyle = "#5b6572"; ctx.font = "11px -apple-system,Microsoft YaHei";
+    ctx.fillText(r2[1], rx + 170, 62 + i * 30);
+  });
+  // 流速带
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("不冲不淤流速带", rx, 230);
+  const x0 = rx, y0 = 240, w = 250, h2 = 26;
+  const vmax = P.n <= 0.015 ? 4.0 : (P.n <= 0.026 ? 3.0 : 1.5);
+  const scale2 = 6; // m/s → px
+  ctx.fillStyle = "rgba(61,220,132,.3)";
+  ctx.fillRect(x0 + 0.3 * scale2 * 40, y0, (vmax - 0.3) * scale2 * 40, h2);
+  ctx.strokeStyle = "#232b38"; ctx.strokeRect(x0, y0, w, h2);
+  const vx = x0 + g.v * scale2 * 40;
+  ctx.fillStyle = "#e8eef4";
+  ctx.fillRect(vx - 3, y0 - 4, 6, h2 + 8);
+  ctx.fillStyle = "#e8eef4"; ctx.font = "11px ui-monospace,monospace";
+  ctx.fillText(g.v.toFixed(2), vx + 8, y0 + 18);
+  ctx.fillStyle = "#5b6572"; ctx.font = "10px ui-monospace,monospace";
+  ctx.fillText("0.3", x0 + 0.3 * scale2 * 40 - 14, y0 + h2 + 16);
+  ctx.fillText(vmax.toFixed(1), x0 + vmax * scale2 * 40 - 8, y0 + h2 + 16);
+  ctx.fillStyle = "#ff5252"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText(j[0] + "：" + j[1], rx, H_ - 40);
+}
+
+/* ============ 动作 ============ */
+$("actBtn").onclick = () => {
+  if (step < 5) step++;
+  if (step === 4){ renderConclusion(); }
+  renderSeg(); narrate();
+};
+$("resetBtn").onclick = resetAll;
+function resetAll(){
+  P = { h: 1.0, b: 2.0, m: 1.5, n: 0.025, i: 0.001 };
+  step = 0;
+  $("hRange").value = 1; $("bRange").value = 2; $("mRange").value = 1.5;
+  $("conclusionCard").style.display = "none";
+  renderSeg(); renderNSeg(); refreshMetrics(); narrate(); drawCanvas();
+}
+$("hRange").oninput = e => { P.h = +e.target.value; $("hVal").textContent = P.h.toFixed(2) + " m"; refreshMetrics(); narrate(); drawCanvas(); };
+$("bRange").oninput = e => { P.b = +e.target.value; $("bVal").textContent = P.b.toFixed(1) + " m"; refreshMetrics(); narrate(); drawCanvas(); };
+$("mRange").oninput = e => { P.m = +e.target.value; $("mVal2").textContent = P.m.toFixed(1); refreshMetrics(); narrate(); drawCanvas(); };
+function renderConclusion(){
+  const g = geo(), j = judge();
+  $("conclusionCard").style.display = "";
+  $("resBig").textContent = g.Q.toFixed(2);
+  $("resState").textContent = `b=${P.b}m · m=${P.m} · h=${P.h}m · n=${P.n}`;
+  $("concText").innerHTML = `梯形断面（b=${P.b}m、m=${P.m}、h=${P.h}m、n=${P.n}、i=0.001）→ <b>Q=${g.Q.toFixed(2)} m³/s</b>、v=${g.v.toFixed(2)} m/s、R=${g.R.toFixed(2)}m。<br><span class='good'>流速判定：${j[0]}——${j[1]}。</span><br>设计口诀：Q 不够→加宽加深（A↑）；v 太高→衬砌（n↓、允许流速↑）或放缓坡降；v 太低→缩断面或加大 i。`;
+}
+
+/* ============ 初始化 ============ */
+window.addEventListener("load", () => {
+  setTimeout(() => $("loader").classList.add("done"), 700);
+  renderSeg(); renderNSeg(); refreshMetrics(); narrate(); drawCanvas();
+});
+</script>
+</body>
+</html>

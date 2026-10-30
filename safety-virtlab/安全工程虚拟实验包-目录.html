@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>安全工程虚拟实验包 · 目录</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3l8 4v5c0 5-3.4 8.4-8 9-4.6-.6-8-4-8-9V7z' fill='%2311151d' stroke='%23ffb020'/%3E%3Cpath d='M12 8v6M9 11h6' stroke='%23ff5252' stroke-width='1.6'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+.wrap{max-width:1100px;margin:0 auto;padding:28px 18px 50px}
+header.lab-head{padding:30px 4px 12px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(32px,5.4vw,50px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:16px;font-size:16.5px;line-height:1.8;border-left:3px solid var(--amber);padding-left:14px;max-width:720px;color:var(--dim)}
+.oneliner b{color:var(--amber)}
+.stat{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:24px 0 8px}
+@media (max-width:640px){.stat{grid-template-columns:repeat(2,1fr)}}
+.stat .s{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.stat .s .n{font-family:var(--mono);font-size:26px;font-weight:800;color:var(--cyan)}
+.stat .s .k{font-size:12px;color:var(--faint);margin-top:4px;letter-spacing:.12em}
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:20px}
+@media (max-width:720px){.cards{grid-template-columns:1fr}}
+a.lab{display:block;text-decoration:none;color:inherit;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;transition:border-color .15s, transform .15s}
+a.lab:hover{border-color:var(--amber-dim);transform:translateY(-2px)}
+a.lab .no{font-family:var(--mono);font-size:12px;color:var(--faint);letter-spacing:.3em}
+a.lab .t{font-size:22px;font-weight:800;margin:6px 0 4px;color:var(--txt)}
+a.lab .en{font-size:11px;letter-spacing:.24em;color:var(--amber);margin-bottom:10px}
+a.lab .d{font-size:13.5px;color:var(--dim);line-height:1.75}
+a.lab .tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+a.lab .tags span{font-size:11px;color:var(--faint);border:1px solid var(--line);border-radius:16px;padding:3px 10px}
+.pairs{margin-top:26px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 20px}
+.pairs h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:12px;font-weight:600}
+.pairs .row{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:700px){.pairs .row{grid-template-columns:1fr}}
+.pairs .col .tt{font-size:15px;font-weight:700;color:var(--cyan);margin-bottom:8px}
+.pairs .col .li{font-size:13px;color:var(--dim);line-height:2}
+.pairs .col .li b{color:var(--txt)}
+footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--faint);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在加载安全实验包…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">SAFETY · VIRTUAL PACKAGE</div>
+    <div class="kicker">安全工程 · 化工过程安全 · 职业卫生</div>
+    <h1 class="title">安全工程<span class="thin">虚拟实验包</span></h1>
+    <div class="sub">PROCESS SAFETY VIRTUAL LABS · 4 EXPERIMENTS</div>
+    <p class="oneliner"><b>危险实验值得被仿真：爆炸、泄漏、检测、风险评价——</b>每一个都是"危险性本身就是教学价值"的典型。单文件离线，打开即玩。</p>
+  </header>
+
+  <div class="stat">
+    <div class="s"><div class="n">4</div><div class="k">个自包含实验</div></div>
+    <div class="s"><div class="n">4</div><div class="k">类核心能力</div></div>
+    <div class="s"><div class="n">12+</div><div class="k">条操作红线</div></div>
+    <div class="s"><div class="n">0</div><div class="k">依赖 · 单文件</div></div>
+  </div>
+
+  <div class="cards">
+    <a class="lab" href="01-爆炸极限测定.html">
+      <div class="no">SAFETY · 01</div>
+      <div class="t">爆炸极限测定</div>
+      <div class="en">EXPLOSION LIMIT · LEL / UEL</div>
+      <div class="d">甲烷/氢气/丙烷/一氧化碳四气体系，配气-点火-判定闭环。Le Chatelier 混合定律、贫燃/富燃假安全红线、动火作业检测口径。</div>
+      <div class="tags"><span>LEL / UEL</span><span>爆炸三角形</span><span>Le Chatelier</span><span>GB 30871</span></div>
+    </a>
+    <a class="lab" href="02-高斯泄漏扩散.html">
+      <div class="no">SAFETY · 02</div>
+      <div class="t">高斯泄漏扩散</div>
+      <div class="en">GAUSSIAN PLUME · PASQUILL-GIFFORD</div>
+      <div class="d">小孔泄漏源强 + 高斯烟羽 + 职业卫生限值。氨/氯/硫化氢三介质，稳定度 A–F 六档，TWA 超标距离与 IDLH 危险区半径。</div>
+      <div class="tags"><span>高斯烟羽</span><span>IDLH</span><span>稳定度</span><span>应急疏散</span></div>
+    </a>
+    <a class="lab" href="03-LDAR泄漏检测.html">
+      <div class="no">SAFETY · 03</div>
+      <div class="t">LDAR 泄漏检测与修复</div>
+      <div class="en">LDAR · LEAK DETECTION AND REPAIR</div>
+      <div class="d">8 个密封点建档-初检-判定-修复-复测全闭环。FID 探枪读数、≥500ppm 泄漏判定、台账三段记录与闭合率。</div>
+      <div class="tags"><span>FID / PID</span><span>密封点</span><span>复测闭环</span><span>GB 37822</span></div>
+    </a>
+    <a class="lab" href="04-HAZOP风险矩阵.html">
+      <div class="no">SAFETY · 04</div>
+      <div class="t">HAZOP 风险矩阵</div>
+      <div class="en">HAZOP · RISK MATRIX R = L × S</div>
+      <div class="d">精馏塔再沸器节点，5 类偏差、原因-后果-严重度-可能性-矩阵落点-措施降级-残余风险复评。LOPA 保护层思路。</div>
+      <div class="tags"><span>R = L × S</span><span>HAZOP</span><span>LOPA</span><span>残余风险</span></div>
+    </a>
+  </div>
+
+  <div class="pairs">
+    <h3>实验能力图谱 · 安全工程四大件</h3>
+    <div class="row">
+      <div class="col">
+        <div class="tt">危险物性</div>
+        <div class="li"><b>爆炸极限</b>——危险性是什么、区间在哪、什么情况下"不爆"是假象</div>
+        <div class="li"><b>泄漏扩散</b>——后果多大、扩散多远、天气怎么放大风险</div>
+      </div>
+      <div class="col">
+        <div class="tt">检测与评价</div>
+        <div class="li"><b>LDAR 检测</b>——怎么把看不见的泄漏变成可管理的数据</div>
+        <div class="li"><b>HAZOP 评价</b>——风险怎么算、措施怎么降、残余怎么复评</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span>安全工程虚拟实验包 · 4 个自包含单文件 · 双击即可运行</span>
+    <span>教学演示 · 不作为工程与合规依据</span>
+  </footer>
+</div>
+<script>
+window.addEventListener("load", () => setTimeout(() => document.getElementById("loader").classList.add("done"), 500));
+</script>
+</body>
+</html>

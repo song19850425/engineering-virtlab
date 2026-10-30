@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>拉伸实验实验室</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 20V10h4v10M16 20V10h4v10M12 14v6' stroke='%2359d6ff' stroke-width='1.6'/%3E%3Cpath d='M12 3l2 3h-1v8h-2V6h-1z' fill='%23ffb020'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes clampA{0%,100%{transform:translateY(0)}50%{transform:translateY(14px)}}
+.clampA{animation:clampA 1.6s ease-in-out infinite}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px;cursor:crosshair}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric.warn .v{color:var(--danger)}
+.metric.good .v{color:var(--ok)}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.spec-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+.spec-table th{font-size:11px;color:var(--faint);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);letter-spacing:.1em}
+.spec-table td{padding:9px 10px;border-bottom:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:13px}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader,#rp{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在安装试件…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">MECH · VIRTUAL LAB 01</div>
+    <div class="kicker">机械工程 · 材料力学 · 万能试验机</div>
+    <h1 class="title">拉伸实验<span class="thin">实验室</span></h1>
+    <div class="sub">TENSILE TEST LAB · HOOKE'S LAW · STRESS-STRAIN</div>
+    <p class="oneliner"><b>低碳钢拉断前先屈服、后颈缩；铸铁一拉就"咔嚓"断成两截——同样的试验机，四种材料四种脾气。</b>逐步加载，读 E、σs、σb、δ。<br>胡克定律 σ=Eε · 屈服强度 · 抗拉强度 · 延伸率。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 试件测量</span></h3>
+      <svg class="scene" id="rig" viewBox="0 0 420 190" role="img" aria-label="万能试验机与试件示意">
+        <rect x="168" y="12" width="26" height="44" rx="4" fill="#151b25" stroke="#8b95a3" stroke-width="2"/>
+        <rect x="160" y="52" width="42" height="12" rx="3" fill="#1b2434" stroke="#59d6ff" stroke-width="2"/>
+        <g class="clampA">
+          <rect x="196" y="64" width="14" height="52" rx="3" fill="#ff8c2a"/>
+          <rect id="specGage" x="202" y="66" width="4" height="48" fill="#b48cff"/>
+        </g>
+        <g class="clampA" style="animation-delay:.8s">
+          <rect x="196" y="116" width="14" height="40" rx="3" fill="#ff8c2a"/>
+        </g>
+        <rect x="168" y="152" width="26" height="26" rx="4" fill="#151b25" stroke="#8b95a3" stroke-width="2"/>
+        <line x1="196" y1="122" x2="196" y2="152" stroke="#8b95a3" stroke-width="3"/>
+        <text x="132" y="88" text-anchor="middle" fill="#b48cff" font-size="9" font-family="inherit">试件</text>
+        <text x="132" y="104" text-anchor="middle" fill="#8b95a3" font-size="8" font-family="inherit" id="specInfo">d=10 L0=50</text>
+        <text x="132" y="120" text-anchor="middle" fill="#3ddc84" font-size="8" font-family="inherit" id="stageTag">弹性</text>
+        <text x="210" y="182" text-anchor="middle" fill="#5b6572" font-size="9" font-family="inherit">上夹头移动加载 → 引伸计测标距伸长 → σ=F/A0、ε=ΔL/L0</text>
+      </svg>
+      <canvas id="stCanvas" width="820" height="420" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">重装试件</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">载荷 F</div><div class="v" id="mF">–<small>kN</small></div><div class="sub2">试验机加载</div></div>
+          <div class="metric" id="mSc"><div class="k">应力 σ</div><div class="v" id="mS">–<small>MPa</small></div><div class="sub2">F/A0</div></div>
+          <div class="metric"><div class="k">应变 ε</div><div class="v" id="mEps">–<small>mm/mm</small></div><div class="sub2">ΔL/L0</div></div>
+          <div class="metric" id="mStc"><div class="k">阶段</div><div class="v" id="mSt">–</div><div class="sub2" id="mStSub">–</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">材料</span><span class="val" id="matVal">Q235 低碳钢</span></div>
+          <div class="seg" id="matSeg">
+            <button data-v="0" class="on">Q235<small>低碳钢</small></button>
+            <button data-v="1">45钢<small>中碳钢</small></button>
+            <button data-v="2">铝合金<small>6061</small></button>
+            <button data-v="3">铸铁<small>HT200</small></button>
+          </div>
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">载荷 F</span><span class="val" id="fVal">0 kN</span></div>
+          <input type="range" id="fRange" min="0" max="50" step="0.1" value="0">
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>实验结论 · 拉伸性能指标</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">MPa（抗拉强度 σb）</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">换材料再拉</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · 过了屈服就是塑性损伤</div><div class="d">σ&gt;σs 后卸载，试件残留永久变形——设计许用应力取 σs/n（安全系数 n），绝不允许工作应力进屈服区。低碳钢屈服平台是"还来得及卸载"的最后警报。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · 脆性材料无预警</div><div class="d">铸铁拉伸曲线直线到断，σb 就是断裂点，没有屈服平台、没有颈缩预兆。脆性材料构件要按 σb 取大安全系数，且避免应力集中。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · 试验机超载伤人</div><div class="d">试件断裂瞬间弹性能释放，断口飞出；引伸计、防护罩必须到位，试验力不得超过试验机量程。拉伸试验不是"拉到断为止"——是按标准 GB/T 228 控制速率。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">试件：d=10 mm，A0=78.54 mm²，标距 L0=50 mm
+工程应力/应变：σ = F/A0，ε = ΔL/L0
+胡克定律（弹性段）：σ = E·ε
+材料参数（演示）：
+  Q235：E=206 GPa，σs=235 MPa，σb=420 MPa，δ=25%
+  45钢：E=206 GPa，σs=355 MPa，σb=600 MPa，δ=16%
+  铝合金：E=69 GPa，σ0.2=276 MPa，σb=310 MPa，δ=12%（无屈服平台）
+  铸铁：E=120 GPa，σb=200 MPa（脆断，δ≈0.5%）
+强化段（线性演示）：σ = σs + (σb−σs)·(ε−εs)/(εu−εs)
+延伸率：δ = (L1−L0)/L0，断面收缩率 ψ = (A0−A1)/A0
+本页为确定性演示：材料可切换，载荷逐步加载，曲线可复算。</div>
+    <p>演示模型按 GB/T 228 典型曲线形态设定（工程应力-应变，忽略颈缩后的真实应力上升）；实测性能以试验报告为准。教学演示用，不作为材料验收依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性） ============ */
+const MATS = [
+  { t: "Q235 低碳钢", E: 206000, ss: 235, sb: 420, du: 0.25, plateau: true, psi: 0.60 },
+  { t: "45钢", E: 206000, ss: 355, sb: 600, du: 0.16, plateau: false, psi: 0.45 },
+  { t: "铝合金 6061", E: 69000, ss: 276, sb: 310, du: 0.12, plateau: false, psi: 0.35 },
+  { t: "铸铁 HT200", E: 120000, ss: 0, sb: 200, du: 0.005, plateau: false, psi: 0.01 }
+];
+let P = { mat: 0, F: 0 };
+const $ = id => document.getElementById(id);
+const A0 = 78.54, L0 = 50;
+const M = () => MATS[P.mat];
+const sigma = () => P.F * 1000 / A0;
+function epsOf(s){
+  const m = M();
+  const es = m.ss / m.E;
+  if (m.plateau && s <= m.ss) return s / m.E;
+  if (!m.plateau){
+    // 无屈服平台：0.2% 偏移点前弹性，之后线性到 σb
+    const e02 = 0.002 + m.ss / m.E;
+    if (s <= m.ss) return s / m.E;
+    return e02 + (s - m.ss) * (m.du - e02) / (m.sb - m.ss);
+  }
+  // 有屈服平台：屈服平台期 ε 走一段再强化
+  if (s <= m.ss) return s / m.E;
+  const ey = m.ss / m.E + 0.015;
+  if (s <= m.ss + 1) return ey;
+  return ey + (s - m.ss) * (m.du - ey) / (m.sb - m.ss);
+}
+function stageOf(s){
+  const m = M();
+  if (m.plateau && s >= m.sb) return "断裂";
+  if (!m.plateau && s >= m.sb) return "断裂";
+  if (s >= m.ss) return m.plateau ? "屈服" : "强化";
+  return "弹性";
+}
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  { t: "试件测量", s: "量试件直径 d 与标距 L0，计算原始截面积 A0。试样加工按 GB/T 228 标准。", bench: "准备：\n① 试件 d=10 mm，标距 L0=50 mm\n② A0=πd²/4=78.54 mm²\n③ 万能试验机+引伸计校准\n④ 装夹对中，预载调零" },
+  { t: "装夹", s: "试件对中装夹，引伸计夹在标距上，预载后调零。", bench: "" },
+  { t: "加载", s: "缓慢加载（本页用载荷滑杆模拟试验机），观察弹性→屈服→强化→颈缩。", bench: "" },
+  { t: "读特征点", s: "读屈服点 σs、抗拉强度 σb，注意低碳钢的屈服平台与铸铁的脆断。", bench: "" },
+  { t: "断后测量", s: "试件拉断后量断后标距 L1 与断口直径，算 δ 和 ψ。", bench: "" },
+  { t: "报告", s: "整理 σ-ε 曲线与 E、σs、σb、δ 四项指标。", bench: "" }
+];
+let step = 0;
+
+function renderSeg(){
+  const el = $("stepSeg");
+  el.innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" class="${i < step ? "done" : i === step ? "on" : ""}">${i + 1} · ${s.t}<small>${i < step ? "已通过" : i === step ? "进行中" : "待执行"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { if(+b.dataset.i <= step){ step = +b.dataset.i; renderSeg(); narrate(); } });
+  $("sceneTitle").textContent = `${step + 1} · ${STEPS[step].t}`;
+  $("actBtn").textContent = step >= 5 ? "完成" : "下一步";
+}
+function narrate(){
+  const m = M(), s = sigma(), st = stageOf(s);
+  const n = $("narrate");
+  if (step <= 1) n.innerHTML = STEPS[step].s;
+  else if (step === 2) n.innerHTML = `F=<b>${P.F.toFixed(1)} kN</b> → σ=<b>${s.toFixed(0)} MPa</b>、ε=${epsOf(s).toFixed(4)}。${st === "弹性" ? "<span class='ok'>弹性段：σ=Eε，卸载可恢复。</span>" : st === "屈服" ? "<span class='warn'>进入屈服平台：应力不增应变猛涨——塑性变形开始，卸载不恢复！</span>" : st === "断裂" ? "<span class='bad'>已拉断！</span>" : "强化段：材料硬化，应力继续上升至 σb。"}`;
+  else if (step === 3) n.innerHTML = `${m.t}：σs=<b>${m.plateau ? m.ss : m.ss + "（σ0.2）"} MPa</b>、σb=<b>${m.sb} MPa</b>。${m.plateau ? "有屈服平台（低碳钢典型）。" : m.t.includes("铸铁") ? "<span class='warn'>铸铁直线到断、无预警——脆性断裂。</span>" : "无明显屈服平台，用 σ0.2 规定塑性延伸强度。"}`;
+  else if (step === 4) n.innerHTML = `断后：延伸率 δ=<b>${m.du * 100}%</b>、断面收缩率 ψ=${(m.psi * 100).toFixed(0)}%。δ&gt;5% 为塑性材料，δ&lt;5% 为脆性材料（铸铁）。`;
+  else n.innerHTML = `报告：${m.t} — E=${(m.E / 1000).toFixed(0)} GPa、σs=${m.ss || "—"}、σb=${m.sb} MPa、δ=${m.du * 100}%。${m.t.includes("铸铁") ? "脆性材料按 σb 取大安全系数。" : "设计按 σs 取安全系数 n=1.5~2.5。"}`;
+}
+function flash(id){
+  const el = $(id); if(!el) return;
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+function refreshMetrics(){
+  const m = M(), s = sigma(), st = stageOf(s);
+  $("mF").textContent = P.F.toFixed(1);
+  $("mS").textContent = s.toFixed(0);
+  $("mEps").textContent = epsOf(s).toFixed(4);
+  $("mSt").textContent = st;
+  $("mSt").classList.toggle("warn", st === "屈服" || st === "断裂");
+  $("mSt").classList.toggle("good", st === "弹性");
+  $("mStSub").textContent = st === "断裂" ? "试件已断" : st === "屈服" ? "塑性变形开始" : st === "强化" ? "σ→σb" : "卸载可恢复";
+  $("specInfo").textContent = "d=10 L0=50";
+  $("stageTag").textContent = st;
+  $("stageTag").setAttribute("fill", st === "断裂" ? "#ff5252" : st === "屈服" ? "#ffb020" : "#3ddc84");
+  flash("mF"); flash("mS"); flash("mEps"); flash("mSt");
+}
+
+/* ============ Canvas σ-ε 曲线 ============ */
+const W_ = 820, H_ = 420, pad = { l: 56, r: 16, t: 16, b: 40 };
+const cv = $("stCanvas"), ctx = cv.getContext("2d");
+function curvePts(){
+  const m = M();
+  const pts = [];
+  const emax = Math.max(m.du, m.ss / m.E + 0.02) * 1.15;
+  const stepE = emax / 200;
+  for (let e = 0; e <= emax; e += stepE){
+    let s;
+    if (m.plateau){
+      const es = m.ss / m.E, ey = es + 0.015;
+      if (e <= es) s = m.E * e;
+      else if (e <= ey) s = m.ss;
+      else s = m.ss + (m.sb - m.ss) * (e - ey) / (m.du - ey);
+    } else {
+      const e02 = 0.002 + m.ss / m.E;
+      if (e <= e02) s = m.E * e;
+      else s = m.ss + (m.sb - m.ss) * (e - e02) / (m.du - e02);
+    }
+    pts.push({ e, s: Math.min(s, m.sb) });
+  }
+  return pts;
+}
+function drawCanvas(){
+  ctx.clearRect(0, 0, W_, H_);
+  const m = M();
+  const emax = Math.max(m.du, m.ss / m.E + 0.02) * 1.15;
+  const smax = m.sb * 1.25;
+  const X = e => pad.l + e / emax * (W_ - pad.l - pad.r);
+  const Y = s => H_ - pad.b - s / smax * (H_ - pad.t - pad.b);
+  ctx.font = "10px ui-monospace,monospace"; ctx.fillStyle = "#5b6572"; ctx.strokeStyle = "#232b38";
+  for (let i = 0; i <= 4; i++){
+    const e = i * emax / 4;
+    ctx.beginPath(); ctx.moveTo(X(e), pad.t); ctx.lineTo(X(e), H_ - pad.b); ctx.stroke();
+    ctx.fillText(e.toFixed(2), X(e) - 10, H_ - pad.b + 16);
+  }
+  for (let i = 0; i <= 4; i++){
+    const s = i * smax / 4, y = Y(s);
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W_ - pad.r, y); ctx.stroke();
+    ctx.fillText(s.toFixed(0), 8, y + 4);
+  }
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("应变 ε", W_ / 2 - 20, H_ - 8);
+  ctx.save(); ctx.translate(16, H_ / 2 + 6); ctx.rotate(-Math.PI / 2); ctx.fillText("应力 σ (MPa)", -30, 0); ctx.restore();
+  // 曲线
+  const pts = curvePts();
+  ctx.strokeStyle = "#59d6ff"; ctx.lineWidth = 2.4; ctx.beginPath();
+  pts.forEach((p, i) => { const px = X(p.e), py = Y(p.s); i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py); });
+  ctx.stroke();
+  // 特征点
+  ctx.fillStyle = "#ffb020"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  if (m.plateau){ ctx.fillText(`σs=${m.ss}`, X(m.ss / m.E) + 8, Y(m.ss) - 8); }
+  else ctx.fillText(`σ0.2=${m.ss}`, X(0.002 + m.ss / m.E) + 8, Y(m.ss) - 8);
+  ctx.fillStyle = "#ff5252"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText(`σb=${m.sb}`, X(m.du) + 8, Y(m.sb) - 8);
+  // 当前点
+  const s = sigma(), st = stageOf(s);
+  if (st !== "断裂"){
+    const e = epsOf(s);
+    ctx.fillStyle = "#ffb020";
+    ctx.beginPath(); ctx.arc(X(e), Y(s), 5, 0, 7); ctx.fill();
+    ctx.fillStyle = "#ffb020"; ctx.font = "12px -apple-system,Microsoft YaHei";
+    ctx.fillText(`(${e.toFixed(3)}, ${s.toFixed(0)})`, X(e) + 10, Y(s) - 8);
+  } else {
+    ctx.fillStyle = "#ff5252"; ctx.font = "13px -apple-system,Microsoft YaHei";
+    ctx.fillText("✕ 试件已断", X(m.du) - 30, Y(m.sb) + 22);
+  }
+}
+
+/* ============ 动作 ============ */
+$("actBtn").onclick = () => {
+  if (step < 5) step++;
+  if (step === 4){ renderConclusion(); }
+  renderSeg(); narrate();
+};
+$("resetBtn").onclick = resetAll;
+function resetAll(){
+  P = { mat: 0, F: 0 };
+  step = 0;
+  [...$("matSeg").children].forEach((x, i) => x.className = i === 0 ? "on" : "");
+  $("fRange").value = 0;
+  $("conclusionCard").style.display = "none";
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+}
+function pickMat(i){
+  [...$("matSeg").children].forEach((x, j) => x.className = j === i ? "on" : "");
+  P.mat = i; P.F = 0;
+  $("fRange").value = 0;
+  $("matVal").textContent = MATS[i].t;
+  refreshMetrics(); narrate(); drawCanvas();
+}
+[...$("matSeg").children].forEach((b, i) => b.onclick = () => pickMat(i));
+$("fRange").oninput = e => {
+  P.F = +e.target.value;
+  $("fVal").textContent = P.F.toFixed(1) + " kN";
+  refreshMetrics(); narrate(); drawCanvas();
+};
+function renderConclusion(){
+  const m = M(), s = sigma(), st = stageOf(s);
+  $("conclusionCard").style.display = "";
+  $("resBig").textContent = m.sb;
+  $("resUnit").textContent = `MPa（σb）· ${m.t}`;
+  $("resState").textContent = `E=${(m.E / 1000).toFixed(0)} GPa · σs=${m.ss || "—"} · δ=${m.du * 100}%`;
+  $("concText").innerHTML = `${m.t}：弹性模量 <b>E=${(m.E / 1000).toFixed(0)} GPa</b>、屈服强度 <b>${m.ss ? m.ss + " MPa" : "（无屈服平台）"}</b>、抗拉强度 <b>σb=${m.sb} MPa</b>、延伸率 <b>δ=${m.du * 100}%</b>。<br>${st === "断裂" ? "<span class='bad'>当前已拉断。</span>" : `当前 σ=${s.toFixed(0)} MPa（${st}阶段）。`}<br>${m.t.includes("铸铁") ? "<span class='bad'>铸铁为脆性材料：δ<5%，直线到断无预兆——设计取大安全系数、避开应力集中。</span>" : "<span class='good'>塑性材料：有屈服点，设计按 σs 取安全系数 1.5~2.5。</span>"}<br>判断口诀：<b>σ=Eε 只适用于弹性段</b>；塑性变形不可恢复，σb 是承载极限不是许用应力。`;
+}
+
+/* ============ 初始化 ============ */
+window.addEventListener("load", () => {
+  setTimeout(() => $("loader").classList.add("done"), 700);
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+});
+</script>
+</body>
+</html>

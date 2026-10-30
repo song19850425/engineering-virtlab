@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>混凝沉淀烧杯实验</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 3h10l-1 6a5 5 0 01-8 0z' fill='none' stroke='%2359d6ff' stroke-width='1.6'/%3E%3Cpath d='M5 11h14v2a3 3 0 01-3 3H8a3 3 0 01-3-3z' fill='%23ffb020' fill-opacity='.4'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes paddle{0%,100%{transform:rotate(-14deg)}50%{transform:rotate(14deg)}}
+.paddle{transform-origin:center;transform-box:view-box;animation:paddle .7s ease-in-out infinite}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px;cursor:crosshair}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric.warn .v{color:var(--danger)}
+.metric.good .v{color:var(--ok)}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.spec-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+.spec-table th{font-size:11px;color:var(--faint);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);letter-spacing:.1em}
+.spec-table td{padding:9px 10px;border-bottom:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:13px}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader,#rp{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在配制原水…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">WATER · VIRTUAL LAB 03</div>
+    <div class="kicker">给排水科学与工程 · 水处理工艺</div>
+    <h1 class="title">混凝沉淀<span class="thin">烧杯实验室</span></h1>
+    <div class="sub">JAR TEST LAB · PAC DOSAGE OPTIMIZATION</div>
+    <p class="oneliner"><b>药剂不是投得越多越清——投过头，浊度反而反弹。</b>六联搅拌、静沉、测浊度，找到那个最优点。<br>PAC 聚合氯化铝 · 原水浊度 150 NTU · pH 与沉降时间可调。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 配原水</span></h3>
+      <svg class="scene" id="rig" viewBox="0 0 420 190" role="img" aria-label="六联烧杯搅拌器示意">
+        <defs>
+          <linearGradient id="beakG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a2c14"/><stop offset="1" stop-color="#241a0c"/></linearGradient>
+        </defs>
+        <rect x="10" y="10" width="400" height="26" rx="6" fill="#151b25" stroke="#232b38"/>
+        <text x="210" y="27" text-anchor="middle" fill="#8b95a3" font-size="9" font-family="inherit">六联搅拌器 · 快搅 1 min → 慢搅 10 min → 静沉</text>
+        <g id="beakers"></g>
+        <text x="210" y="182" text-anchor="middle" fill="#5b6572" font-size="9" font-family="inherit">各杯投量 0 / 15 / 30 / 45 / 60 / 75 mg/L（PAC），浊度色深浅 = 出水浊度</text>
+      </svg>
+      <canvas id="jarCanvas" width="820" height="420" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">重新配水</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">投药量 D</div><div class="v" id="mD">–<small>mg/L</small></div><div class="sub2">PAC 投量</div></div>
+          <div class="metric" id="mTc"><div class="k">出水浊度</div><div class="v" id="mT">–<small>NTU</small></div><div class="sub2" id="mTSub">–</div></div>
+          <div class="metric"><div class="k">最优投量</div><div class="v" id="mOpt">–<small>mg/L</small></div><div class="sub2" id="mOptSub">随 pH 漂移</div></div>
+          <div class="metric" id="mGc"><div class="k">浊度去除率</div><div class="v" id="mG">–<small>%</small></div><div class="sub2">(150−C)/150</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">投药量 D</span><span class="val" id="dVal">30 mg/L</span></div>
+          <input type="range" id="dRange" min="0" max="80" step="1" value="30">
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">pH</span><span class="val" id="pHVal">7.0</span></div>
+          <input type="range" id="pHRange" min="4.0" max="10.0" step="0.1" value="7.0">
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">静沉时间</span><span class="val" id="tVal">10 min</span></div>
+          <div class="seg" id="tSeg">
+            <button data-v="5">5 min<small>沉降不足</small></button>
+            <button data-v="10" class="on">10 min<small>标准</small></button>
+            <button data-v="30">30 min<small>充分沉降</small></button>
+          </div>
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>实验结论 · Jar Test 最优投量</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">mg/L（最优投量）</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">换条件再试</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · 过投再稳</div><div class="d">投量超过最优点后，胶体颗粒表面电荷反转为正、絮体重新分散——浊度不降反升，这叫"再稳"现象。现场凭"多投药更干净"的直觉调药，十有八九把出水调坏。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · pH 决定药效</div><div class="d">PAC 最佳 pH 约 6–8：偏酸偏碱都降低水解产物形态，最优投量漂移、最低浊度抬升。冬季低温水絮凝慢，要加长慢搅或加大投量，不是只调一个参数。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · 沉降时间是产量</div><div class="d">沉降时间不够就排泥/出水，矾花没沉完，浊度虚高；放太久又占地降产。运行上按"出水浊度达标的最短停留时间"控制，Jar Test 的沉降曲线就是依据。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">原水：浊度 150 NTU（演示）
+最优投量随 pH 漂移（PAC 演示模型）：
+  D_opt = 30 + 25·(pH − 7)      [mg/L]
+出水浊度模型：
+  D &lt; D_opt：C(D) = 150 / (1 + 2.2·D)                    [NTU]
+  D ≥ D_opt：C(D) = 150/(1+2.2·D_opt) + 0.004·(D−D_opt)²   [NTU]
+pH 与沉降时间修正：
+  C_eff = C(D) · (1 + 0.25·(pH−7)²) · (10/t)^0.4
+去除率：η = (150 − C_eff) / 150
+要点：C(D) 在 D_opt 处最低；D &gt; D_opt 后二次方反弹 = 再稳现象。
+本页为确定性演示：投量、pH、沉降时间全可调，曲线与教科书一致。</div>
+    <p>演示模型按 PAC 混凝典型行为设定（再稳、pH 敏感、沉降时间效应）；实际投量由烧杯实验与生产试验确定，随水质季节变化。教学演示用，不作为工艺依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性） ============ */
+const RAW = 150;
+let P = { D: 30, pH: 7.0, t: 10 };
+const $ = id => document.getElementById(id);
+function dOpt(){ return 30 + 25 * (P.pH - 7); }
+function turbAt(D){
+  const opt = dOpt();
+  let c;
+  if (D < opt) c = RAW / (1 + 2.2 * D);
+  else c = RAW / (1 + 2.2 * opt) + 0.004 * Math.pow(D - opt, 2);
+  return c * (1 + 0.25 * Math.pow(P.pH - 7, 2)) * Math.pow(10 / P.t, 0.4);
+}
+const turb = () => turbAt(P.D);
+
+/* ============ SVG 六联烧杯 ============ */
+function paintBeakers(){
+  const g = $("beakers");
+  const dosages = [0, 15, 30, 45, 60, 75];
+  g.innerHTML = dosages.map((D, i) => {
+    const c = turbAt(D);
+    const op = Math.min(0.9, Math.max(0.1, 0.15 + c / 40));
+    const isSel = Math.abs(D - P.D) < 1;
+    return `<g>
+      <rect x="${20 + i * 64}" y="44" width="52" height="78" rx="6" fill="#151b25" stroke="${isSel ? "#ffb020" : "#232b38"}" stroke-width="${isSel ? 2.5 : 1.5}"/>
+      <rect x="${24 + i * 64}" y="52" width="44" height="66" rx="4" fill="#4a3a1a" opacity="${op}"/>
+      <text x="${46 + i * 64}" y="132" text-anchor="middle" fill="${isSel ? "#ffb020" : "#8b95a3"}" font-size="9" font-family="var(--mono)">${D}</text>
+      <text x="${46 + i * 64}" y="144" text-anchor="middle" fill="#5b6572" font-size="8" font-family="inherit">mg/L</text>
+      <text x="${46 + i * 64}" y="160" text-anchor="middle" fill="#8b95a3" font-size="8" font-family="var(--mono)">${c < 1 ? "&lt;1" : c.toFixed(1)} NTU</text>
+      <circle cx="${30 + i * 64}" cy="${90}" r="${D > 0 && D < 90 ? 4 + Math.min(6, D / 8) : 2}" fill="#c8a15a" opacity=".75"/>
+      <circle cx="${60 + i * 64}" cy="${96}" r="${D > 0 && D < 90 ? 3 + Math.min(5, D / 10) : 2}" fill="#c8a15a" opacity=".6"/>
+    </g>`;
+  }).join("");
+}
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  { t: "配原水", s: "原水浊度 150 NTU，水温 25℃，六联烧杯各装 1 L，同步开始。", bench: "准备：\n① 六杯 1 L 原水（150 NTU）\n② PAC 溶液浓度 1 g/L\n③ 六联搅拌器、浊度仪\n④ 快搅 1 min（300 r/min）→ 慢搅 10 min（60 r/min）" },
+  { t: "加药搅拌", s: "各杯按 0/15/30/45/60/75 mg/L 投 PAC，快搅 1 min 使药剂均匀分散，慢搅 10 min 培养矾花。", bench: "" },
+  { t: "静沉", s: "停止搅拌，静沉并计时；观察矾花沉降速度与上清液澄清度。", bench: "" },
+  { t: "测浊度", s: "取上清液测各杯浊度，填入数据表。", bench: "" },
+  { t: "找最优", s: "画浊度-投量曲线，最低点对应最优投量；验证过投反弹（再稳）。", bench: "" },
+  { t: "报告", s: "给出该水质下的最优投量与工艺建议。", bench: "" }
+];
+let step = 0;
+
+function renderSeg(){
+  const el = $("stepSeg");
+  el.innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" class="${i < step ? "done" : i === step ? "on" : ""}">${i + 1} · ${s.t}<small>${i < step ? "已通过" : i === step ? "进行中" : "待执行"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { if(+b.dataset.i <= step){ step = +b.dataset.i; renderSeg(); narrate(); } });
+  $("sceneTitle").textContent = `${step + 1} · ${STEPS[step].t}`;
+  $("actBtn").textContent = step >= 5 ? "完成" : "下一步";
+}
+function narrate(){
+  const c = turb(), opt = dOpt(), optC = turbAt(opt);
+  const n = $("narrate");
+  if (step <= 1) n.innerHTML = STEPS[step].s;
+  else if (step === 2) n.innerHTML = `投量 <b>${P.D} mg/L</b>，静沉 ${P.t} min：出水浊度 <b>${c.toFixed(1)} NTU</b>（去除率 ${((1 - c / RAW) * 100).toFixed(1)}%）。${P.D > opt + 5 ? "<span class='warn'>已进入过投区——再稳，浊度反弹。</span>" : P.D < opt - 5 ? "低于最优投量，絮凝不充分。" : "<span class='ok'>接近最优投量。</span>"}`;
+  else if (step === 3) n.innerHTML = `六杯对比（浊度）：${[0, 15, 30, 45, 60, 75].map(D => `${D}mg/L→${turbAt(D).toFixed(1)}`).join("；")}。注意最低点位置。`;
+  else if (step === 4) n.innerHTML = `曲线最低点 = 最优投量 <b>${opt.toFixed(0)} mg/L</b>（最低浊度 ${optC.toFixed(1)} NTU）。${P.D === Math.round(opt) ? "<span class='ok'>当前投量恰好最优。</span>" : `当前投量 ${P.D} mg/L，${P.D > opt ? "已过投（再稳反弹）" : "投量不足"}。`}`;
+  else n.innerHTML = `报告：pH=${P.pH.toFixed(1)} 时最优投量 ${opt.toFixed(0)} mg/L。过投再稳区投量每 +10 mg/L，浊度约 +${(turbAt(opt + 10) - optC).toFixed(1)} NTU。投量宁少勿多，用曲线找谷底，不靠直觉加药。`;
+}
+function flash(id){
+  const m = $(id); if(!m) return;
+  m.classList.remove("flash"); void m.offsetWidth; m.classList.add("flash");
+}
+function refreshMetrics(){
+  const c = turb(), opt = dOpt(), optC = turbAt(opt);
+  $("mD").textContent = P.D;
+  $("mT").textContent = c.toFixed(1);
+  $("mT").classList.toggle("good", c < 5);
+  $("mT").classList.toggle("warn", c > 20);
+  $("mTSub").textContent = P.D > opt + 5 ? "过投再稳" : P.D < opt - 5 ? "投量不足" : "最优区";
+  $("mOpt").textContent = Math.round(opt);
+  $("mOptSub").textContent = `pH=${P.pH.toFixed(1)} 时`;
+  $("mG").textContent = ((1 - c / RAW) * 100).toFixed(1);
+  flash("mD"); flash("mT"); flash("mOpt"); flash("mG");
+}
+
+/* ============ Canvas 浊度-投量曲线 ============ */
+const W_ = 820, H_ = 420, pad = { l: 56, r: 16, t: 16, b: 40 };
+const cv = $("jarCanvas"), ctx = cv.getContext("2d");
+function drawCanvas(){
+  ctx.clearRect(0, 0, W_, H_);
+  const x = D => pad.l + D / 80 * (W_ - pad.l - pad.r);
+  const y = c => H_ - pad.b - Math.log10(Math.max(c, 1) / 1) / Math.log10(150 / 1) * (H_ - pad.t - pad.b);
+  ctx.font = "10px ui-monospace,monospace"; ctx.fillStyle = "#5b6572"; ctx.strokeStyle = "#232b38";
+  for (let D = 0; D <= 80; D += 10){ ctx.beginPath(); ctx.moveTo(x(D), pad.t); ctx.lineTo(x(D), H_ - pad.b); ctx.stroke(); ctx.fillText(D, x(D) - 4, H_ - pad.b + 16); }
+  [1, 5, 10, 20, 50, 100, 150].forEach(c => { const yy = y(c); ctx.beginPath(); ctx.moveTo(pad.l, yy); ctx.lineTo(W_ - pad.r, yy); ctx.stroke(); ctx.fillText(c, 8, yy + 4); });
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("投药量 D (mg/L PAC)", W_ / 2 - 80, H_ - 8);
+  ctx.save(); ctx.translate(16, H_ / 2 + 6); ctx.rotate(-Math.PI / 2); ctx.fillText("出水浊度 (NTU, 对数)", -36, 0); ctx.restore();
+  // 曲线
+  ctx.strokeStyle = "#59d6ff"; ctx.lineWidth = 2.2; ctx.beginPath();
+  for (let D = 0; D <= 80; D += 0.5){ const c = turbAt(D); const px = x(D), py = y(c); D === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py); }
+  ctx.stroke();
+  // 最优投量标记
+  const opt = dOpt(), optC = turbAt(opt);
+  ctx.strokeStyle = "#3ddc84"; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]);
+  ctx.beginPath(); ctx.moveTo(x(opt), y(optC)); ctx.lineTo(x(opt), H_ - pad.b); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = "#3ddc84"; ctx.font = "12px -apple-system,Microsoft YaHei";
+  ctx.fillText(`最优 ${Math.round(opt)} mg/L`, x(opt) + 6, y(optC) - 8);
+  // 当前点
+  const c = turb();
+  ctx.fillStyle = "#ffb020";
+  ctx.beginPath(); ctx.arc(x(P.D), y(c), 5, 0, 7); ctx.fill();
+  ctx.fillStyle = "#ffb020"; ctx.font = "12px -apple-system,Microsoft YaHei";
+  ctx.fillText(`当前 (${P.D}, ${c.toFixed(1)})`, x(P.D) + 10, y(c) - 8);
+}
+
+/* ============ 动作 ============ */
+$("actBtn").onclick = () => {
+  if (step < 5) step++;
+  if (step === 4){ renderConclusion(); }
+  renderSeg(); narrate();
+};
+$("resetBtn").onclick = resetAll;
+function resetAll(){
+  P = { D: 30, pH: 7.0, t: 10 };
+  step = 0;
+  $("dRange").value = 30; $("pHRange").value = 7.0;
+  [...$("tSeg").children].forEach((x, i) => x.className = i === 1 ? "on" : "");
+  $("conclusionCard").style.display = "none";
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas(); paintBeakers();
+}
+function pickT(i){
+  const ts = [5, 10, 30];
+  [...$("tSeg").children].forEach((x, j) => x.className = j === i ? "on" : "");
+  P.t = ts[i]; $("tVal").textContent = P.t + " min";
+  refreshMetrics(); narrate(); drawCanvas(); paintBeakers();
+}
+[...$("tSeg").children].forEach((b, i) => b.onclick = () => pickT(i));
+$("dRange").oninput = e => { P.D = +e.target.value; $("dVal").textContent = P.D + " mg/L"; refreshMetrics(); narrate(); drawCanvas(); paintBeakers(); };
+$("pHRange").oninput = e => { P.pH = +e.target.value; $("pHVal").textContent = P.pH.toFixed(1); refreshMetrics(); narrate(); drawCanvas(); paintBeakers(); };
+function renderConclusion(){
+  const opt = dOpt(), optC = turbAt(opt), c = turb();
+  $("conclusionCard").style.display = "";
+  $("resBig").textContent = Math.round(opt);
+  $("resUnit").textContent = `mg/L · pH=${P.pH.toFixed(1)} · 静沉 ${P.t} min`;
+  $("resState").textContent = `最优浊度 ${optC.toFixed(1)} NTU`;
+  $("concText").innerHTML = `原水 150 NTU、pH=${P.pH.toFixed(1)}：PAC 最优投量 <b>${Math.round(opt)} mg/L</b>，出水浊度 <b>${optC.toFixed(1)} NTU</b>（去除率 ${((1 - optC / RAW) * 100).toFixed(1)}%）。<br>当前投量 ${P.D} mg/L → 浊度 <b>${c.toFixed(1)} NTU</b>：${P.D > opt + 5 ? "<span class='bad'>处于过投再稳区——再多投只会更浑，应立即回调。</span>" : P.D < opt - 5 ? "<span class='bad'>投量不足，絮凝不充分，浊度偏高。</span>" : "<span class='good'>正处于最优区。</span>"}<br>运行提示：按季度水质做 Jar Test 更新投量曲线；pH 偏移时最优投量同步漂移（本演示 D_opt 每偏离 pH=7 一档约 ±25 mg/L）。`;
+}
+
+/* ============ 初始化 ============ */
+window.addEventListener("load", () => {
+  setTimeout(() => $("loader").classList.add("done"), 700);
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas(); paintBeakers();
+});
+</script>
+</body>
+</html>

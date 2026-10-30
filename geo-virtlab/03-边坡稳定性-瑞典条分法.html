@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>边坡稳定性实验室</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 16l6-9 4 5 6-7v9H4z' fill='none' stroke='%2359d6ff' stroke-width='1.6'/%3E%3Cpath d='M4 19h16' stroke='%23ffb020' stroke-width='1.6'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#0a0d12;--panel:#11151d;--panel2:#151b25;--line:#232b38;--txt:#e8eef4;--dim:#8b95a3;--faint:#5b6572;--amber:#ffb020;--amber-dim:#8a5c10;--cyan:#59d6ff;--danger:#ff5252;--ok:#3ddc84;--violet:#b48cff;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes slide{0%,100%{transform:translate(0,0)}25%{transform:translate(6px,10px)}50%{transform:translate(12px,18px)}75%{transform:translate(18px,26px)}}
+.slide{animation:slide 1.8s linear infinite}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px;cursor:crosshair}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader,#rp{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在划分土条…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">GEO · VIRTUAL LAB 03</div>
+    <div class="kicker">地质工程 · 岩土工程 · 边坡稳定</div>
+    <h1 class="title">边坡稳定性<span class="thin">实验室</span></h1>
+    <div class="sub">SLICE METHOD · FACTOR OF SAFETY · CIRCULAR SLIP</div>
+    <p class="oneliner"><b>边坡塌不塌，先看安全系数 Fs：抗滑力矩 ÷ 滑动力矩。</b><br>Fs=Σ(c·l+W·cosα·tanφ)/ΣW·sinα——把滑体切成条、逐条算账，这就是瑞典条分法。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 边坡与滑面</span></h3>
+      <svg class="scene" id="rig" viewBox="0 0 420 190" role="img" aria-label="边坡滑动示意">
+        <path d="M40 170 L40 100 L120 40 L200 40 L200 170 Z" fill="#14202e" stroke="#59d6ff" stroke-width="1.6"/>
+        <path d="M40 170 Q120 110 200 40" stroke="#ffb020" stroke-width="2.4" fill="none" stroke-dasharray="7 5"/>
+        <g class="slide">
+          <path d="M60 150 L60 110 L100 80 L150 80 L150 150 Z" fill="rgba(255,176,32,.22)" stroke="#ffb020" stroke-width="1.4"/>
+        </g>
+        <text x="210" y="180" text-anchor="middle" fill="#8b95a3" font-size="9" font-family="inherit">圆弧滑面：从坡脚到坡顶后缘，滑体切成 8 条逐条算</text>
+      </svg>
+      <canvas id="slopeCanvas" width="820" height="420" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">重置</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">安全系数 Fs</div><div class="v" id="mFs">–</div><div class="sub2">抗滑/下滑</div></div>
+          <div class="metric" id="mSc"><div class="k">抗滑力(矩)</div><div class="v" id="mR">–<small>kN/m</small></div><div class="sub2">Σ(c·l+Wcosα·tanφ)</div></div>
+          <div class="metric"><div class="k">下滑力(矩)</div><div class="v" id="mD">–<small>kN/m</small></div><div class="sub2">ΣW·sinα</div></div>
+          <div class="metric" id="mPc"><div class="k">稳定性判定</div><div class="v" id="mSt">–</div><div class="sub2" id="mStSub">–</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">内摩擦角 φ</span><span class="val" id="phiVal">20°</span></div>
+          <input type="range" id="phiRange" min="10" max="35" step="1" value="20">
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">黏聚力 c</span><span class="val" id="cVal">10 kPa</span></div>
+          <input type="range" id="cRange" min="0" max="40" step="1" value="10">
+        </div>
+        <div class="ctl">
+          <div class="row"><span class="name">孔隙水压力系数 ru</span><span class="val" id="ruVal">0.30</span></div>
+          <input type="range" id="ruRange" min="0" max="0.6" step="0.05" value="0.3">
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>实验结论 · 安全系数</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">（安全系数 Fs）</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">改参数再算</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · Fs 不是"算出来就完"</div><div class="d">Fs≥1.3（正常工况）才可接受；<1.0 必滑、1.0~1.3 临界要监测。规范对不同工况（正常/暴雨/地震）给不同安全等级，一个数对应一个工况。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · 最危险滑面要"试"出来</div><div class="d">同一坡有无数个圆弧，Fs 最小的那个才叫"临界滑面"——工程上要穷举圆心网格找最小 Fs。只算一个随手画的弧，不算稳定性分析。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · 水是滑坡的头号凶手</div><div class="d">降雨/蓄水抬高孔隙水压力（ru↑），有效应力掉、抗滑力掉、Fs 掉。雨季边坡失稳率是旱季的数倍，就是这个机理。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">瑞典条分法（圆弧滑面，总应力简化）：
+  Fs = Σ(c·l_i + W_i·cosα_i·tanφ) / Σ(W_i·sinα_i)
+简化（本演示）：
+  W_i 按条块面积×γ=18kN/m³；ru 折减有效法向力（W→W(1−ru)）
+  条底倾角 α_i：圆上点切线角，α=atan(−(x−xc)/(y−yc))
+  条长 l_i=b0/cosα_i；分 8 条，条宽 b0=1.75m
+坡：H=8m、坡率 1:1.5；浅层滑弧过坡脚与坡中深约 5m 处，
+  圆心 (xc=3.4, yc=10.3)，R=√(xc²+yc²)=10.8m
+判据：Fs≥1.3 稳定；1.0~1.3 临界；&lt;1.0 失稳
+教学锚点：φ=20°、c=10kPa、ru=0.3 → Fs≈1.4
+  φ→Fs 最敏感：φ=10° → Fs&lt;1（雨后可滑）；c=0、φ=20 → 略降</div>
+    <p>演示模型按瑞典条分法（圆弧滑动面）简化设定；实际边坡分析需按《建筑边坡工程技术规范》GB 50330 考虑条间力（毕肖普/摩根斯坦法）、地震与超载工况并穷举临界滑面。教学演示用，不作为设计依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性） ============ */
+let P = { phi: 20, c: 10, ru: 0.30 };
+const $ = id => document.getElementById(id);
+const H = 8, GAMMA = 18, XC = 3.414, YC = 10.275;
+const R = Math.sqrt(XC * XC + YC * YC);
+const N = 8, B0 = 1.75;
+function arcY(x){ return YC - Math.sqrt(Math.max(0, R * R - (x - XC) * (x - XC))); }
+function groundY(x){ return x <= 12 ? x / 1.5 : H; }
+function calc(){
+  let sumR = 0, sumD = 0, sumW = 0;
+  const slices = [];
+  for (let i = 0; i < N; i++){
+    const x = 0.875 + i * B0;
+    const ya = arcY(x), yg = groundY(x);
+    const h = Math.max(yg - ya, 0);
+    const W = GAMMA * h * B0;
+    const Weff = W * (1 - P.ru);
+    const dy = ya - YC;
+    const alpha = Math.atan(-(x - XC) / dy);
+    const l = B0 / Math.cos(alpha);
+    const res = P.c * l + Weff * Math.cos(alpha) * Math.tan(P.phi * Math.PI / 180);
+    const dri = Weff * Math.sin(alpha);
+    sumR += res; sumD += dri; sumW += W;
+    slices.push({ x, h, W, alpha, res, dri });
+  }
+  const Fs = sumD > 0 ? sumR / sumD : 99;
+  return { Fs, sumR, sumD, sumW, slices };
+}
+function judge(Fs){
+  if (Fs < 1.0) return ["失稳", "Fs<1.0：边坡将滑动", "#ff5252"];
+  if (Fs < 1.3) return ["临界", "1.0≤Fs<1.3：需加固与监测", "#ffb020"];
+  return ["稳定", "Fs≥1.3：满足规范要求", "#3ddc84"];
+}
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  { t: "边坡与滑面", s: "给定边坡（H=8、1:1.5）与圆弧滑面（过坡脚）。", bench: "准备：\n① 确定边坡几何（H、坡率）与地层参数（γ）\n② 假定滑弧（圆心、半径）\n③ 分条（本演示 10 条）\n④ 逐条量 h、α" },
+  { t: "算条块力", s: "W=γ·h·b0；有效 W(1−ru)。", bench: "" },
+  { t: "累加抗滑", s: "Σ(c·l + W·cosα·tanφ)。", bench: "" },
+  { t: "累加下滑", s: "ΣW·sinα。", bench: "" },
+  { t: "求 Fs", s: "Fs=抗滑/下滑。", bench: "" },
+  { t: "报告", s: "Fs 与判定、φ 敏感性、加固建议。", bench: "" }
+];
+let step = 0;
+
+function renderSeg(){
+  const el = $("stepSeg");
+  el.innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" class="${i < step ? "done" : i === step ? "on" : ""}">${i + 1} · ${s.t}<small>${i < step ? "已通过" : i === step ? "进行中" : "待执行"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { if(+b.dataset.i <= step){ step = +b.dataset.i; renderSeg(); narrate(); } });
+  $("sceneTitle").textContent = `${step + 1} · ${STEPS[step].t}`;
+  $("actBtn").textContent = step >= 5 ? "完成" : "下一步";
+}
+function narrate(){
+  const n = $("narrate");
+  const c = calc(), j = judge(c.Fs);
+  if (step <= 1) n.innerHTML = STEPS[step].s;
+  else if (step === 2) n.innerHTML = `逐条算：W=γ·h·b0（γ=18、条宽 1.6m），ru=${P.ru.toFixed(2)} 折减有效法向力。`;
+  else if (step === 3) n.innerHTML = `抗滑力 Σ(c·l+Wcosα·tanφ)=<b>${c.sumR.toFixed(0)} kN/m</b>（c=${P.c}、φ=${P.phi}°）。`;
+  else if (step === 4) n.innerHTML = `下滑力 ΣW·sinα=<b>${c.sumD.toFixed(0)} kN/m</b>。`;
+  else if (step === 5) n.innerHTML = `Fs=抗滑/下滑=<b>${c.Fs.toFixed(2)}</b>。`;
+  else n.innerHTML = `报告：Fs=<b>${c.Fs.toFixed(2)}</b> → ${j[0]}（${j[1]}）。φ 是最敏感参数：φ 降 10° Fs 能掉到 1 以下。`;
+}
+function flash(id){
+  const el = $(id); if(!el) return;
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+function refreshMetrics(){
+  const c = calc(), j = judge(c.Fs);
+  $("mFs").textContent = c.Fs.toFixed(2);
+  $("mFs").style.color = j[2];
+  $("mR").textContent = c.sumR.toFixed(0);
+  $("mD").textContent = c.sumD.toFixed(0);
+  $("mSt").textContent = j[0];
+  $("mStSub").textContent = j[1];
+  $("mSt").style.color = j[2];
+  flash("mFs"); flash("mR"); flash("mD"); flash("mSt");
+}
+
+/* ============ Canvas ============ */
+const W_ = 820, H_ = 420;
+const cv = $("slopeCanvas"), ctx = cv.getContext("2d");
+function drawCanvas(){
+  ctx.clearRect(0, 0, W_, H_);
+  const c = calc(), j = judge(c.Fs);
+  // 坐标：x 0~16m → 左半区，y 0~14m
+  const ox = 60, oy = 330, sx = 22, sy = 24;
+  const X = x => ox + x * sx;
+  const Y = y => oy - y * sy;
+  // 坡体
+  ctx.fillStyle = "#14202e";
+  ctx.beginPath();
+  ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(0), Y(8)); ctx.lineTo(X(12), Y(8)); ctx.lineTo(X(20), Y(8));
+  ctx.lineTo(X(20), Y(0)); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = "#59d6ff"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(12), Y(8)); ctx.lineTo(X(20), Y(8)); ctx.stroke();
+  // 滑弧
+  ctx.strokeStyle = "#ffb020"; ctx.lineWidth = 2.6; ctx.setLineDash([7, 5]);
+  ctx.beginPath();
+  for (let x = 0.2; x <= 13.9; x += 0.2){
+    const y = arcY(x);
+    x <= 0.2 ? ctx.moveTo(X(x), Y(y)) : ctx.lineTo(X(x), Y(y));
+  }
+  ctx.stroke(); ctx.setLineDash([]);
+  // 条块（滑体）
+  for (let i = 0; i < N; i++){
+    const x0 = i * B0, x1 = (i + 1) * B0, xm = x0 + B0 / 2;
+    const ya = arcY(xm);
+    const yt = Math.min(groundY(xm), 8.2);
+    if (yt > ya){
+      ctx.fillStyle = "rgba(255,176,32,.20)";
+      ctx.fillRect(X(x0), Y(yt), X(x1) - X(x0), Y(ya) - Y(yt));
+    }
+  }
+  // 条号
+  ctx.fillStyle = "#8b95a3"; ctx.font = "9px ui-monospace,monospace";
+  for (let i = 0; i < N; i++){
+    const xm = i * B0 + B0 / 2;
+    const yTop = groundY(xm), yArc = arcY(xm);
+    if (yTop > yArc) ctx.fillText(String(i + 1), X(xm) - 4, Y((yTop + yArc) / 2) + 3);
+  }
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("坡高 H=8m · 坡率 1:1.5 · γ=18", X(1), Y(9.5));
+  ctx.fillText("圆心 (3.4,10.3) · R=" + R.toFixed(1) + "m（浅层滑面，过坡脚）", X(1), Y(-1.8));
+
+  // 右：Fs 结果与条块力
+  const rx = 500;
+  ctx.fillStyle = "#8b95a3"; ctx.font = "13px -apple-system,Microsoft YaHei";
+  ctx.fillText("计算结果", rx, 36);
+  const rows = [
+    ["Fs = " + c.Fs.toFixed(2), "安全系数"],
+    ["抗滑 = " + c.sumR.toFixed(0) + " kN/m", "Σ(c·l+Wcosα·tanφ)"],
+    ["下滑 = " + c.sumD.toFixed(0) + " kN/m", "ΣW·sinα"],
+    ["总重 = " + c.sumW.toFixed(0) + " kN/m", "Σγ·h·b0"],
+    ["ru = " + P.ru.toFixed(2), "孔隙水压力系数"]
+  ];
+  rows.forEach((r2, i) => {
+    ctx.fillStyle = "#e8eef4"; ctx.font = "12px ui-monospace,monospace";
+    ctx.fillText(r2[0], rx, 62 + i * 30);
+    ctx.fillStyle = "#5b6572"; ctx.font = "11px -apple-system,Microsoft YaHei";
+    ctx.fillText(r2[1], rx + 170, 62 + i * 30);
+  });
+  // Fs 判据带
+  ctx.fillStyle = "#8b95a3"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("Fs 判据带", rx, 230);
+  const x0 = rx, y0 = 240, w = 260;
+  ctx.fillStyle = "rgba(255,82,82,.2)"; ctx.fillRect(x0, y0, w * 0.5, 22);
+  ctx.fillStyle = "rgba(255,176,32,.25)"; ctx.fillRect(x0 + w * 0.5, y0, w * 0.15, 22);
+  ctx.fillStyle = "rgba(61,220,132,.25)"; ctx.fillRect(x0 + w * 0.65, y0, w * 0.35, 22);
+  ctx.strokeStyle = "#232b38"; ctx.strokeRect(x0, y0, w, 22);
+  const fx = x0 + Math.min(Math.max(c.Fs, 0), 2.0) / 2.0 * w;
+  ctx.fillStyle = "#e8eef4";
+  ctx.fillRect(fx - 3, y0 - 4, 6, 30);
+  ctx.fillStyle = "#e8eef4"; ctx.font = "11px ui-monospace,monospace";
+  ctx.fillText(c.Fs.toFixed(2), fx + 8, y0 + 16);
+  ctx.fillStyle = "#5b6572"; ctx.font = "10px ui-monospace,monospace";
+  ctx.fillText("1.0", x0 + w * 0.5 - 8, y0 + 38);
+  ctx.fillText("1.3", x0 + w * 0.65 - 8, y0 + 38);
+  ctx.fillStyle = j[2]; ctx.font = "bold 13px -apple-system,Microsoft YaHei";
+  ctx.fillText(j[0] + "：" + j[1], rx, H_ - 40);
+}
+
+/* ============ 动作 ============ */
+$("actBtn").onclick = () => {
+  if (step < 5) step++;
+  if (step === 4){ renderConclusion(); }
+  renderSeg(); narrate();
+};
+$("resetBtn").onclick = resetAll;
+function resetAll(){
+  P = { phi: 20, c: 10, ru: 0.30 };
+  step = 0;
+  $("phiRange").value = 20; $("cRange").value = 10; $("ruRange").value = 0.3;
+  $("conclusionCard").style.display = "none";
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+}
+$("phiRange").oninput = e => { P.phi = +e.target.value; $("phiVal").textContent = P.phi + "°"; refreshMetrics(); narrate(); drawCanvas(); };
+$("cRange").oninput = e => { P.c = +e.target.value; $("cVal").textContent = P.c + " kPa"; refreshMetrics(); narrate(); drawCanvas(); };
+$("ruRange").oninput = e => { P.ru = +e.target.value; $("ruVal").textContent = P.ru.toFixed(2); refreshMetrics(); narrate(); drawCanvas(); };
+function renderConclusion(){
+  const c = calc(), j = judge(c.Fs);
+  $("conclusionCard").style.display = "";
+  $("resBig").textContent = c.Fs.toFixed(2);
+  $("resState").textContent = `φ=${P.phi}° · c=${P.c}kPa · ru=${P.ru.toFixed(2)}`;
+  $("concText").innerHTML = `安全系数 <b>Fs=${c.Fs.toFixed(2)}</b>（抗滑 ${c.sumR.toFixed(0)} vs 下滑 ${c.sumD.toFixed(0)} kN/m）。<br><span class='good'>判定：${j[0]}——${j[1]}。</span><br>工程要点：φ 是最敏感参数（挖断滑面夹层/泡水软化都先降 φ）；ru 反映降雨/蓄水——水位一涨 Fs 直掉；加固手段=削坡减载（降 W）、排水降 ru、锚杆抗滑桩补抗滑。`;
+}
+
+/* ============ 初始化 ============ */
+window.addEventListener("load", () => {
+  setTimeout(() => $("loader").classList.add("done"), 700);
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+});
+</script>
+</body>
+</html>

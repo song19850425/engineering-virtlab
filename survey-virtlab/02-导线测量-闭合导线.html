@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>导线测量实验室</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 6l8 12' stroke='%2359d6ff' stroke-width='1.6'/%3E%3Cpath d='M14 6l-8 12M8 4v4M18 8v4' stroke='%23ffb020' stroke-width='1.6'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0a0d12; --panel:#11151d; --panel2:#151b25; --line:#232b38;
+  --txt:#e8eef4; --dim:#8b95a3; --faint:#5b6572;
+  --amber:#ffb020; --amber-dim:#8a5c10;
+  --cyan:#59d6ff; --danger:#ff5252; --ok:#3ddc84; --violet:#b48cff;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;overflow-x:hidden}
+#loader{position:fixed;inset:0;background:var(--bg);z-index:50;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+#loader .spin{width:46px;height:46px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--amber);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{color:var(--dim);font-size:14px;letter-spacing:.25em}
+@keyframes mflash{0%{box-shadow:0 0 0 2px var(--amber)}100%{box-shadow:0 0 0 0 transparent}}
+.metric.flash{animation:mflash .9s ease}
+@keyframes turn{0%,100%{transform:rotate(0)}50%{transform:rotate(4deg)}}
+.tot{transform-origin:30px 90px;transform-box:view-box;animation:turn 3s ease-in-out infinite}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 40px}
+header.lab-head{padding:26px 4px 6px}
+.kicker{font-size:12px;letter-spacing:.35em;color:var(--faint);margin-bottom:10px}
+h1.title{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:.12em}
+h1.title .thin{color:var(--dim);font-weight:300}
+.sub{font-size:13px;letter-spacing:.42em;color:var(--amber);margin-top:8px}
+.oneliner{margin-top:14px;font-size:16px;color:var(--txt);line-height:1.7;border-left:3px solid var(--amber);padding-left:14px;max-width:680px}
+.oneliner b{color:var(--amber)}
+.stage{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden;margin-bottom:18px}
+.card h3{font-size:12px;letter-spacing:.25em;color:var(--faint);margin-bottom:10px;font-weight:600}
+svg.scene,canvas{width:100%;height:auto;display:block;background:radial-gradient(120% 90% at 50% 0%,#141a24 0%,#0a0d12 70%);border-radius:10px}
+canvas{margin-top:10px;cursor:crosshair}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.metric .k{font-size:11px;color:var(--faint);letter-spacing:.15em;margin-bottom:4px}
+.metric .v{font-family:var(--mono);font-size:clamp(20px,3.4vw,28px);font-weight:700}
+.metric .v small{font-size:12px;color:var(--dim);font-weight:400;margin-left:2px}
+.metric.warn .v{color:var(--danger)}
+.metric.good .v{color:var(--ok)}
+.metric .sub2{font-size:11px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+#narrate{min-height:110px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.75;color:var(--txt);margin-bottom:14px}
+#narrate b{color:var(--cyan);font-family:var(--mono)}
+#narrate .warn{color:var(--danger);font-weight:700}
+#narrate .ok{color:var(--ok);font-weight:700}
+.ctl{margin-bottom:12px}
+.ctl .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ctl .name{font-size:13px;letter-spacing:.2em;color:var(--dim)}
+.ctl .val{font-family:var(--mono);font-size:13px;color:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber);background:transparent;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{width:16px;height:16px;border-radius:50%;background:var(--amber);margin-top:-6px;border:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:62px;padding:10px 6px;font-size:13px;cursor:pointer;background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:9px;font-family:var(--mono);transition:all .15s}
+.seg button small{display:block;font-size:10px;color:var(--faint);margin-top:2px;font-family:inherit}
+.seg button.on{background:#2a2113;color:var(--amber);border-color:var(--amber-dim);box-shadow:0 0 0 1px var(--amber-dim) inset}
+.seg button.on small{color:var(--amber)}
+.seg button.done{color:var(--ok);border-color:#1e4d33}
+.seg button:active{transform:scale(.97)}
+#bench{margin-top:14px;min-height:120px}
+.tipbox{font-size:13px;color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.7;margin-top:10px}
+.tipbox b{color:var(--txt)}
+.tipbox .warnline{color:var(--amber)}
+.actionrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn-act{flex:1;min-width:180px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#ffb020,#f59e0b);color:#1a1206;border:none;border-radius:10px;letter-spacing:.1em;transition:transform .12s, box-shadow .12s}
+.btn-act:hover{box-shadow:0 4px 16px rgba(255,176,32,.35)}
+.btn-act:active{transform:scale(.98)}
+.btn-act:disabled{opacity:.45;cursor:default;box-shadow:none}
+.btn-ghost{padding:13px 18px;font-size:14px;cursor:pointer;background:transparent;color:var(--dim);border:1px solid var(--line);border-radius:10px}
+.btn-ghost:hover{color:var(--txt);border-color:var(--faint)}
+#conclusionCard{border-left:3px solid var(--violet)}
+.bigresult{text-align:center;padding:18px 0 6px}
+.bigresult .n{font-family:var(--mono);font-size:52px;font-weight:800;color:var(--violet)}
+.bigresult .u{font-size:14px;color:var(--dim)}
+.bigresult .c{font-size:13px;color:var(--faint);margin-top:6px;letter-spacing:.2em}
+.conc-text{font-size:14.5px;line-height:1.9;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.conc-text b{color:var(--cyan);font-family:var(--mono)}
+.conc-text .bad{color:var(--danger);font-weight:700}
+.conc-text .good{color:var(--ok);font-weight:700}
+.spec-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+.spec-table th{font-size:11px;color:var(--faint);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);letter-spacing:.1em}
+.spec-table td{padding:9px 10px;border-bottom:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:13px}
+.redlines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:2px}
+@media (max-width:700px){.redlines{grid-template-columns:1fr}}
+.rl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.rl .t{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.rl .t .dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.rl .d{font-size:12px;color:var(--dim);line-height:1.7}
+details.how{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--dim)}
+details.how summary{cursor:pointer;color:var(--txt);font-size:14px;letter-spacing:.15em;list-style:none}
+details.how summary::-webkit-details-marker{display:none}
+details.how .f{font-family:var(--mono);background:#0d1117;border-radius:8px;padding:10px 12px;margin:8px 0;color:var(--cyan);font-size:12.5px;line-height:1.9;overflow-x:auto;white-space:pre}
+footer{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--faint)}
+.tag{display:inline-block;font-size:10px;letter-spacing:.2em;color:var(--faint);border:1px solid var(--line);border-radius:20px;padding:3px 10px;margin-bottom:8px}
+@media print{#loader,#rp{display:none!important}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><p>正在整平全站仪…</p></div>
+<div class="wrap">
+  <header class="lab-head">
+    <div class="tag">SURV · VIRTUAL LAB 02</div>
+    <div class="kicker">测绘工程 · 控制测量 · 平面控制</div>
+    <h1 class="title">导线测量<span class="thin">实验室</span></h1>
+    <div class="sub">TRAVERSE LAB · ANGLE &amp; COORDINATE CLOSING ERROR</div>
+    <p class="oneliner"><b>闭合导线测一圈，角度总和差几秒、坐标收不回起点——两个闭合差就是平面控制的"体检报告"。</b>测角、算坐标、验相对闭合差。<br>角度闭合差 fβ · 坐标增量闭合差 fx/fy · 相对闭合差 K=1/T · 限差 1/2000。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <h3>实验台 · <span id="sceneTitle" style="color:var(--amber)">① 选点布设</span></h3>
+      <svg class="scene" id="rig" viewBox="0 0 420 190" role="img" aria-label="闭合导线网示意">
+        <polygon points="60,60 360,60 360,160 60,160" fill="none" stroke="#59d6ff" stroke-width="2"/>
+        <g class="tot">
+          <polygon points="60,60 80,52 86,66 66,74" fill="#ffb020"/>
+        </g>
+        <circle cx="360" cy="60" r="5" fill="#ffb020"/><text x="360" y="46" text-anchor="middle" fill="#ffb020" font-size="9" font-family="inherit">B</text>
+        <circle cx="360" cy="160" r="5" fill="#ffb020"/><text x="360" y="180" text-anchor="middle" fill="#ffb020" font-size="9" font-family="inherit">C</text>
+        <circle cx="60" cy="160" r="5" fill="#ffb020"/><text x="60" y="180" text-anchor="middle" fill="#ffb020" font-size="9" font-family="inherit">D</text>
+        <text x="60" y="46" text-anchor="middle" fill="#ffb020" font-size="9" font-family="inherit">A(起算)</text>
+        <text x="210" y="36" text-anchor="middle" fill="#8b95a3" font-size="8" font-family="inherit">S1=100.000</text>
+        <text x="380" y="110" text-anchor="middle" fill="#8b95a3" font-size="8" font-family="inherit" transform="rotate(90 380 110)">S2=80.000</text>
+        <text x="210" y="180" text-anchor="middle" fill="#8b95a3" font-size="8" font-family="inherit">S3=100.000</text>
+        <text x="40" y="110" text-anchor="middle" fill="#8b95a3" font-size="8" font-family="inherit" transform="rotate(-90 40 110)">S4=80.000</text>
+        <text x="210" y="126" text-anchor="middle" fill="#5b6572" font-size="9" font-family="inherit">闭合导线：测内角 β + 边长 S → 算方位角与坐标增量 → 闭合回 A</text>
+      </svg>
+      <canvas id="trCanvas" width="820" height="420" style="width:100%;height:auto"></canvas>
+      <div id="bench"></div>
+      <div class="actionrow">
+        <button class="btn-act" id="actBtn">开始</button>
+        <button class="btn-ghost" id="resetBtn">重测导线</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>实时仪表</h3>
+        <div class="metrics">
+          <div class="metric"><div class="k">角度闭合差 fβ</div><div class="v" id="mFb">–<small>″</small></div><div class="sub2">Σβ−(n−2)·180°</div></div>
+          <div class="metric" id="mFbc"><div class="k">限差 ±40√n</div><div class="v" id="mFbl">–<small>″</small></div><div class="sub2">图根导线</div></div>
+          <div class="metric"><div class="k">坐标闭合差 f</div><div class="v" id="mF">–<small>m</small></div><div class="sub2" id="mFSub">fx/fy 合成</div></div>
+          <div class="metric" id="mKc"><div class="k">相对闭合差 K</div><div class="v" id="mK">–</div><div class="sub2" id="mKSub">K=f/ΣS</div></div>
+        </div>
+        <div id="narrate">…</div>
+        <div class="ctl">
+          <div class="row"><span class="name">测角 β2 微调</span><span class="val" id="bVal">+12″</span></div>
+          <input type="range" id="bRange" min="-120" max="120" step="1" value="12">
+        </div>
+        <h3>步骤</h3>
+        <div class="seg" id="stepSeg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="conclusionCard" style="display:none">
+    <h3>实验结论 · 闭合导线检核</h3>
+    <div class="bigresult">
+      <div class="n" id="resBig">–</div>
+      <div class="u" id="resUnit">（相对闭合差 1/T）</div>
+      <div class="c" id="resState">–</div>
+    </div>
+    <div class="conc-text" id="concText">…</div>
+    <div class="actionrow">
+      <button class="btn-act" onclick="resetAll()">重测</button>
+      <button class="btn-ghost" onclick="document.getElementById('howBox').open=true">看模型公式</button>
+    </div>
+  </div>
+
+  <div class="redlines">
+    <div class="rl"><div class="t"><span class="dot"></span>红线一 · 角度闭合差先于坐标</div><div class="d">fβ=Σβ−(n−2)·180°，限差 ±40√n″。角度错了，后面的方位角、坐标增量全错——先平角（反号均分），再算坐标，顺序不能乱。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线二 · 坐标闭合差收不进起点</div><div class="d">闭合导线理论 ΣΔx=ΣΔy=0，实测不为零就是 fx、fy。全长闭合差 f=√(fx²+fy²) 与导线全长之比 K 必须优于 1/2000（图根）——K 是导线精度的综合成绩单。</div></div>
+    <div class="rl"><div class="t"><span class="dot"></span>红线三 · 短边最伤人</div><div class="d">对中误差对短边影响最大：100m 边对中偏 1mm 是小事，20m 边就成 5″ 级测角误差。导线边尽量等长、选点避开短边，是外业铁律。</div></div>
+  </div>
+
+  <details class="how" id="howBox">
+    <summary>▸ 模型与公式（确定性演示，无随机数凑结果）</summary>
+    <div class="f">角度闭合差：fβ = Σβ测 − (n−2)·180°        [″]，限差 ±40√n″（图根）
+坐标增量：Δx = S·cosα，Δy = S·sinα
+闭合导线：ΣΔx理 = ΣΔy理 = 0
+坐标闭合差：fx = ΣΔx测，fy = ΣΔy测
+全长闭合差：f = √(fx²+fy²)，相对闭合差 K = f/ΣS ≤ 1/2000
+演示数据（矩形闭合导线）：A(0,0) B(100,0) C(100,80) D(0,80)
+  β1=89°59′35″ β2=90°00′12″ β3=90°00′08″ β4=90°00′00″ → fβ=+5″
+  实测增量含 cm 级误差 → fx=+0.052，fy=−0.031 → f=0.060 m，K=1/5948
+本页为确定性演示：β2 可微调（联动旋转 BC 边），全部结果可复算。</div>
+    <p>演示模型按图根导线限差设定（GB 50026 工程测量规范）；实际作业以规范与仪器精度为准。教学演示用，不作为控制测量成果依据。</p>
+  </details>
+</div>
+
+<script>
+"use strict";
+/* ============ 模型（确定性） ============ */
+const BETA_BASE = [89, 59, 35, 90, 0, 12, 90, 0, 8, 90, 0, 0]; // 角度 [度,分,秒]*4
+const S = [100.000, 80.000, 100.000, 80.000];
+let P = { b2: 12 };
+const $ = id => document.getElementById(id);
+function betaAngles(){
+  const d2 = P.b2;
+  const m2 = 0, s2 = d2;
+  return [
+    { d: 89, m: 59, s: 35 },
+    { d: 90, m: 0, s: s2 },
+    { d: 90, m: 0, s: 8 },
+    { d: 90, m: 0, s: 0 }
+  ];
+}
+const betaSec = () => betaAngles().reduce((a, b) => a + b.s, 0) + betaAngles().reduce((a, b) => a + b.m, 0) * 60 + betaAngles().reduce((a, b) => a + b.d, 0) * 3600;
+const fbeta = () => 360 * 3600 - betaSec();   // ″
+const fbLimit = () => 40 * Math.sqrt(4);
+// 实测坐标增量（BC 边随 β2 微调旋转）
+function deltas(){
+  const d2 = P.b2 * Math.PI / 180 / 3600;
+  const dx = [100.032, -0.024, -99.956, -0.000];
+  const dy = [0.017, 79.968, -0.016, -80.000];
+  // 旋转 BC 边（索引1）
+  const c = Math.cos(d2), s = Math.sin(d2);
+  const x2 = dx[1] * c - dy[1] * s, y2 = dx[1] * s + dy[1] * c;
+  return { dx: [dx[0], x2, dx[2], dx[3]], dy: [dy[0], y2, dy[2], dy[3]] };
+}
+function closes(){
+  const { dx, dy } = deltas();
+  const fx = dx.reduce((a, b) => a + b, 0), fy = dy.reduce((a, b) => a + b, 0);
+  const f = Math.sqrt(fx * fx + fy * fy);
+  const sumS = S.reduce((a, b) => a + b, 0);
+  const K = sumS / f;
+  return { fx, fy, f, sumS, K };
+}
+const ko = () => closes().K >= 2000;
+
+/* ============ 状态机 ============ */
+const STEPS = [
+  { t: "选点布设", s: "闭合导线 A→B→C→D→A，A 为起算点（已知坐标与方位角）。选点避开短边、通视良好。", bench: "准备：\n① 闭合导线 4 点\n② A 起算：坐标已知\n③ 全站仪测内角 β + 边长 S\n④ 记录簿：角、边、仪器高" },
+  { t: "测角", s: "测 4 个内角（一测回以上），本页 β2 可微调模拟测角误差。", bench: "" },
+  { t: "算角度闭合差", s: "Σβ 与理论值 (n−2)·180°=360° 之差即 fβ，限差 ±40√n。", bench: "" },
+  { t: "算坐标增量", s: "由方位角与边长算 Δx、Δy，闭合导线理论 ΣΔx=ΣΔy=0。", bench: "" },
+  { t: "算坐标闭合差", s: "fx、fy 合成全长闭合差 f，算相对闭合差 K=f/ΣS。", bench: "" },
+  { t: "检核平差", s: "K≤1/2000 合格，按边长比例反号分配 fx/fy。", bench: "" }
+];
+let step = 0;
+
+function renderSeg(){
+  const el = $("stepSeg");
+  el.innerHTML = STEPS.map((s, i) =>
+    `<button data-i="${i}" class="${i < step ? "done" : i === step ? "on" : ""}">${i + 1} · ${s.t}<small>${i < step ? "已通过" : i === step ? "进行中" : "待执行"}</small></button>`
+  ).join("");
+  [...el.children].forEach(b => b.onclick = () => { if(+b.dataset.i <= step){ step = +b.dataset.i; renderSeg(); narrate(); } });
+  $("sceneTitle").textContent = `${step + 1} · ${STEPS[step].t}`;
+  $("actBtn").textContent = step >= 5 ? "完成" : "下一步";
+}
+function narrate(){
+  const n = $("narrate");
+  const fb = fbeta(), fbl = fbLimit();
+  const c = closes();
+  if (step <= 1) n.innerHTML = STEPS[step].s;
+  else if (step === 2) n.innerHTML = `内角：<b>${betaAngles().map(b => `${b.d}°${String(b.m).padStart(2, "0")}′${String(b.s).padStart(2, "0")}″`).join("、")}</b>，Σβ=<b>${(betaSec() / 3600).toFixed(0)}°${((betaSec() % 3600) / 60).toFixed(0)}′${(betaSec() % 60).toFixed(0)}″</b>。`;
+  else if (step === 3) n.innerHTML = `fβ=360°−Σβ=<b>${fb.toFixed(0)}″</b>，限差 ±40√4=<b>±${fbl.toFixed(0)}″</b>。${Math.abs(fb) <= fbl ? "<span class='ok'>角度闭合差合格，可继续。</span>" : "<span class='bad'>角度超限——重测角度。</span>"}`;
+  else if (step === 4) n.innerHTML = `坐标增量（实测含误差）：ΣΔx=<b>${c.fx.toFixed(3)} m</b>、ΣΔy=<b>${c.fy.toFixed(3)} m</b>，理论都应为 0——不为零就是坐标闭合差。`;
+  else if (step === 5) n.innerHTML = `全长闭合差 f=√(fx²+fy²)=<b>${c.f.toFixed(3)} m</b>，导线全长 ΣS=${c.sumS.toFixed(1)} m → K=<b>1/${c.K.toFixed(0)}</b>。`;
+  else n.innerHTML = `检核：K=1/${c.K.toFixed(0)} ≥ 1/2000 → ${ko() ? "<span class='ok'>合格：按边长比例反号分配 fx/fy</span>" : "<span class='bad'>超限：重测整条导线</span>"}。`;
+}
+function flash(id){
+  const el = $(id); if(!el) return;
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+function refreshMetrics(){
+  const fb = fbeta(), fbl = fbLimit();
+  const c = closes(), o = ko();
+  $("mFb").textContent = fb.toFixed(0);
+  $("mFb").classList.toggle("warn", Math.abs(fb) > fbl);
+  $("mFbl").textContent = "±" + fbl.toFixed(0);
+  $("mF").textContent = c.f.toFixed(3);
+  $("mFSub").textContent = `fx=${c.fx.toFixed(3)} fy=${c.fy.toFixed(3)}`;
+  $("mK").textContent = "1/" + c.K.toFixed(0);
+  $("mK").classList.toggle("good", o);
+  $("mK").classList.toggle("warn", !o);
+  $("mKSub").textContent = o ? "≥1/2000 合格" : "<1/2000 超限";
+  flash("mFb"); flash("mF"); flash("mK");
+}
+
+/* ============ Canvas 导线图 + 闭合差矢量 ============ */
+const W_ = 820, H_ = 420;
+const cv = $("trCanvas"), ctx = cv.getContext("2d");
+function drawCanvas(){
+  ctx.clearRect(0, 0, W_, H_);
+  // 左：导线平面图（实测增量叠加）
+  const l = { l: 50, r: 440, t: 30, b: 40 };
+  const sc = 2.2;  // m → px
+  const ox = l.l + 30, oy = H_ - l.b - 20;
+  const { dx, dy } = deltas();
+  // 实测点链
+  let X = 0, Y = 0;
+  const pts = [[0, 0]];
+  for (let i = 0; i < 4; i++){ X += dx[i]; Y += dy[i]; pts.push([X, Y]); }
+  ctx.font = "10px ui-monospace,monospace"; ctx.fillStyle = "#5b6572"; ctx.strokeStyle = "#232b38";
+  ctx.fillStyle = "#8b95a3"; ctx.font = "12px -apple-system,Microsoft YaHei";
+  ctx.fillText("导线平面图（实测增量）", l.l + 10, 22);
+  ctx.font = "10px -apple-system,Microsoft YaHei";
+  ctx.strokeStyle = "#232b38";
+  for (let i = 0; i < 40; i += 10){ ctx.beginPath(); ctx.moveTo(ox + i * sc, l.t); ctx.lineTo(ox + i * sc, H_ - l.b); ctx.stroke(); ctx.beginPath(); ctx.moveTo(l.l, oy - i * sc); ctx.lineTo(l.r, oy - i * sc); ctx.stroke(); }
+  ctx.strokeStyle = "#59d6ff"; ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  pts.forEach((p, i) => {
+    const px = ox + p[0] * sc, py = oy - p[1] * sc;
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  });
+  ctx.closePath(); ctx.stroke();
+  const names = ["A", "B", "C", "D", "A"];
+  pts.forEach((p, i) => {
+    ctx.fillStyle = "#ffb020";
+    ctx.beginPath(); ctx.arc(ox + p[0] * sc, oy - p[1] * sc, 4, 0, 7); ctx.fill();
+    ctx.fillStyle = "#e8eef4"; ctx.font = "11px -apple-system,Microsoft YaHei";
+    ctx.fillText(names[i], ox + p[0] * sc - 6, oy - p[1] * sc - 8);
+  });
+  // 右：闭合差矢量放大
+  const rl = 470, rx = 620, ry0 = 200;
+  const c = closes();
+  ctx.fillStyle = "#8b95a3"; ctx.font = "12px -apple-system,Microsoft YaHei";
+  ctx.fillText("坐标闭合差矢量（放大 1500×）", rl, 22);
+  ctx.strokeStyle = "#232b38";
+  ctx.beginPath(); ctx.moveTo(rl, ry0); ctx.lineTo(760, ry0); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(rx, 120); ctx.lineTo(rx, 290); ctx.stroke();
+  // 理论闭合点
+  ctx.fillStyle = "#3ddc84";
+  ctx.beginPath(); ctx.arc(rx, ry0, 4, 0, 7); ctx.fill();
+  ctx.fillStyle = "#3ddc84"; ctx.font = "11px -apple-system,Microsoft YaHei";
+  ctx.fillText("理论闭合点 A", rx + 10, ry0 - 8);
+  // fx fy f
+  const scale = 1500;
+  const fx = c.fx * scale, fy = c.fy * scale;
+  ctx.strokeStyle = "#59d6ff"; ctx.lineWidth = 2.4;
+  ctx.beginPath(); ctx.moveTo(rx, ry0); ctx.lineTo(rx + fx, ry0); ctx.stroke();
+  ctx.strokeStyle = "#ff8c2a";
+  ctx.beginPath(); ctx.moveTo(rx + fx, ry0); ctx.lineTo(rx + fx, ry0 - fy); ctx.stroke();
+  ctx.strokeStyle = "#ff5252"; ctx.setLineDash([5, 4]);
+  ctx.beginPath(); ctx.moveTo(rx, ry0); ctx.lineTo(rx + fx, ry0 - fy); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = "#59d6ff"; ctx.font = "12px -apple-system,Microsoft YaHei";
+  ctx.fillText(`fx=${c.fx.toFixed(3)} m`, rx + fx + 8, ry0 + 4);
+  ctx.fillStyle = "#ff8c2a";
+  ctx.fillText(`fy=${c.fy.toFixed(3)} m`, rx + fx + 8, ry0 - fy - 6);
+  ctx.fillStyle = "#ff5252"; ctx.font = "13px ui-monospace,monospace";
+  ctx.fillText(`f=${c.f.toFixed(3)} m → K=1/${c.K.toFixed(0)}`, rx - 10, ry0 - fy - 30);
+  // 检核结果
+  ctx.font = "13px -apple-system,Microsoft YaHei";
+  ctx.fillStyle = ko() ? "#3ddc84" : "#ff5252";
+  ctx.fillText(ko() ? "✓ K≥1/2000 合格，可平差" : "✕ K<1/2000 超限重测", rl, 300);
+}
+
+/* ============ 动作 ============ */
+$("actBtn").onclick = () => {
+  if (step < 5) step++;
+  if (step === 4){ renderConclusion(); }
+  renderSeg(); narrate();
+};
+$("resetBtn").onclick = resetAll;
+function resetAll(){
+  P = { b2: 12 };
+  step = 0;
+  $("bRange").value = 12;
+  $("conclusionCard").style.display = "none";
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+}
+$("bRange").oninput = e => {
+  P.b2 = +e.target.value;
+  $("bVal").textContent = (P.b2 > 0 ? "+" : "") + P.b2 + "″";
+  refreshMetrics(); narrate(); drawCanvas();
+};
+function renderConclusion(){
+  const fb = fbeta(), fbl = fbLimit();
+  const c = closes(), o = ko();
+  $("conclusionCard").style.display = "";
+  $("resBig").textContent = "1/" + c.K.toFixed(0);
+  $("resUnit").textContent = "（相对闭合差）· " + (o ? "合格" : "超限");
+  $("resState").textContent = `fβ=${fb.toFixed(0)}″(±${fbl.toFixed(0)}″) · f=${c.f.toFixed(3)} m · ΣS=${c.sumS.toFixed(1)} m`;
+  $("concText").innerHTML = `角度闭合差 <b>fβ=${fb.toFixed(0)}″</b>（限差 ±40√4=±${fbl.toFixed(0)}″，${Math.abs(fb) <= fbl ? "<span class='good'>合格</span>" : "<span class='bad'>超限</span>"}）；坐标闭合差 fx=<b>${c.fx.toFixed(3)}</b>、fy=<b>${c.fy.toFixed(3)}</b> → 全长闭合差 f=<b>${c.f.toFixed(3)} m</b> → K=<b>1/${c.K.toFixed(0)}</b>。${o ? "<span class='good'>K≥1/2000：按边长比例反号分配，平差合格。</span>" : "<span class='bad'>K<1/2000：整条导线重测。</span>"}<br>要点：<b>先平角、后算坐标</b>；fx/fy 按边长比例反号分配；短边放大对中误差，选点避短边。`;
+}
+
+/* ============ 初始化 ============ */
+window.addEventListener("load", () => {
+  setTimeout(() => $("loader").classList.add("done"), 700);
+  renderSeg(); refreshMetrics(); narrate(); drawCanvas();
+});
+</script>
+</body>
+</html>
